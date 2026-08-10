@@ -6,10 +6,10 @@ type Tool = "memcheck" | "racecheck" | "initcheck" | "synccheck";
 
 const toolData: Record<Tool, { eyebrow: string; title: string; catches: string; misses: string; command: string; report: string[] }> = {
   memcheck: {
-    eyebrow: "01 · run this first",
+    eyebrow: "01 · RUN THIS FIRST",
     title: "memcheck",
     catches: "Out-of-bounds and unaligned accesses to global/local/shared memory; CUDA API errors and leaks.",
-    misses: "Sorting problem between threads or incorrect but valid numerical result.",
+    misses: "Ordering problems between threads or numerically incorrect results that still access valid memory.",
     command: "compute-sanitizer --tool memcheck ./build/vector_add",
     report: [
       "Invalid __global__ write of size 4 bytes",
@@ -35,7 +35,7 @@ const toolData: Record<Tool, { eyebrow: string; title: string; catches: string; 
     eyebrow: "03 initial state",
     title: "initcheck",
     catches: "Device global memory read without writing or copying; optionally shared memory.",
-    misses: "Memory limit error and synchronization violation. A clean run with memcheck is required first.",
+    misses: "Out-of-bounds accesses and synchronization violations. Run memcheck first.",
     command: "compute-sanitizer --tool initcheck ./build/stencil",
     report: [
       "Uninitialized __global__ memory read of size 4 bytes",
@@ -60,7 +60,7 @@ const toolData: Record<Tool, { eyebrow: string; title: string; catches: string; 
 };
 
 const questions = [
-  { q: "The FP32 parallel reduction result differs from the CPU reference by 2e-6. First correct approach?", a: ["Asking for bit-by-bit equality", "Defining an error budget with rtol/atol", "run memcheck and accept if it passes"], correct: 1 },
+  { q: "An FP32 parallel reduction differs from the CPU reference by 2e-6. What should you do first?", a: ["Require bit-for-bit equality", "Define an error budget with rtol/atol", "Run memcheck and accept the result if it passes"], correct: 1 },
   { q: "Which tool directly catches out-of-bounds global memory writes?", a: ["racecheck", "synccheck", "memcheck"], correct: 2 },
   { q: "Kernel is only correct for N=1024. What is the most likely testing vulnerability?", a: ["Shape and boundary matrix", "lower rtol", "Longer benchmark"], correct: 0 },
   { q: "Which order is appropriate in case of conditional __syncthreads()?", a: ["synccheck → profiler", "benchmark → initcheck", "racecheck → bit by bit comparison"], correct: 0 },
@@ -98,30 +98,30 @@ export default function KernelSafetyEmbedded() {
   return (
     <main className="kernel-safety-embed">
       <header className="topbar">
-        <a className="brand" href="#top" aria-label="Kernel Security Lab home page">
+        <a className="brand" href="#top" aria-label="Kernel Safety Lab home page">
           <span className="brand-mark">K<span>✓</span></span>
-          <span><b>KERNEL SECURITY</b><small>accuracy lab</small></span>
+          <span><b>KERNEL SAFETY</b><small>correctness lab</small></span>
         </a>
-        <nav className={menu ? "nav open" : "nav"} aria-label="main menu">
-          <a href="#dogruluk" onClick={() => setMenu(false)}>Correctness</a>
+        <nav className={menu ? "nav open" : "nav"} aria-label="Main menu">
+          <a href="#correctness" onClick={() => setMenu(false)}>Correctness</a>
           <a href="#sanitizer" onClick={() => setMenu(false)}>Sanitizer</a>
-          <a href="#is-akisi" onClick={() => setMenu(false)}>Workflow</a>
-          <a href="#sinav" onClick={() => setMenu(false)}>Quiz</a>
+          <a href="#workflow" onClick={() => setMenu(false)}>Workflow</a>
+          <a href="#quiz" onClick={() => setMenu(false)}>Quiz</a>
         </nav>
         <div className="top-actions">
           <span className="status"><i /> CUDA TOOLKIT</span>
-          <button className="menu-button" onClick={() => setMenu(!menu)} aria-expanded={menu} aria-label="open menu">≡</button>
+          <button className="menu-button" onClick={() => setMenu(!menu)} aria-expanded={menu} aria-label="Open menu">≡</button>
         </div>
       </header>
 
       <section className="hero" id="top">
         <div className="hero-copy">
           <div className="kicker"><span>GPU KERNEL ENGINEERING</span><i /> MODULE 03</div>
-          <h1>Being fast isn't enough.<br /><em>TRUE</em> prove that you are.</h1>
-          <p>GPU kernel accuracy; Learn how to test systematically with reference implementation, tolerance matrix, edge cases, and NVIDIA Compute Sanitizer.</p>
+          <h1>Being fast isn't enough.<br />Prove that it is <em>correct.</em></h1>
+          <p>Learn how to test GPU kernels systematically with a reference implementation, tolerance matrix, edge cases, and NVIDIA Compute Sanitizer.</p>
           <div className="hero-actions">
-            <a className="primary" href="#dogruluk">Start lab <span>↓</span></a>
-            <a className="text-link" href="#is-akisi">7-step checklist →</a>
+            <a className="primary" href="#correctness">Start lab <span>↓</span></a>
+            <a className="text-link" href="#workflow">7-step checklist →</a>
           </div>
         </div>
         <div className="hero-terminal" aria-label="Example successful test output">
@@ -138,21 +138,21 @@ export default function KernelSafetyEmbedded() {
       </section>
 
       <section className="concept-strip" aria-label="Three layers of accuracy">
-        <article><span>01</span><div><b>DIGITAL</b><p>Is it close enough to the reference?</p></div></article>
+        <article><span>01</span><div><b>NUMERICAL</b><p>Is it close enough to the reference?</p></div></article>
         <article><span>02</span><div><b>MEMORY</b><p>Is every access valid and initialized?</p></div></article>
-        <article><span>03</span><div><b>SIMULTANEITY</b><p>Can thread order change the result?</p></div></article>
+        <article><span>03</span><div><b>CONCURRENCY</b><p>Can thread order change the result?</p></div></article>
       </section>
 
-      <section className="section" id="dogruluk">
+      <section className="section" id="correctness">
         <div className="section-title">
-          <div><span className="chapter">EPISODE 01</span><h2>Accuracy test one <em>is a comparison contract</em></h2></div>
+          <div><span className="chapter">CHAPTER 01</span><h2>A correctness test <em>is a comparison contract</em></h2></div>
           <p>“It worked” just says it didn't crash. To say "correct", you first define the expected behavior and the acceptance limit.</p>
         </div>
 
         <div className="contract-grid">
           <article className="lesson-card"><span className="card-no">A.</span><h3>Reference</h3><p>A simple, readable and CPU/PyTorch independent implementation. It is written for reliability, not performance.</p><code>expected = torch_rmsnorm(x, w)</code></article>
-          <article className="lesson-card"><span className="card-no">B.</span><h3>observed</h3><p>CUDA/Triton kernel output using the same input, dtype and semantics.</p><code>actual = custom_kernel(x, w)</code></article>
-          <article className="lesson-card accent"><span className="card-no">C.</span><h3>decision rule</h3><p>Use absolute and relative tolerance together. The same contract covers large and near-zero values.</p><code>|a-b| ≤ atol + rtol × |b|</code></article>
+          <article className="lesson-card"><span className="card-no">B.</span><h3>Observed</h3><p>CUDA/Triton kernel output using the same input, dtype, and semantics.</p><code>actual = custom_kernel(x, w)</code></article>
+          <article className="lesson-card accent"><span className="card-no">C.</span><h3>Decision rule</h3><p>Use absolute and relative tolerance together. The same contract covers large and near-zero values.</p><code>|a-b| ≤ atol + rtol × |b|</code></article>
         </div>
 
         <div className="lab-grid">
@@ -179,21 +179,21 @@ export default function KernelSafetyEmbedded() {
             <h3>One happy path is not enough</h3>
             <ul>
               <li><b>Shape:</b> 0/1, prime size, warp limit −1/+1</li>
-              <li><b>Residential:</b> contiguous, transposed, sliced</li>
+              <li><b>Layout:</b> contiguous, transposed, sliced</li>
               <li><b>Value:</b> zero, negative, very small/large, NaN/Inf policy</li>
-              <li><b>Medicine:</b> FP32, FP16/BF16 and accumulation dtype</li>
+              <li><b>Dtype:</b> FP32, FP16/BF16, and accumulation dtype</li>
               <li><b>Initialization:</b> different seeds and reruns</li>
-              <li><b>Protection:</b> output sentinels, input immutability</li>
+              <li><b>Guardrails:</b> output sentinels, input immutability</li>
             </ul>
-            <div className="warning"><b>!</b><p><strong>Important distinction</strong>The allclose result measures semantic accuracy; Does not prove memory safety.</p></div>
+            <div className="warning"><b>!</b><p><strong>Important distinction</strong>The allclose result measures semantic correctness; it does not prove memory safety.</p></div>
           </aside>
         </div>
       </section>
 
       <section className="sanitizer-section" id="sanitizer">
         <div className="section-title light">
-          <div><span className="chapter">EPISODE 02</span><h2>Compute Sanitizer: <em>four separate detectors</em></h2></div>
-          <p>Each tool looks at a different class of errors. A clean memcheck run is a prerequisite for other tools; Just because they are all clean does not guarantee mathematical correctness, however.</p>
+          <div><span className="chapter">CHAPTER 02</span><h2>Compute Sanitizer: <em>four separate detectors</em></h2></div>
+          <p>Each tool targets a different error class. Run memcheck before the other tools, and remember that clean sanitizer results do not guarantee mathematical correctness.</p>
         </div>
         <div className="tool-shell">
           <div className="tool-tabs" role="tablist" aria-label="Compute Sanitizer tools">
@@ -221,23 +221,23 @@ export default function KernelSafetyEmbedded() {
             <label><input type="checkbox" checked={lineInfo} onChange={(e) => setLineInfo(e.target.checked)} /><span /> Show backtrace</label>
             <label><input type="checkbox" checked={exitCode} onChange={(e) => setExitCode(e.target.checked)} /><span /> Exit 99 on error</label>
           </div>
-          <div className="generated-command"><code>{command}</code><button onClick={copyCommand}>{copied ? "Copied ✓" : "Kopyala"}</button></div>
-          <p><b>Compilation note:</b> Usually instead of debug build for source line mapping <code>-lineinfo</code> add; Makes the report readable while preserving the optimization behavior.</p>
+          <div className="generated-command"><code>{command}</code><button onClick={copyCommand}>{copied ? "Copied ✓" : "Copy"}</button></div>
+          <p><b>Compilation note:</b> Add <code>-lineinfo</code> for source-line mapping instead of switching to a fully unoptimized debug build. It keeps reports readable while preserving optimized behavior.</p>
         </article>
       </section>
 
-      <section className="workflow section" id="is-akisi">
+      <section className="workflow section" id="workflow">
         <div className="section-title">
-          <div><span className="chapter">EPISODE 03</span><h2>Before accepting a kernel <em>chain of evidence</em></h2></div>
+          <div><span className="chapter">CHAPTER 03</span><h2>Build a <em>chain of evidence</em> before accepting a kernel</h2></div>
           <p>This order narrows down the debugging space: semantic contract first, memory and concurrency next, performance last.</p>
         </div>
         <ol className="steps">
           {[
-            ["Write the contract", "Make sure shape, dtype, broadcasting, NaN/Inf and aliasing behavior are turned on."],
-            ["Establish independent reference", "Slow but straightforward CPU/PyTorch way; Copying the kernel code."],
+            ["Write the contract", "Define shape, dtype, broadcasting, NaN/Inf, and aliasing behavior explicitly."],
+            ["Establish an independent reference", "Use a slow but straightforward CPU/PyTorch implementation instead of copying the kernel logic."],
             ["Scan test matrix", "Bounds, prime sizes, different strides, outliers and seeds."],
-            ["memcheck ile temizle", "Remove out-of-bounds/unaligned access and CUDA API errors first."],
-            ["scan race + init + sync", "Distinguish between shared hazard, uninitialized reading and barrier violations."],
+            ["Clean up with memcheck", "Remove out-of-bounds or unaligned accesses and CUDA API errors first."],
+            ["Scan race + init + sync", "Distinguish shared-memory hazards, uninitialized reads, and barrier violations."],
             ["Force repeatability", "Run the same entry multiple times; Make nondeterministic bias visible."],
             ["Then benchmark", "Measure performance with warm-up, synchronization, distribution and different shapes."],
           ].map((step, i) => <li key={step[0]}><span>{String(i + 1).padStart(2, "0")}</span><div><b>{step[0]}</b><p>{step[1]}</p></div>{i < 6 && <i>↓</i>}</li>)}
@@ -248,16 +248,16 @@ export default function KernelSafetyEmbedded() {
         </div>
       </section>
 
-      <section className="quiz-section" id="sinav">
-        <div className="quiz-intro"><span className="chapter">EPISODE 04</span><h2>Are you ready?<br /><em>Decide.</em></h2><p>Four short scenarios. The goal is not to memorize commands, but to choose the right proof tool.</p>{checked && <div className="score"><b>{score}/4</b><span>{score === 4 ? "Kernel reviewer mode is enabled." : "Review the answers, then try again."}</span></div>}</div>
+      <section className="quiz-section" id="quiz">
+        <div className="quiz-intro"><span className="chapter">CHAPTER 04</span><h2>Are you ready?<br /><em>Decide.</em></h2><p>Four short scenarios. The goal is not to memorize commands, but to choose the right evidence tool.</p>{checked && <div className="score"><b>{score}/4</b><span>{score === 4 ? "Kernel reviewer mode is enabled." : "Review the answers, then try again."}</span></div>}</div>
         <div className="questions">
           {questions.map((q, qi) => <fieldset key={q.q}><legend><span>{qi + 1}</span>{q.q}</legend>{q.a.map((answer, ai) => <label key={answer} className={checked ? (ai === q.correct ? "correct" : answers[qi] === ai ? "wrong" : "") : ""}><input type="radio" name={`q-${qi}`} checked={answers[qi] === ai} onChange={() => { setAnswers({ ...answers, [qi]: ai }); setChecked(false); }} /><i />{answer}</label>)}</fieldset>)}
-          <button className="quiz-button" disabled={Object.keys(answers).length !== questions.length} onClick={() => setChecked(true)}>Rate the answers <span>→</span></button>
+          <button className="quiz-button" disabled={Object.keys(answers).length !== questions.length} onClick={() => setChecked(true)}>Check answers <span>→</span></button>
         </div>
       </section>
 
       <footer>
-        <div className="brand footer-brand"><span className="brand-mark">K<span>✓</span></span><span><b>KERNEL SECURITY</b><small>accuracy lab</small></span></div>
+        <div className="brand footer-brand"><span className="brand-mark">K<span>✓</span></span><span><b>KERNEL SAFETY</b><small>correctness lab</small></span></div>
         <p>Source: <a href="https://docs.nvidia.com/compute-sanitizer/ComputeSanitizer/index.html" target="_blank" rel="noreferrer">NVIDIA Compute Sanitizer</a> · <a href="https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/" target="_blank" rel="noreferrer">CUDA Best Practices</a></p>
         <span className="footer-note">LEARN · TEST · PROVE</span>
       </footer>

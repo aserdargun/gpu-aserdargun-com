@@ -64,8 +64,8 @@ test("server-renders the complete English shell and metadata", async () => {
 
 test("wires every interactive lab to a separate Turkish and English experience", async () => {
   const atlas = await readFile(new URL("../app/kernel-atlas.tsx", import.meta.url), "utf8");
-  const forbiddenEnglishUiInTurkish = /GPU MEMORY|INTERACTIVE LAB|INFERENCE SYSTEMS LAB|INTERACTIVE PRIMER|GPU SYSTEMS \/ FIELD GUIDE|GPU PERFORMANCE FIELD GUIDE|PYTORCH CUSTOM OP|MODÜL 02 · GLOBAL MEMORY/;
-  const turkishResidueInEnglish = /[ÇĞİÖŞÜçğıöşü]|\b(?:kilit|başlangıç|temel|cevap|adım|referans|derleme|tarayıcı|çalışma|seçili|aktif|yollar|desteklenen|çıktı|simülasyonu|iskeleti|sayısı|ortalama|matrisi|hiyerarşik|gezinme|kullanılıyor|başarılı|açılış|kapanış|laboratuvar|doğruluk|öğrenme|kaynak|sınır|görev|hafta)\b/i;
+  const forbiddenEnglishUiInTurkish = /GPU MEMORY|INTERACTIVE LAB|INFERENCE SYSTEMS LAB|INTERACTIVE PRIMER|GPU SYSTEMS \/ FIELD GUIDE|GPU PERFORMANCE FIELD GUIDE|PYTORCH CUSTOM OP|MODÜL 02 · GLOBAL MEMORY|LEARNING GRAPH|INTERACTIVE WORKBENCH|ÜRETİM CHECKLIST|ETKİLEŞİMLİ GPU MENTAL MODELİ|MODEL RUNNER|<span>OUTPUT<\/span>/;
+  const turkishResidueInEnglish = /[ÇĞİÖŞÜçğıöşü]|\b(?:kilit|başlangıç|temel|cevap|adım|referans|derleme|tarayıcı|çalışma|seçili|aktif|yollar|desteklenen|çıktı|simülasyonu|iskeleti|sayısı|ortalama|matrisi|hiyerarşik|gezinme|kullanılıyor|başarılı|açılış|kapanış|laboratuvar|doğruluk|öğrenme|kaynak|sınır|görev|hafta|entegrasyon|performans|optimizasyon|mezuniyet|uygulama|hakem|kopyala|soyutlama|hedef|senkronizasyon|koalesme|hipotezi|sabit|dinamik|ziyaret|desteklenmeyen|temeller|paralellik|dogruluk|sinav|rota|sozluk)\b|SHOO|HAZIR|WELDING TABLE|MUTAN TEKE/i;
 
   for (const name of embeddedLabs) {
     assert.match(atlas, new RegExp(`import ${name}En from "\\./${name}\\.en"`));
@@ -93,12 +93,14 @@ test("ships locale-aware routing, metadata, accessibility, and social cards", as
 
   assert.match(atlas, /const trModules/);
   assert.match(atlas, /const enModules/);
+  assert.match(atlas, /graph: "ÖĞRENME GRAFİĞİ", online: "ÇEVRİM İÇİ"/);
   assert.match(atlas, /kernel-atlas-language/);
   assert.match(atlas, /router\.replace/);
   assert.match(page, /"tr-TR": "\/\?lang=tr"/);
   assert.match(page, /"en-US": "\/\?lang=en"/);
   assert.match(page, /image: "\/og\.png"/);
   assert.match(page, /image: "\/og-en\.png"/);
+  assert.match(page, /icons: \{ icon: "\/favicon\.svg" \}/);
   assert.match(layout, /x-kernel-atlas-locale/);
   assert.match(proxy, /Content-Language/);
   assert.match(proxy, /accept-language/);

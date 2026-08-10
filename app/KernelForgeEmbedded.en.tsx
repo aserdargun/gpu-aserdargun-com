@@ -70,7 +70,7 @@ const curriculum: Record<TrackKey, Array<{ title: string; eyebrow: string; summa
   ],
   python: [
     { title: "Python data model", eyebrow: "MODULE 01 · 70 MIN", summary: "Difference between name, object and reference; Learn the relationship between mutability, identity and special methods and protocols.", tags: ["object model", "dunder", "mutability"], lab: "Solve the mutable default trap" },
-    { title: "modern typing", eyebrow: "MODULE 02 · 80 MIN", summary: "Build strong contracts without breaking runtime with protocols, generics, type narrowing and deferred annotations.", tags: ["typing", "Protocol", "3.14"], lab: "Design a Protocol" },
+    { title: "Modern typing", eyebrow: "MODULE 02 · 80 MIN", summary: "Build strong contracts without breaking runtime behavior by using protocols, generics, type narrowing, and deferred annotations.", tags: ["typing", "Protocol", "3.14"], lab: "Design a Protocol" },
     { title: "Concurrency options", eyebrow: "MODULE 03 · 95 MIN", summary: "Choose asyncio, thread, process and 3.14 free-threaded build based on I/O, CPU and shared state.", tags: ["asyncio", "free-threading", "profiling"], lab: "Write async job queue" },
   ],
   linux: [
@@ -131,7 +131,7 @@ function runBashSandbox(code: string) {
     else if (line === "ls" || line === "ls -la") out.push("CMakeLists.txt README.md src tests");
     else if (line.startsWith("echo ")) out.push(expand(line.slice(5).replace(/^['"]|['"]$/g, "")));
     else if (line.startsWith("printf ")) out.push(expand(line.replace(/^printf\s+["']?|["']?$/g, "").replace(/\\n/g, "\n")));
-    else out.push(`sandbox: desteklenmeyen komut → ${line}`);
+    else out.push(`sandbox: unsupported command → ${line}`);
   };
   for (const raw of lines) {
     const line = raw.trim();
@@ -227,7 +227,7 @@ export default function KernelForgeEmbedded() {
           <button className={view === "questions" ? "active" : ""} onClick={() => setView("questions")}>Question bank</button>
         </nav>
         <div className="header-actions">
-          <div className="streak"><span>◆</span><b>1</b><small>day serial</small></div>
+          <div className="streak"><span>◆</span><b>1</b><small>day streak</small></div>
           <div className="avatar">A.S.</div>
         </div>
       </header>
@@ -287,7 +287,7 @@ export default function KernelForgeEmbedded() {
               </div>
 
               <div className="version-strip">
-                <div><span>CURRENT RELEASE RADAR</span><h2>Today's tools are permanent foundations.</h2></div>
+                <div><span>CURRENT RELEASE RADAR</span><h2>Today's tools, enduring foundations.</h2></div>
                 {tracks.map(track => <a key={track.key} href={track.key === "cpp" ? "https://en.cppreference.com/w/cpp/current_status.html" : track.key === "python" ? "https://www.python.org/downloads/" : track.key === "linux" ? "https://www.kernel.org/" : track.key === "git" ? "https://git-scm.com/docs" : "https://cmake.org/download/"} target="_blank" rel="noreferrer"><b>{track.label}</b><span>{track.version}</span></a>)}
               </div>
             </>
@@ -295,7 +295,7 @@ export default function KernelForgeEmbedded() {
 
           {view === "lab" && (
             <div className="lab-page">
-              <div className="page-title"><div><span>WEB IDE</span><h1>Learn by trying.</h1><p>Isolated scanner laboratory. It doesn't touch your file, it doesn't run system commands.</p></div><div className="runtime-pill"><span/> SANDBOX READY</div></div>
+              <div className="page-title"><div><span>WEB IDE</span><h1>Learn by trying.</h1><p>A sandboxed browser lab that does not modify your files or run system commands.</p></div><div className="runtime-pill"><span/> SANDBOX READY</div></div>
               <div className="lab-tabs">
                 <button className={lab === "cpp" ? "active" : ""} onClick={() => changeLab("cpp")}><b>C++</b><span>C++23 syntax</span></button>
                 <button className={lab === "python" ? "active" : ""} onClick={() => changeLab("python")}><b>Python</b><span>Pyodide runtime</span></button>
@@ -315,7 +315,7 @@ export default function KernelForgeEmbedded() {
 
           {view === "questions" && (
             <div className="questions-page">
-              <div className="page-title"><div><span>KEY QUESTION BANK</span><h1>Not what you know,<br/>find your gaps.</h1><p>{questions.length} short question; for interviewing, debugging and day-to-day engineering decisions.</p></div><div className="score-ring"><b>{revealed.length}</b><span>reply<br/>opened</span></div></div>
+              <div className="page-title"><div><span>KEY QUESTION BANK</span><h1>Find the gaps,<br/>not just what you know.</h1><p>{questions.length} short questions for interviews, debugging, and everyday engineering decisions.</p></div><div className="score-ring"><b>{revealed.length}</b><span>answers<br/>opened</span></div></div>
               <div className="question-tools">
                 <div className="filter-row">{tracks.map(track => <button key={track.key} className={activeTrack === track.key && !query ? "active" : ""} onClick={() => { setActiveTrack(track.key); setQuery(""); }}>{track.label}</button>)}</div>
                 <label><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search all questions…" /></label>

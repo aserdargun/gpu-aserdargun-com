@@ -100,12 +100,12 @@ export default function CudaSimtEmbedded() {
     <main className="cuda-simt-embed atlas-shell">
       <header className="hero">
         <div>
-          <p className="eyebrow">ETKİLEŞİMLİ GPU MENTAL MODELİ</p>
+          <p className="eyebrow">ETKİLEŞİMLİ GPU ZİHİNSEL MODELİ</p>
           <h1>Bilgisayar Mimarisi <span>→</span> SIMT <span>→</span> CUDA</h1>
           <p className="hero-copy">Bir kernel çağrısının CPU’dan başlayıp warp, bellek ve SM zamanlayıcısına uzanan yolculuğu.</p>
         </div>
         <div className="hero-chip" aria-label="Öğrenme rotası">
-          <span>HOST</span><i>→</i><span>GRID</span><i>→</i><span>WARP</span><i>→</i><span>LANE</span>
+          <span>ANA SİSTEM</span><i>→</i><span>IZGARA</span><i>→</i><span>WARP</span><i>→</i><span>ŞERİT</span>
         </div>
       </header>
 

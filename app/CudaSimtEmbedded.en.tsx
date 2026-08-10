@@ -20,7 +20,7 @@ const archData: Record<ArchLevel, { label: string; code: string; title: string; 
   grid: {
     label: "Grid", code: "kernel launch", title: "Grid · entire problem space",
     body: "They are all thread blocks of a kernel launch. Blocks are distributed in waves to appropriate SMs.",
-    owner: "Kernel launch on the host side", sharing: "Blocks can communicate via global memory; There is no global grid barrier in the normal kernel.",
+    owner: "Kernel launch on the host side", sharing: "Blocks can communicate through global memory, but a normal kernel has no grid-wide barrier.",
     result: "Don't rely on block order; blocks can run in any order.",
   },
   block: {
@@ -37,23 +37,23 @@ const archData: Record<ArchLevel, { label: string; code: string; title: string; 
   },
   thread: {
     label: "Thread", code: "threadIdx", title: "Thread · individual program state",
-    body: "It has its own indexes, registers and local data; It runs the same kernel code on different data.",
-    owner: "Lane ID within a warp", sharing: "Registers are special; shared memory block is scoped to global memory device.",
-    result: "Thread is an example of a logical program; It is not a permanent physical CUDA core.",
+    body: "It has its own indexes, registers, and local data while running the same kernel code on different inputs.",
+    owner: "Lane ID within a warp", sharing: "Registers are private to the thread; shared memory is scoped to the block, while global memory is scoped to the device.",
+    result: "A thread is a logical program instance, not a permanent physical CUDA core.",
   },
   instruction: {
     label: "Instruction", code: "lane op", title: "Instruction · execution pipeline job",
     body: "The warp instruction is issued to the appropriate FP/INT, load-store, special function or tensor pipelines.",
     owner: "Warp scheduler + dispatch", sharing: "The active lane mask determines which threads write results.",
-    result: "Throughput; The instruction mix is ​​shaped by dependencies, ready-made warps, and execution-unit capacity.",
+    result: "Throughput is shaped by the instruction mix, dependencies, ready warps, and execution-unit capacity.",
   },
 };
 
 const memoryData: Record<MemoryLevel, { title: string; scope: string; body: string; risk: string }> = {
-  register: { title: "Registers", scope: "Thread", body: "Private workspace of each thread. Very low latency and high bandwidth; The total budget per SM is limited.", risk: "Register pressure may reduce occupancy; If there is a spill, local memory falls into the global memory path." },
+  register: { title: "Registers", scope: "Thread", body: "Private workspace for each thread. Latency is very low and bandwidth is high, but the total budget per SM is limited.", risk: "Register pressure may reduce occupancy. If registers spill, local memory uses the global-memory path." },
   shared: { title: "Shared memory / L1", scope: "Block/SM", body: "An on-chip resource. Shared memory is managed explicitly for block-level reuse; L1 access is managed by hardware.", risk: "Bank conflicts can serialize access; high allocation may reduce the number of resident blocks." },
-  l2: { title: "L2 cache", scope: "All devices", body: "Device level cache shared by all SMs; Reduces global memory traffic.", risk: "If the working set is large or access is irregular, the hit rate may decrease." },
-  global: { title: "global memory", scope: "All devices", body: "High capacity GDDR/HBM. Despite its high latency, it provides high bandwidth for regular and parallel access.", risk: "If coalescing is poor, too many sectors are moved for little useful data." },
+  l2: { title: "L2 cache", scope: "Device", body: "A device-level cache shared by all SMs that can reduce global-memory traffic.", risk: "If the working set is large or access is irregular, the hit rate may decrease." },
+  global: { title: "Global memory", scope: "Device", body: "High-capacity GDDR/HBM with high latency and high bandwidth for regular, parallel access.", risk: "If coalescing is poor, too many sectors are moved for little useful data." },
 };
 
 const phases = ["Predicate", "PathA", "PathB", "Reconverge"];
@@ -104,8 +104,8 @@ export default function CudaSimtEmbedded() {
           <h1>Computer Architecture <span>→</span> SIMT <span>→</span> CUDA</h1>
           <p className="hero-copy">The journey of a kernel call from the CPU to warp, memory and the SM scheduler.</p>
         </div>
-        <div className="hero-chip" aria-label="learning route">
-          <span>SHOO</span><i>→</i><span>GRID</span><i>→</i><span>WARP</span><i>→</i><span>LANE</span>
+        <div className="hero-chip" aria-label="Learning route">
+          <span>HOST</span><i>→</i><span>GRID</span><i>→</i><span>WARP</span><i>→</i><span>LANE</span>
         </div>
       </header>
 
@@ -117,7 +117,7 @@ export default function CudaSimtEmbedded() {
 
       {tab === "overview" && (
         <section className="panel-stack" role="tabpanel">
-          <SectionHead title="Heterogeneous system: control in CPU, parallel work in GPU" subtitle="The host code initializes the kernel; device code runs as thousands of threads." badge="Host + Device" />
+          <SectionHead title="Heterogeneous system: CPU control, GPU parallelism" subtitle="Host code launches the kernel; device code runs across thousands of threads." badge="Host + Device" />
           <div className="flow" aria-label="Execution flow from CPU to GPU">
             <FlowNode tone="blue" title="CPU Host" copy="Serial control, I/O, kernel launch, memory orchestration" />
             <b aria-hidden>→</b>
@@ -134,7 +134,7 @@ export default function CudaSimtEmbedded() {
             <Compare title="CPU design priority" rows={[["Aim", "low latency"], ["Sunflower seed", "Few, complex"], ["Control", "Branch prediction + out-of-order"], ["ideal job", "Serial stream, irregular control, OS / I/O"]]} />
             <Compare title="GPU design priority" rows={[["Aim", "high throughput"], ["Sunflower seed", "Large number of parallel execution resources"], ["Control", "Latency hiding with warp multiplicity"], ["ideal job", "Regular, data-parallel, arithmetic intensive"]]} />
           </div>
-          <Lesson title="Main distinction" copy="CPU to finish a single job quickly; The GPU is optimized to run multiple similar jobs together." />
+          <Lesson title="Main distinction" copy="A CPU is optimized to finish a small number of tasks quickly, while a GPU is optimized to run many similar tasks together." />
         </section>
       )}
 
@@ -226,7 +226,7 @@ export default function CudaSimtEmbedded() {
             </div>
           </div>
           <div className="checklist"><Fact label="Correctness" value="if (i < N) limit protection" /><Fact label="Coalescing" value="Neighbor lane → neighbor address" /><Fact label="Occupancy" value="Thread + register + shared memory + block limits" /></div>
-          <Lesson title="Block size alone is not the answer" copy="128/256 threads are good starting experiments; The right choice is measured by profiler, register usage, shared memory, latency hiding and memory behavior." />
+          <Lesson title="Block size alone is not the answer" copy="128 or 256 threads are useful starting points. Choose by measuring profiler data, register usage, shared memory, latency hiding, and memory behavior." />
         </section>
       )}
     </main>

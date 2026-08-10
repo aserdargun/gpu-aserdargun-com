@@ -51,6 +51,7 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     metadataBase: base,
     title: copy.title,
     description: copy.description,
+    icons: { icon: "/favicon.svg" },
     alternates: {
       canonical: `/?lang=${locale}`,
       languages: { "tr-TR": "/?lang=tr", "en-US": "/?lang=en" },

@@ -153,7 +153,7 @@ export default function InferenceSystemsEmbedded() {
             <span>GPU</span>
             {Array.from({ length: 12 }).map((_, i) => <i key={i} style={{ opacity: 0.25 + i * 0.06 }} />)}
           </div>
-          <div className="token-stream"><span>OUTPUT</span><b>▮</b><b>▮</b><b>▮</b><b className="hot">▮</b><small>+1 TOKEN</small></div>
+          <div className="token-stream"><span>ÇIKTI</span><b>▮</b><b>▮</b><b>▮</b><b className="hot">▮</b><small>+1 BELİRTEÇ</small></div>
         </div>
       </section>
 
@@ -179,7 +179,7 @@ export default function InferenceSystemsEmbedded() {
               <div className="pipe-arrow">→</div>
               <div className="pipe-node active"><span>02</span><b>SCHEDULER</b><small>Token bütçesi + sıra</small></div>
               <div className="pipe-arrow">→</div>
-              <div className="pipe-node"><span>03</span><b>MODEL RUNNER</b><small>Forward + sampling</small></div>
+              <div className="pipe-node"><span>03</span><b>MODEL ÇALIŞTIRICI</b><small>İleri geçiş + örnekleme</small></div>
               <div className="pipe-arrow">→</div>
               <div className="pipe-node"><span>04</span><b>STREAM</b><small>Token yanıtı</small></div>
             </div>
@@ -257,7 +257,7 @@ export default function InferenceSystemsEmbedded() {
                 <span className="tool-label">LAB / 03 · WEIGHT HAFIZASI</span><h3>Modeli tart</h3>
                 <label htmlFor="parameter-count">PARAMETRE <b>{params}B</b></label><input id="parameter-count" type="range" min="1" max="70" value={params} onChange={(e) => setParams(Number(e.target.value))} />
                 <span className="tool-label">HASSASİYET</span><div className="segmented">{[16, 8, 4].map((b) => <button type="button" className={bits === b ? "selected" : ""} onClick={() => setBits(b)} key={b}>{b}-BIT</button>)}</div>
-                <div className="memory-output"><span>TEORİK WEIGHT BELLEĞİ</span><b>{weightMemory.toFixed(1)} <small>GB</small></b><p>GiB değil, ondalık GB yaklaşımıdır.</p></div>
+                <div className="memory-output"><span>TEORİK AĞIRLIK BELLEĞİ</span><b>{weightMemory.toFixed(1)} <small>GB</small></b><p>GiB değil, ondalık GB yaklaşımıdır.</p></div>
               </div>
               <div className="decision-card">
                 <span className="tool-label">KARAR ASİSTANI</span><h3>Önceliğin ne?</h3>
@@ -296,19 +296,19 @@ export default function InferenceSystemsEmbedded() {
 
           <section className="lesson measurement" id="measurement">
             <div className="section-index">05 / ÖLÇÜM DİSİPLİNİ</div>
-            <div className="section-heading"><h2>Benchmark, tek sayı değildir.</h2><p>Latency ve throughput aynı deneyde bile farklı hikâyeler anlatır. Warm-up, concurrency, prompt/output uzunluğu ve yüzdelikleri raporlanmayan sonuçlar taşınabilir değildir.</p></div>
+            <div className="section-heading"><h2>Kıyaslama, tek sayı değildir.</h2><p>Gecikme ve iş hacmi aynı deneyde bile farklı hikâyeler anlatır. Isınma, eşzamanlılık, istem/çıktı uzunluğu ve yüzdelikleri raporlanmayan sonuçlar taşınabilir değildir.</p></div>
             <div className="metric-grid">
               <article><span>TTFT</span><h3>İlk Belirtece Kadar Süre</h3><p>Kuyruk + prefill + ilk decode. Kullanıcının “cevap başladı” algısı.</p></article>
               <article><span>ITL</span><h3>Belirteçler Arası Gecikme</h3><p>Streaming sırasında ardışık token'lar arasındaki süre.</p></article>
-              <article><span>TPOT</span><h3>Çıktı Belirteci Başına Süre</h3><p>İlk token sonrası üretim süresinin output token sayısına oranı.</p></article>
-              <article><span>TOK/S</span><h3>Throughput</h3><p>Birim zamanda sistemin tamamladığı input/output token miktarı.</p></article>
+              <article><span>TPOT</span><h3>Çıktı Belirteci Başına Süre</h3><p>İlk belirteç sonrası üretim süresinin çıktı belirteci sayısına oranı.</p></article>
+              <article><span>TOK/S</span><h3>İş hacmi</h3><p>Birim zamanda sistemin tamamladığı girdi ve çıktı belirteci miktarı.</p></article>
             </div>
             <div className="benchmark-card">
-              <div><span>ÜRETİM CHECKLIST</span><h3>Tekrarlanabilir koşu</h3><p>Aynı model revizyonu, tokenizer ve sampling ayarları olmadan önce/sonra karşılaştırması güvenilir değildir.</p></div>
+              <div><span>ÜRETİM KONTROL LİSTESİ</span><h3>Tekrarlanabilir koşu</h3><p>Aynı model revizyonu, tokenizer ve örnekleme ayarları olmadan önce/sonra karşılaştırması güvenilir değildir.</p></div>
               <ul>
                 <li><b>01</b> Model + quant yöntemi + revizyon</li>
                 <li><b>02</b> GPU, sürücü, CUDA ve serving sürümü</li>
-                <li><b>03</b> Prompt/output uzunluğu dağılımı</li>
+                <li><b>03</b> İstem/çıktı uzunluğu dağılımı</li>
                 <li><b>04</b> QPS veya concurrency süpürmesi</li>
                 <li><b>05</b> Warm-up ve ölçüm penceresi</li>
                 <li><b>06</b> p50 / p95 / p99 + hata oranı</li>

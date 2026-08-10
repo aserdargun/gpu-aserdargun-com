@@ -10,7 +10,7 @@ const navItems = [
   ["01", "Nsight Systems", "#systems"],
   ["02", "Nsight Compute", "#compute"],
   ["03", "Benchmark", "#benchmark"],
-  ["04", "Uygulama", "#practice"],
+  ["04", "Practice", "#practice"],
 ] as const;
 
 const lensData: Record<Lens, { kicker: string; title: string; question: string; output: string; color: string }> = {
@@ -29,7 +29,7 @@ const lensData: Record<Lens, { kicker: string; title: string; question: string; 
     color: "lime",
   },
   benchmark: {
-    kicker: "HAKEM",
+    kicker: "REFEREE",
     title: "Reliable benchmark",
     question: "Is the change really faster, or is it just heat, clock frequency and measurement noise?",
     output: "raw samples median distribution",
@@ -59,7 +59,7 @@ const scenarioData: Record<Scenario, { title: string; subtitle: string; cpu: num
     next: "Examine pinned memory, async copy, stream overlap and data placement.",
   },
   noise: {
-    title: "noisy running",
+    title: "Noisy run",
     subtitle: "Single measurement is misleading",
     cpu: [7, 28, 63],
     gpu: [12, 34, 44, 72],
@@ -75,7 +75,7 @@ const computeModes = {
     tag: "MEMORY LIMITED",
     title: "Data feed rate is at the limit",
     metric: "DRAM throughput 86%",
-    copy: "Arithmetic intensity is low; The point is near the sloping memory ceiling. Access aggregation, data reuse, and unnecessary traffic are the first candidates.",
+    copy: "Arithmetic intensity is low, and the point is near the sloped memory ceiling. Coalescing, data reuse, and unnecessary traffic are the first areas to inspect.",
     checks: ["Memory Workload Analysis", "L1/L2 hit rate", "Bytes / useful element", "Global load efficiency"],
     point: [31, 64],
   },
@@ -83,13 +83,13 @@ const computeModes = {
     tag: "COMPUTATION LIMITED.",
     title: "Near execution ceiling",
     metric: "SM throughput 91%",
-    copy: "Arithmetic intensity is high; The point is approaching the horizontal compute ceiling. Instruction mix, Tensor Core usage and account reduction are more valuable.",
+    copy: "Arithmetic intensity is high, and the point is approaching the horizontal compute ceiling. Instruction mix, Tensor Core utilization, and dependency reduction are more valuable next steps.",
     checks: ["speed of light", "instruction statistics", "Tensor pipe utilization", "Eligible warps"],
     point: [73, 24],
   },
   latency: {
     tag: "DELAY / SCHEDULING",
-    title: "away from both ceilings",
+    title: "Away from both ceilings",
     metric: "Eligible warps 0.7 / cycle",
     copy: "If the bandwidth and compute are not full, there may be dependencies, stalls, low parallelism, or unstable work. Don't just look at the occupancy number.",
     checks: ["Warp State Statistics", "Scheduler Statistics", "Achieved occupancy", "Launch configuration"],
@@ -131,7 +131,7 @@ function CodeBlock({ children, label }: { children: string; label: string }) {
   };
   return (
     <div className="code-block">
-      <div className="code-head"><span>{label}</span><button onClick={copy} aria-label={`${label} komutunu kopyala`}>{copied ? "copied" : "Kopyala"}</button></div>
+      <div className="code-head"><span>{label}</span><button onClick={copy} aria-label={`Copy ${label} command`}>{copied ? "Copied" : "Copy"}</button></div>
       <pre><code>{children}</code></pre>
     </div>
   );
@@ -169,11 +169,11 @@ export default function NsightBenchmarkEmbedded() {
           <span className="brand-mark">K</span>
           <span>KERNEL / LAB</span>
         </a>
-        <div className="top-status"><span className="pulse" /> INTERACTIVE GUIDE <span className="version">GB · 01</span></div>
+        <div className="top-status"><span className="pulse" /> INTERACTIVE GUIDE <span className="version">EN · 01</span></div>
       </header>
 
       <div className="shell" id="top">
-        <aside className="rail" aria-label="Departments">
+        <aside className="rail" aria-label="Sections">
           <div className="rail-label">LAB NOTES</div>
           <nav>
             {navItems.map(([n, title, href]) => (
@@ -191,7 +191,7 @@ export default function NsightBenchmarkEmbedded() {
             <div className="eyebrow"><span>GPU PERFORMANCE FIELD GUIDE</span><i /></div>
             <div className="hero-grid">
               <div>
-                <h1>Speed   is unpredictable.<br /><em>It is proven.</em></h1>
+                <h1>Speed is not guessed.<br /><em>It is proven.</em></h1>
                 <p className="hero-copy">Find the critical path with Nsight Systems. Open the kernel with Nsight Compute. Prove whether the change really works with a controlled benchmark.</p>
                 <div className="hero-actions">
                   <a className="primary-button" href="#systems">Enter the laboratory <span>↓</span></a>
@@ -278,7 +278,7 @@ export default function NsightBenchmarkEmbedded() {
               <article className="info-card">
                 <span className="card-index">B / SUMMARY</span>
                 <h3>Numerical summary before GUI</h3>
-                <p>Scan total GPU time, kernel instance count, median and API cost. “% Time” may not be the percentage of the application wall clock; Read the report denominator.</p>
+                <p>Scan total GPU time, kernel instance count, median, and API cost. “% Time” may not refer to application wall-clock time, so read the report denominator.</p>
                 <CodeBlock label="Report summary" children={'nsys stats --report cuda_gpu_sum \\\n  --report cuda_api_sum\\\n  reports/step.nsys-rep'} />
               </article>
             </div>
@@ -296,13 +296,13 @@ export default function NsightBenchmarkEmbedded() {
           <section className="section" id="compute" aria-labelledby="compute-title">
             <div className="section-number lime-text">02 / NSIGHT COMPUTE</div>
             <div className="section-title-row">
-              <div><h2 id="compute-title">Then take the single kernel into the microscope.</h2><p>Filter hot kernel proven in Systems. Collect sections that test your hypothesis, not every metric.</p></div>
+              <div><h2 id="compute-title">Then put one kernel under the microscope.</h2><p>Filter the hot kernel identified in Systems. Collect only the sections that test your hypothesis.</p></div>
               <span className="tool-pill lime-pill">NCU · KERNEL-SCOPE</span>
             </div>
 
             <div className="compute-layout">
               <div className="roofline-card">
-                <div className="chart-head"><div><span>ROOFLINE / SCHEMATIC</span><b>PERFORMANCE</b></div><small>up is better</small></div>
+                <div className="chart-head"><div><span>ROOFLINE / SCHEMATIC</span><b>PERFORMANCE</b></div><small>Higher is better</small></div>
                 <div className="roofline-chart" aria-label="Schematic Roofline chart">
                   <div className="y-label">FLOP/s</div><div className="x-label">Arithmetic intensity →</div>
                   <div className="roof-slope" /><div className="roof-flat" />
@@ -337,24 +337,24 @@ export default function NsightBenchmarkEmbedded() {
               <article className="info-card lime-border">
                 <span className="card-index">A / CLOSE</span>
                 <h3>One kernel, several launches</h3>
-                <p><code>--set full</code> Profiling the entire application with produces a lot of replay and high overhead. First the name filter, then the number of launches.</p>
+                <p>Profiling the entire application with <code>--set full</code> creates extensive replay and overhead. Filter by kernel name first, then limit the number of launches.</p>
                 <CodeBlock label="Targeted kernel profile" children={'ncu --set basic\\\n  --kernel-name regex:".*rmsnorm.*" \\\n  --launch-skip 5 --launch-count 3\\\n  -o reports/rmsnorm ./your_app'} />
               </article>
               <article className="info-card lime-border">
                 <span className="card-index">B / HYPOTHESIS</span>
-                <h3>Choose Section, memorize not metric</h3>
-                <p>SpeedOfLight and LaunchStats for a first look; followed by just the pointed MemoryWorkloadAnalysis, SchedulerStats, or SourceCounters.</p>
+                <h3>Choose sections, not memorized metrics</h3>
+                <p>Start with SpeedOfLight and LaunchStats, then add only the relevant MemoryWorkloadAnalysis, SchedulerStats, or SourceCounters sections.</p>
                 <CodeBlock label="Selected sections" children={'ncu --section SpeedOfLight \\\n  --section LaunchStats\\\n  --section MemoryWorkloadAnalysis\\\n  --kernel-name regex:".*rmsnorm.*" ./your_app'} />
               </article>
             </div>
 
-            <div className="warning-band"><b>PROFILER TRAP</b><span>Nsight Compute adds replay and metric collection overhead. Using the end-to-end time obtained by the host timer or CUDA event under NCU as a benchmark result.</span></div>
+            <div className="warning-band"><b>PROFILER TRAP</b><span>Nsight Compute adds replay and metric-collection overhead. Do not use end-to-end time measured under NCU as a benchmark result.</span></div>
           </section>
 
           <section className="section" id="benchmark" aria-labelledby="benchmark-title">
             <div className="section-number orange-text">03 / RELIABLE BENCHMARK</div>
             <div className="section-title-row">
-              <div><h2 id="benchmark-title">Separate gain from noise</h2><p>Benchmark is not a stopwatch; It is a small experiment comparing two versions under the same conditions.</p></div>
+              <div><h2 id="benchmark-title">Separate gain from noise</h2><p>A benchmark is not just a stopwatch; it is a controlled experiment comparing two versions under the same conditions.</p></div>
               <span className="tool-pill orange-pill">UNPROFILED · REPEATED</span>
             </div>
 
@@ -388,10 +388,10 @@ export default function NsightBenchmarkEmbedded() {
               {[
                 ["01", "accuracy first", "The base and optimized version should produce the same result within tolerance."],
                 ["02", "Warmup separate", "Context creation, JIT and cache filling should be excluded from the measurement."],
-                ["03", "Async awareness", "The CPU timer should not stop before the GPU job is finished; Use correct synchronization."],
+                ["03", "Async awareness", "The CPU timer must not stop before GPU work finishes; use correct synchronization."],
                 ["04", "Show distribution", "Report median, number of samples, spread, and outliers instead of single numbers."],
-                ["05", "shape matrix", "A single shape victory cannot be generalized; Measure small/medium/large and realistic shapes."],
-                ["06", "media recording", "Store GPU, driver, CUDA, power mode, clock, dtype and compilation flags."],
+                ["05", "Shape matrix", "A win on one shape cannot be generalized; measure small, medium, large, and realistic shapes."],
+                ["06", "Record the environment", "Store GPU, driver, CUDA, power mode, clock, dtype, and compilation flags."],
               ].map(([n, title, copy]) => <article key={n}><span>{n}</span><div><h3>{title}</h3><p>{copy}</p></div></article>)}
             </div>
 
@@ -408,7 +408,7 @@ export default function NsightBenchmarkEmbedded() {
                 ["3", "COMPUTE", "Single kernel, open hypothesis, selected section, root cause"],
                 ["4", "CHANGE", "One idea at a time; write the expected metric in advance"],
                 ["5", "REMEASURE", "Same benchmark protocol + correctness gate"],
-                ["6", "RAPORLA", "Median speedup, propagation, shapes, media, profiler evidence"],
+                ["6", "REPORT", "Median speedup, distribution, shapes, environment, and profiler evidence"],
               ].map(([n, title, copy]) => <div key={n}><b>{n}</b><span>{title}</span><p>{copy}</p></div>)}
             </div>
 
@@ -428,7 +428,7 @@ export default function NsightBenchmarkEmbedded() {
                 <div className="question" key={item.q}>
                   <p><b>0{qi + 1}</b>{item.q}</p>
                   <div>{item.options.map((option, oi) => <button key={option} onClick={() => setAnswers(a => a.map((x, i) => i === qi ? oi : x))} className={answers[qi] === oi ? (oi === item.answer ? "correct" : "wrong") : ""}>{option}</button>)}</div>
-                  {answers[qi] >= 0 && <small className={answers[qi] === item.answer ? "ok" : "no"}>{answers[qi] === item.answer ? "TRUE -" : "Think again —"}{item.why}</small>}
+                  {answers[qi] >= 0 && <small className={answers[qi] === item.answer ? "ok" : "no"}>{answers[qi] === item.answer ? "CORRECT — " : "Think again — "}{item.why}</small>}
                 </div>
               ))}
             </div>

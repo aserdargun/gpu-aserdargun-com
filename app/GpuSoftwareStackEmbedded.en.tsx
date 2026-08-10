@@ -12,8 +12,8 @@ const tracks = {
       "Learn how to write kernels, memory hierarchy, and a CUDA-like execution model on AMD GPUs via HIP.",
     accent: "#ff6b35",
     stats: [
-      ["Soyutlama", "Runtime + kernel language"],
-      ["Hedef", "AMD / NVIDIA*"],
+      ["Abstraction", "Runtime + kernel language"],
+      ["Target", "AMD / NVIDIA*"],
       ["Output", "GPU duo + host code"],
     ],
     steps: [
@@ -21,7 +21,7 @@ const tracks = {
         label: "Host",
         code: "C++",
         detail:
-          "The CPU side selects the device, allocates memory, moves data, and manages the kernel initialization sequence.",
+          "The CPU selects the device, allocates memory, moves data, and manages the kernel launch sequence.",
       },
       {
         label: "Grid",
@@ -33,19 +33,19 @@ const tracks = {
         label: "Kernel",
         code: "__global__",
         detail:
-          "Each thread executes the same kernel code with different indexes; border control is the first gate of truth.",
+          "Each thread executes the same kernel code with a different index; bounds checking is the first correctness gate.",
       },
       {
         label: "Memory",
         code: "HBM → LDS",
         detail:
-          "Global memory is a high capacity, LDS/shared memory is a low latency shared area. The access pattern is decisive.",
+          "Global memory provides high capacity, while LDS/shared memory provides a low-latency shared workspace. Access patterns are decisive.",
       },
       {
-        label: "Senkron",
+        label: "Sync",
         code: "barrier",
         detail:
-          "Manage dependencies within the Block with barriers; Consider global synchronization between blocks at the kernel boundary.",
+          "Manage dependencies within a block with barriers. Handle global synchronization between blocks at kernel boundaries.",
       },
     ],
     code: `__global__ void saxpy(float a, const float* x,
@@ -57,8 +57,8 @@ const tracks = {
 int blocks = (n + 255) / 256;
 hipLaunchKernelGGL(saxpy, dim3(blocks), dim3(256),
                    0, 0, 2.0f, x, y, n);`,
-    note: "* HIP resource portability depends on APIs and dependencies used; Performance portability is not automatic.",
-    pitfalls: ["Uncoupled access", "Wavefront separation", "Unnecessary host-device copy", "Missing error checking"],
+    note: "* HIP source portability depends on the APIs and dependencies used; performance portability is not automatic.",
+    pitfalls: ["Uncoalesced access", "Wavefront divergence", "Unnecessary host-device copies", "Missing error checks"],
   },
   mlir: {
     eyebrow: "02 / COMPILER INFRASTRUCTURE",
@@ -67,8 +67,8 @@ hipLaunchKernelGGL(saxpy, dim3(blocks), dim3(256),
       "Reduce high-level tensor intent into target code with rewritable dialects and pass pipelines.",
     accent: "#b7f000",
     stats: [
-      ["Soyutlama", "Multi-level IR"],
-      ["Hedef", "CPU/GPU/accelerator"],
+      ["Abstraction", "Multi-level IR"],
+      ["Target", "CPU/GPU/accelerator"],
       ["Output", "Lowered target IR"],
     ],
     steps: [
@@ -82,7 +82,7 @@ hipLaunchKernelGGL(saxpy, dim3(blocks), dim3(256),
         label: "Dialect",
         code: "linalg/tensor",
         detail:
-          "Dialect; It is a dictionary of operations, types and attributes. The right level of abstraction preserves the optimization space.",
+          "A dialect defines operations, types, and attributes. The right abstraction level preserves the optimization space.",
       },
       {
         label: "Transform",
@@ -94,36 +94,36 @@ hipLaunchKernelGGL(saxpy, dim3(blocks), dim3(256),
         label: "Lowering",
         code: "scf → gpu",
         detail:
-          "With dialect conversion, high-level operations are legalized into lower-level, closer-to-target operations.",
+          "Dialect conversion legalizes high-level operations into lower-level operations that are closer to the target.",
       },
       {
         label: "Backend",
         code: "LLVM/ROCDL",
         detail:
-          "The final representation is translated into target paths such as LLVM, NVVM, ROCDL or SPIR-V, approximating machine code.",
+          "The final representation is translated through target paths such as LLVM, NVVM, ROCDL, or SPIR-V toward machine code.",
       },
     ],
     code: `module {\n  func.func @matmul(%a: tensor<128x64xf32>,\n                    %b: tensor<64x128xf32>)\n      -> tensor<128x128xf32> {\n    %init = tensor.empty() : tensor<128x128xf32>\n    %c = linalg.matmul\n      ins(%a, %b : tensor<128x64xf32>, tensor<64x128xf32>)\n      outs(%init : tensor<128x128xf32>)\n    return %c : tensor<128x128xf32>\n  }\n}`, 
-    note: "MLIR is not a single IR; It is an infrastructure that manages the gradual transformation between dialects. Pass order is a design decision for both legality and performance.",
-    pitfalls: ["Lowering too early", "Indefinite pass contract", "Bypass IR verification", "Ignoring the target cost model"],
+    note: "MLIR is not a single IR. It is infrastructure for managing gradual transformations between dialects. Pass order is a design decision for both legality and performance.",
+    pitfalls: ["Lowering too early", "Undefined pass contracts", "Skipping IR verification", "Ignoring the target cost model"],
   },
   tensorrt: {
     eyebrow: "03 / INFERENCE OPTIMIZATION",
     title: "TensorRT",
     intro:
-      "Converts the trained model into an engine optimized for low latency and high throughput on the NVIDIA GPU.",
+      "Convert a trained model into an engine optimized for low latency and high throughput on NVIDIA GPUs.",
     accent: "#7c8cff",
     stats: [
-      ["Soyutlama", "Model graph + runtime"],
-      ["Hedef", "NVIDIA GPU"],
-      ["Output", "serialized engine"],
+      ["Abstraction", "Model graph + runtime"],
+      ["Target", "NVIDIA GPU"],
+      ["Output", "Serialized engine"],
     ],
     steps: [
       {
         label: "Import",
         code: "ONNX",
         detail:
-          "The model graph is decomposed; Unsupported operations may require plugins or graph rewrites.",
+          "The model graph is parsed. Unsupported operations may require plugins or graph rewrites.",
       },
       {
         label: "Analyze",
@@ -135,38 +135,38 @@ hipLaunchKernelGGL(saxpy, dim3(blocks), dim3(256),
         label: "Optimize",
         code: "fusion + tactics",
         detail:
-          "The layers are combined and candidate kernel/tactic options are selected by profiling the target hardware.",
+          "Layers are fused, and candidate kernels or tactics are selected by profiling the target hardware.",
       },
       {
         label: "Build",
         code: "engine.plan",
         detail:
-          "Selections become a serialized engine. Manage Engine with target environment and version.",
+          "The selected tactics become a serialized engine. Treat the target environment and version as part of the engine contract.",
       },
       {
         label: "Execute",
         code: "enqueueV3",
         detail:
-          "The execution context initiates asynchronous extraction with the actual input shape and buffer addresses.",
+          "The execution context launches asynchronous inference with the actual input shapes and buffer addresses.",
       },
     ],
     code: `config = builder.create_builder_config()\nprofile = builder.create_optimization_profile()\nprofile.set_shape("tokens",\n                  min=(1, 8), opt=(4, 128), max=(8, 512))\nconfig.add_optimization_profile(profile)\n\nserialized = builder.build_serialized_network(network, config)\nengine = runtime.deserialize_cuda_engine(serialized)\ncontext = engine.create_execution_context()`,
-    note: "The min/opt/max range for dynamic shape is a performance contract, not an API detail. Make the measurement with real traffic distribution.",
+    note: "The min/opt/max range for dynamic shapes is a performance contract, not an API detail. Measure it against the real traffic distribution.",
     pitfalls: ["Wrong optimization shape", "Looking at P50 and missing P99", "Not measuring accuracy loss", "Assuming engine portability"],
   },
 } as const;
 
 const glossary = [
-  ["Wavefront", "The hardware execution unit of a group of threads that execute the same command together on an AMD GPU."],
-  ["Occupancy", "Wave or warp rate that can be active on a compute unit / SM; It is not performance alone."],
+  ["Wavefront", "A group of threads that execute the same instruction together on an AMD GPU."],
+  ["Occupancy", "The fraction of waves or warps that can be active on a compute unit or SM; it is not a performance metric by itself."],
   ["Dialect", "A dictionary of operations, types, and attributes of a particular field within MLIR."],
-  ["Lowering", "The process of transforming a representation into a representation that is lower level or closer to the target."],
+  ["Lowering", "The process of transforming a representation into a lower-level form that is closer to the target."],
   ["Legality", "A set of rules regarding which operations are allowed at the end of dialect conversion."],
   ["Tactic", "The implementation option that TensorRT builder evaluates to execute a layer or fusion."],
   ["Engine", "The inference plan that TensorRT optimizes and serializes for the target runtime."],
   ["Optimization profile", "Accepted min/opt/max shape range for dynamic inputs."],
-  ["Arithmetic intensity", "Amount of calculations made per data transferred; One of the main axes of roofline analysis."],
-  ["Fusion", "Consolidating operations into a single execution region to reduce buffer traffic and launch cost."],
+  ["Arithmetic intensity", "The amount of computation performed per byte transferred; one of the main axes of roofline analysis."],
+  ["Fusion", "Combining operations into one execution region to reduce buffer traffic and launch overhead."],
 ] as const;
 
 const choiceMap = {
@@ -183,7 +183,7 @@ const choiceMap = {
   inference: {
     tag: "Starting point: TensorRT",
     title: "Work backward from service SLO",
-    body: "Fix the actual shape distribution, batch policy and accepted accuracy tolerance; Manufacture and measure the engine according to this contract.",
+    body: "Fix the real shape distribution, batch policy, and accepted accuracy tolerance. Build and measure the engine against that contract.",
   },
 } as const;
 
@@ -192,7 +192,7 @@ export default function GpuSoftwareStackEmbedded() {
   const [activeStep, setActiveStep] = useState(0);
   const [choice, setChoice] = useState<keyof typeof choiceMap>("kernel");
   const [precision, setPrecision] = useState("FP16");
-  const [shapeMode, setShapeMode] = useState("Sabit");
+  const [shapeMode, setShapeMode] = useState("Static");
   const [fusion, setFusion] = useState(true);
   const [query, setQuery] = useState("");
 
@@ -221,8 +221,8 @@ export default function GpuSoftwareStackEmbedded() {
         <nav aria-label="Main navigation">
           <a href="#map">Map</a>
           <a href="#workbench">Workbench</a>
-          <a href="#rota">Route</a>
-          <a href="#sozluk">Dictionary</a>
+          <a href="#roadmap">Route</a>
+          <a href="#glossary">Glossary</a>
         </nav>
         <a className="header-cta" href="#workbench">Start exploring <span>↘</span></a>
       </header>
@@ -230,17 +230,17 @@ export default function GpuSoftwareStackEmbedded() {
       <section className="hero" id="top">
         <div className="hero-copy">
           <div className="kicker"><span /> GPU SYSTEMS / FIELD GUIDE</div>
-          <h1>GPU software<br />of the pile <em>into</em> look</h1>
+          <h1>Look inside the<br /><em>GPU software stack.</em></h1>
           <p className="hero-lead">
             Learn three critical layers, from the kernel code to the compiler IR to the optimized inference engine, in one interactive atlas.
           </p>
           <div className="hero-actions">
-            <a className="button primary" href="#map">Turn on system <span>↓</span></a>
-            <a className="text-link" href="#rota">See the learning route <span>→</span></a>
+            <a className="button primary" href="#map">Open the system map <span>↓</span></a>
+            <a className="text-link" href="#roadmap">See the learning route <span>→</span></a>
           </div>
           <div className="hero-meta">
-            <span><b>3</b> area of   expertise</span>
-            <span><b>15</b> architectural step</span>
+            <span><b>3</b> areas of expertise</span>
+            <span><b>15</b> architectural steps</span>
             <span><b>1</b> unified mental model</span>
           </div>
         </div>
@@ -314,7 +314,7 @@ export default function GpuSoftwareStackEmbedded() {
                 <ul>
                   {item.stats.map(([label, value]) => <li key={label}><span>{label}</span><b>{value}</b></li>)}
                 </ul>
-                <a href="#workbench" onClick={() => selectTrack(key)}>Check out the module <span>↘</span></a>
+                <a href="#workbench" onClick={() => selectTrack(key)}>Open the module <span>↘</span></a>
               </article>
             );
           })}
@@ -323,7 +323,7 @@ export default function GpuSoftwareStackEmbedded() {
 
       <section className="workbench" id="workbench">
         <div className="workbench-header">
-          <div><div className="section-label light">02 / INTERACTIVE WORKBENCH</div><h2>a pipeline<br />take it apart.</h2></div>
+          <div><div className="section-label light">02 / INTERACTIVE WORKBENCH</div><h2>Take a pipeline<br />apart.</h2></div>
           <div className="track-tabs" role="tablist" aria-label="Technology modules">
             {(Object.keys(tracks) as TrackKey[]).map((key) => (
               <button key={key} role="tab" aria-selected={activeTrack === key} onClick={() => selectTrack(key)}>
@@ -348,7 +348,7 @@ export default function GpuSoftwareStackEmbedded() {
           </div>
           <div className="step-detail" aria-live="polite">
             <div className="detail-number">0{activeStep + 1}</div>
-            <div><span>SELECTED LAYER</span><h4>{track.steps[activeStep].label}</h4><p>{track.steps[activeStep].detail}</p></div>
+            <div><span>SELECTED STEP</span><h4>{track.steps[activeStep].label}</h4><p>{track.steps[activeStep].detail}</p></div>
           </div>
         </div>
 
@@ -358,8 +358,8 @@ export default function GpuSoftwareStackEmbedded() {
             <pre><code>{track.code}</code></pre>
           </div>
           <aside className="risk-panel">
-            <span>ATTENTION ON THE FIELD</span>
-            <h4>Common breakpoints</h4>
+            <span>FIELD NOTES</span>
+            <h4>Common failure points</h4>
             <ol>{track.pitfalls.map((pitfall, index) => <li key={pitfall}><span>0{index + 1}</span>{pitfall}</li>)}</ol>
             <p className="field-note">{track.note}</p>
           </aside>
@@ -368,17 +368,17 @@ export default function GpuSoftwareStackEmbedded() {
 
       <section className="compare-section">
         <div className="section-heading compact">
-          <div><div className="section-label">03 / DECISION MATRIX</div><h2>the right tool,<br /><em>on the right layer</em> use</h2></div>
+          <div><div className="section-label">03 / DECISION MATRIX</div><h2>Use the right tool<br /><em>at the right layer.</em></h2></div>
           <p>These tools are not alternatives to each other. Locating the problem moves the optimization effort to the correct level of abstraction.</p>
         </div>
         <div className="comparison-table" role="table" aria-label="Technology comparison">
           <div className="comparison-row comparison-head" role="row"><span>COMPARE</span><b>ROCm/HIP</b><b>MLIR</b><b>TensorRT</b></div>
           {[
-            ["main question", "How does the kernel work?", "How does the code transform?", "How is the model serviced?"],
-            ["control surface", "Thread, memory, stream", "IR, dialect, pass", "Graph, precision, profile"],
-            ["primary measurement", "Bandwidth / kernel time", "IR quality / compile time", "Latency/throughput"],
-            ["Error type", "Race / invalid access", "Illegal IR/miscompile", "Unsupported op / accuracy drift"],
-            ["initial artifact", ".hip / C++ source", "Dialect or frontend IR", "ONNX / network definition"],
+            ["Main question", "How does the kernel execute?", "How does the code transform?", "How is the model served?"],
+            ["Control surface", "Thread, memory, stream", "IR, dialect, pass", "Graph, precision, profile"],
+            ["Primary measurement", "Bandwidth / kernel time", "IR quality / compile time", "Latency / throughput"],
+            ["Failure mode", "Race / invalid access", "Illegal IR / miscompile", "Unsupported op / accuracy drift"],
+            ["Starting artifact", ".hip / C++ source", "Dialect or frontend IR", "ONNX / network definition"],
           ].map((row) => <div className="comparison-row" role="row" key={row[0]}>{row.map((cell, i) => i === 0 ? <span key={cell}>{cell}</span> : <b key={cell}>{cell}</b>)}</div>)}
         </div>
       </section>
@@ -403,24 +403,24 @@ export default function GpuSoftwareStackEmbedded() {
         <div className="lab-output" aria-live="polite">
           <div className="lab-screen-top"><span>MEASUREMENT PLAN</span><span>SCENARIO / A</span></div>
           <div className="metric-grid">
-            <div><span>PRIORITY METRIC</span><strong>{shapeMode === "Dinamik" ? "P99 latency/shape" : "Latency + throughput"}</strong></div>
-            <div><span>THE DOOR OF TRUTH</span><strong>{precision === "INT8" ? "Calibration + mission metric" : precision === "FP16" ? "FP32 parity check" : "Reference output difference"}</strong></div>
-            <div><span>PROFILE DESIGN</span><strong>{shapeMode === "Dinamik" ? "Min/opt/max sets" : "Single shape, real batch"}</strong></div>
-            <div><span>GRAPH CONTROL</span><strong>{fusion ? "Validate Fusion layers" : "Measure intermediate tensor traffic"}</strong></div>
+            <div><span>PRIORITY METRIC</span><strong>{shapeMode === "Dynamic" ? "P99 latency by shape" : "Latency + throughput"}</strong></div>
+            <div><span>VALIDATION GATE</span><strong>{precision === "INT8" ? "Calibration + task metric" : precision === "FP16" ? "FP32 parity check" : "Reference output difference"}</strong></div>
+            <div><span>PROFILE DESIGN</span><strong>{shapeMode === "Dynamic" ? "Min/opt/max sets" : "Single shape, real batch"}</strong></div>
+            <div><span>GRAPH CONTROL</span><strong>{fusion ? "Validate fused layers" : "Measure intermediate tensor traffic"}</strong></div>
           </div>
           <div className="lab-warning"><b>!</b><p><strong>This is not a performance estimate.</strong> It is not reliable to produce a speedup percentage without hardware, model, shape distribution and runtime conditions.</p></div>
         </div>
       </section>
 
-      <section className="roadmap" id="rota">
+      <section className="roadmap" id="roadmap">
         <div className="section-heading">
           <div><div className="section-label">05 / LEARNING ROUTE</div><h2>A route for producing,<br /><em>not just reading.</em></h2></div>
           <p>Close each stage with a measurable artifact. Durations are approximate study blocks; real progress is determined by accuracy and profile evidence.</p>
         </div>
         <div className="roadmap-grid">
           {[
-            ["01", "Basis", "6–8 hours", "GPU execution model", "SAXPY+ accuracy test", ["grid/block/thread", "memory life cycle", "senkronizasyon"]],
-            ["02", "Kernel", "10–14 hours", "HIP optimization cycle", "Naive → tiled matmul", ["koalesme", "LDS usage", "profiler hipotezi"]],
+            ["01", "Foundations", "6–8 hours", "GPU execution model", "SAXPY + correctness test", ["grid/block/thread", "memory lifecycle", "synchronization"]],
+            ["02", "Kernel", "10–14 hours", "HIP optimization cycle", "Naive → tiled matmul", ["coalescing", "LDS usage", "profiler hypothesis"]],
             ["03", "Compiler", "12–16 hours", "MLIR conversion line", "Special pass + IR test", ["dialect design", "rewrite pattern", "partial lowering"]],
             ["04", "Inference", "10–14 hours", "TensorRT deployment", "Measured engine report", ["ONNX review", "dynamic profile", "accuracy/latency gate"]],
           ].map(([num, tag, duration, title, artifact, bullets]) => (
@@ -434,10 +434,10 @@ export default function GpuSoftwareStackEmbedded() {
         </div>
       </section>
 
-      <section className="glossary-section" id="sozluk">
+      <section className="glossary-section" id="glossary">
         <div className="glossary-head">
-          <div><div className="section-label light">06 / QUICK DICTIONARY</div><h2>Find the term,<br />Set the context.</h2></div>
-          <label className="search-box"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="wavefront, lowering, tactic..." aria-label="search in dictionary" /><small>{filteredGlossary.length} CONCLUSION</small></label>
+          <div><div className="section-label light">06 / QUICK GLOSSARY</div><h2>Find the term.<br />Set the context.</h2></div>
+          <label className="search-box"><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="wavefront, lowering, tactic..." aria-label="Search the glossary" /><small>{filteredGlossary.length} RESULTS</small></label>
         </div>
         <div className="glossary-list">
           {filteredGlossary.map(([term, description], index) => (

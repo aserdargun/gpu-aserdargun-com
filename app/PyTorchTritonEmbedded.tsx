@@ -130,7 +130,7 @@ export default function PyTorchTritonEmbedded() {
         <div className="hero-copy">
           <div className="kicker"><span>YOĞUN PROGRAM</span><span>12 HAFTA</span><span>14–16 SA / HAFTA</span></div>
           <h1>PyTorch’tan<br /><em>çıplak metale.</em></h1>
-          <p className="hero-lede">Bir operatörün doğru Python referansından başlayıp, derlenebilir PyTorch custom op’a ve ölçülmüş Triton kernel’e dönüşmesini yaparak öğren.</p>
+          <p className="hero-lede">Bir operatörün doğru Python referansından başlayıp derlenebilir bir PyTorch özel operatörüne ve ölçülmüş Triton kernel’ine dönüşmesini yaparak öğren.</p>
           <div className="hero-actions">
             <a className="primary-button" href="#lab">Aktif laboratuvara gir <span>↗</span></a>
             <a className="text-link" href="#yol">Programı incele <span>↓</span></a>

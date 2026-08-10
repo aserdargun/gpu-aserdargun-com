@@ -7,7 +7,7 @@ type ModuleId = "hierarchy" | "coalescing" | "banks" | "occupancy";
 const modules: { id: ModuleId; number: string; label: string; short: string }[] = [
   { id: "hierarchy", number: "01", label: "Memory hierarchy", short: "Hierarchy" },
   { id: "coalescing", number: "02", label: "Coalescing", short: "Coalescing" },
-  { id: "banks", number: "03", label: "Bank conflict", short: "Bank conflict" },
+  { id: "banks", number: "03", label: "Bank conflicts", short: "Bank conflicts" },
   { id: "occupancy", number: "04", label: "Occupancy", short: "Occupancy" },
 ];
 
@@ -15,22 +15,22 @@ const hierarchyLayers = [
   {
     id: "register",
     name: "Register",
-    place: "on SM",
-    scope: "single thread",
+    place: "On the SM",
+    scope: "Single thread",
     speed: "Lowest latency",
     capacity: "Very small",
     color: "violet",
-    note: "The compiler keeps scalars and short-lived intermediate values ​​in registers. Using too many registers may reduce the number of warps that can remain in the same SM; If there is an overflow, the data goes to local memory, which, despite its name, is physically located in global memory.",
+    note: "The compiler keeps scalars and short-lived intermediate values in registers. Using too many registers can reduce the number of resident warps. Spilled values move to local memory, which is physically backed by global memory.",
   },
   {
     id: "shared",
     name: "Shared memory / L1",
-    place: "on SM",
+    place: "On the SM",
     scope: "Thread block",
     speed: "Very low latency",
     capacity: "Small, programmable",
     color: "blue",
-    note: "It is a collaborative workspace where threads within a block are explicitly managed. It reduces global memory traffic if data is to be reused. However, there is a cost of synchronization, bank conflict and capacity per block.",
+    note: "This is an explicitly managed workspace shared by threads in a block. It can reduce global-memory traffic when data is reused, but synchronization, bank conflicts, and per-block capacity all have costs.",
   },
   {
     id: "l2",
@@ -40,15 +40,15 @@ const hierarchyLayers = [
     speed: "Medium latency",
     capacity: "MB scale",
     color: "cyan",
-    note: "It is a common cache of global and local memory traffic. It can take advantage of data replication between SMs. The kernel does not allocate L2 directly; The access pattern and data determine the working set hit rate.",
+    note: "L2 caches global- and local-memory traffic across the GPU and can reuse data between SMs. Kernels do not allocate L2 directly; access patterns and the working set determine the hit rate.",
   },
   {
     id: "global",
-    name: "global memory",
+    name: "Global memory",
     place: "GPU DRAM",
     scope: "Grid and host",
-    speed: "high latency",
-    capacity: "biggest",
+    speed: "High latency",
+    capacity: "Largest",
     color: "orange",
     note: "This is the home of large tensors. Bandwidth is high, but individual accesses have high latency. Performance depends on coalescing, cache use, data reuse, and enough ready warps to hide latency.",
   },
@@ -80,12 +80,12 @@ function Header({ active, setActive, visited }: { active: ModuleId; setActive: (
             aria-current={active === module.id ? "page" : undefined}
           >
             <span>{module.number}</span>{module.short}
-            {visited.has(module.id) && <b aria-label="ziyaret edildi">•</b>}
+            {visited.has(module.id) && <b aria-label="visited">•</b>}
           </button>
         ))}
       </nav>
       <div className="course-meta">
-        <span>{visited.size}/4 MODULE</span>
+        <span>{visited.size}/4 MODULES</span>
         <div className="progress-track" aria-label={`Progress: ${visited.size} / 4`}><i style={{ width: `${visited.size * 25}%` }} /></div>
       </div>
     </header>
@@ -174,7 +174,7 @@ function CoalescingLab() {
   return (
     <section className="module-layout">
       <ModuleIntro eyebrow="MODULE 02 · GLOBAL MEMORY" title="Coalescing" lead="When a warp's 32 threads access nearby addresses, the hardware combines these requests into a small number of memory operations.">
-        <Fact label="MODEL">Each thread is a <code>float</code> It reads (4 bytes). For Compute capability 6.0+, accesses are displayed on the required 32-byte sectors.</Fact>
+        <Fact label="MODEL">Each thread reads one <code>float</code> (4 bytes). For compute capability 6.0 and later, the visualization groups accesses into required 32-byte sectors.</Fact>
         <Fact label="WHY IS IT IMPORTANT?">While the required 128 bytes remains the same, the number of sectors moved may grow. Unused bytes consume bandwidth.</Fact>
         <div className="formula"><span>Utility</span><strong>requested byte / moved byte</strong></div>
       </ModuleIntro>
@@ -202,7 +202,7 @@ function CoalescingLab() {
             ))}
           </div>
         </div>
-        <p className="lab-caption"><b>Read:</b> {pattern === "aligned" ? "32 consecutive floats fit into exactly four sectors. This is classic coalesced access." : pattern === "offset" ? "Shifting just 4 bytes spreads access across five sectors. It may see some reuse due to adjacent warp cache; initial access again requires extra sectors." : pattern === "stride2" ? "Every second float is read, half of the bytes in each sector are used. The number of transactions doubles." : "Each thread falls into a different 32-byte sector. 1 KB of traffic occurs for 128 bytes of data; The access scheme reduces bandwidth to one-eighth."}</p>
+        <p className="lab-caption"><b>Read:</b> {pattern === "aligned" ? "32 consecutive floats fit into exactly four sectors. This is classic coalesced access." : pattern === "offset" ? "Shifting by just 4 bytes spreads the access across five sectors. Adjacent warps may reuse some cache lines, but the first access still requires an extra sector." : pattern === "stride2" ? "Reading every second float uses only half the bytes in each sector, so the transaction count doubles." : "Each thread lands in a different 32-byte sector. Moving 128 bytes of useful data creates 1 KB of traffic, reducing useful bandwidth to one-eighth."}</p>
       </div>
     </section>
   );
@@ -228,7 +228,7 @@ function BankConflictLab() {
       </ModuleIntro>
       <div className="lab-surface banks-lab">
         <div className="surface-heading">
-          <div><span>BANK MATCHING EXPERIMENT</span><h2>How will banks be filled when Stride changes?</h2></div>
+          <div><span>BANK-MAPPING EXPERIMENT</span><h2>How do banks fill as stride changes?</h2></div>
           <div className={`result-stamp ${result.degree === 1 ? "good" : result.degree <= 4 ? "mid" : "bad"}`}><strong>{result.degree}×</strong><span>{pattern === "broadcast" ? "Broadcast" : result.degree === 1 ? "conflict free" : "serialization"}</span></div>
         </div>
         <div className="stride-control" role="group" aria-label="Shared memory access stride value">
@@ -285,9 +285,9 @@ function OccupancyLab() {
   }, [threads, registers, shared]);
   return (
     <section className="module-layout">
-      <ModuleIntro eyebrow="MODULE 04 · STORING THE DELAY" title="Occupancy" lead="Occupancy is the ratio of the number of active warps in a SM to the maximum number of active warps supported by the hardware.">
+      <ModuleIntro eyebrow="MODULE 04 · HIDING LATENCY" title="Occupancy" lead="Occupancy is the ratio of active warps on an SM to the maximum number of active warps supported by the hardware.">
         <Fact label="NOT THE PURPOSE, BUT A TOOL">More ready warps can hide memory latency. But higher occupancy alone is not a guarantee of higher performance.</Fact>
-        <Fact label="SINIRLAYICILAR">Block size, registers per thread, shared memory per block, and architectural block limit together determine how many blocks will be placed.</Fact>
+        <Fact label="LIMITING RESOURCES">Block size, registers per thread, shared memory per block, and the architectural block limit together determine how many blocks can reside on an SM.</Fact>
         <div className="model-note"><span>TEACHING MODEL</span><p>1 SM · 1,536 threads · 48 warps · 65,536 registers · 100 KB shared · 24 blocks. Allocation roundings are not taken into account.</p></div>
       </ModuleIntro>
       <div className="lab-surface occupancy-lab">
@@ -311,7 +311,7 @@ function OccupancyLab() {
         </div>
         <div className="limit-table">
           {Object.entries(result.limits).map(([name, limit]) => (
-            <div key={name} className={result.bottlenecks.includes(name) ? "limiting" : ""}><span>{name}</span><strong>{limit} block</strong><i>{result.bottlenecks.includes(name) ? "SINIRLIYOR" : ""}</i></div>
+            <div key={name} className={result.bottlenecks.includes(name) ? "limiting" : ""}><span>{name}</span><strong>{limit} block</strong><i>{result.bottlenecks.includes(name) ? "LIMITING" : ""}</i></div>
           ))}
         </div>
         <p className="lab-caption"><b>Interpretation:</b> This configuration is limited by <strong>{result.bottlenecks.join(" + ")}</strong>. {result.occupancy === 100 ? "All theoretical warp slots are occupied; now verify real performance with a profiler." : result.occupancy === 0 ? "Not even one block fits in the resource pool; the configuration is invalid." : "You can raise occupancy by reducing the limiting resource, but register spills or less data reuse may still hurt performance."}</p>
@@ -335,7 +335,7 @@ export default function GpuMemoryEmbedded() {
       </div>
       <footer>
         <span>GPU Memory Interactive Lab</span>
-        <p>Simulations are for conceptual learning; Measure for real kernel.</p>
+        <p>These simulations support conceptual learning; measure the real kernel on actual hardware.</p>
         <div><a href="https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/writing-cuda-kernels.html#memory-performance" target="_blank" rel="noreferrer">CUDA Programming Guide ↗</a><a href="https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/" target="_blank" rel="noreferrer">Best Practices ↗</a></div>
       </footer>
     </main>

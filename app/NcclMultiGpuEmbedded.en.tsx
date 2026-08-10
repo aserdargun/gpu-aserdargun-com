@@ -13,12 +13,12 @@ const collectiveCopy: Record<Collective, { path: string; note: string; formula: 
   },
   Tree: {
     path: "GPU 0 → {GPU 1, GPU 2} → GPU 3",
-    note: "The number of steps is logarithmic; It can provide a delay advantage in small messages.",
+    note: "The number of steps is logarithmic, which can reduce latency for small messages.",
     formula: "2 × log₂(N) steps",
   },
   Hierarchical: {
     path: "NVLink intra-island ↔ inter-node via NIC",
-    note: "It observes the topology using the fast local connection first and then the RDMA network.",
+    note: "It follows the topology by using fast local links first and the RDMA network between nodes.",
     formula: "local reduce → RDMA → local broadcast",
   },
 };
@@ -26,17 +26,17 @@ const collectiveCopy: Record<Collective, { path: string; note: string; formula: 
 const strategies: Record<Parallelism, { title: string; description: string; comm: string; best: string; caution: string }> = {
   DP: {
     title: "Data Parallel",
-    description: "Each GPU keeps a copy of the model; The mini-batch is divided into pieces.",
+    description: "Each GPU keeps a copy of the model while the mini-batch is split across replicas.",
     comm: "Gradient AllReduce",
-    best: "The model fits on a single GPU, if the batch can grow",
-    caution: "Memory is copied; does not solve the large model problem by itself.",
+    best: "The model fits on one GPU and the batch can grow",
+    caution: "The model is replicated, so data parallelism alone does not solve model-capacity limits.",
   },
   TP: {
     title: "Tensor Parallel",
-    description: "Matrix operations in a single layer are divided into GPUs.",
+    description: "Matrix operations within one layer are split across GPUs.",
     comm: "Frequent AllReduce / AllGather",
-    best: "If the layer does not fit in single GPU memory or compute time",
-    caution: "It is sensitive to delay; Requires fast GPU-GPU connection.",
+    best: "A layer does not fit within one GPU's memory or compute budget",
+    caution: "It is latency-sensitive and requires a fast GPU-to-GPU link.",
   },
   PP: {
     title: "Pipeline Parallel",
@@ -49,16 +49,16 @@ const strategies: Record<Parallelism, { title: string; description: string; comm
     title: "Expert Parallel",
     description: "MoE experts are distributed across GPUs; tokens are directed to the appropriate expert.",
     comm: "All-to-All",
-    best: "In rare Mixture-of-Experts models",
-    caution: "Token instability and network congestion become critical.",
+    best: "Sparse Mixture-of-Experts models",
+    caution: "Token imbalance and network congestion become critical.",
   },
 };
 
 const glossary = [
   ["NCCL", "Library that handles collective and P2P communication between NVIDIA GPUs according to topology."],
-  ["Collective", "Process such as AllReduce, AllGather, Broadcast where a group of GPUs participate together."],
-  ["RDMA", "Direct access to remote system memory without running the opposing CPU on the bus."],
-  ["GPUDirect RDMA", "NIC DMA directly to GPU memory; Skips the CPU copy."],
+  ["Collective", "An operation such as AllReduce, AllGather, or Broadcast in which a group of GPUs participates."],
+  ["RDMA", "Direct access to remote system memory without moving data through the remote CPU."],
+  ["GPUDirect RDMA", "NIC DMA directly to GPU memory, bypassing an extra CPU-memory copy."],
   ["RoCEv2", "Ethernet approach that carries RDMA over a routable UDP/IP network."],
   ["InfiniBand", "Fabric that offers native support for RDMA, low latency and lossless networking features."],
   ["Rail", "Independent network path used in parallel across multi-NIC nodes."],
@@ -95,10 +95,10 @@ export default function NcclMultiGpuEmbedded() {
           <span>KERNEL ATLAS</span>
         </a>
         <div className="nav-links">
-          <a href="#temeller">Fundamentals</a>
-          <a href="#paralellik">Parallelism</a>
+          <a href="#fundamentals">Fundamentals</a>
+          <a href="#parallelism">Parallelism</a>
           <a href="#rdma">RDMA</a>
-          <a href="#lab">laboratory</a>
+          <a href="#lab">Lab</a>
         </div>
         <span className="status-pill"><i /> INTERACTIVE PRIMER</span>
       </nav>
@@ -107,11 +107,11 @@ export default function NcclMultiGpuEmbedded() {
         <div className="eyebrow">DISTRIBUTED GPU SYSTEMS · 01</div>
         <div className="hero-grid">
           <div>
-            <h1>GPUs<br /><em>how together</em><br />does it work?</h1>
+            <h1>How do<br /><em>GPUs work</em><br />together?</h1>
             <p className="hero-lede">See, manipulate and measure the data path from NCCL collectives to multidimensional parallelism, from PCIe to GPUDirect RDMA.</p>
             <div className="hero-actions">
-              <a className="button primary" href="#temeller">Start exploring <span>↓</span></a>
-              <a className="button ghost" href="#lab">performance lab</a>
+              <a className="button primary" href="#fundamentals">Start exploring <span>↓</span></a>
+              <a className="button ghost" href="#lab">Performance lab</a>
             </div>
           </div>
           <div className="hero-visual" aria-label="GPU and network connection diagram between two servers">
@@ -131,15 +131,15 @@ export default function NcclMultiGpuEmbedded() {
         <div className="hero-facts">
           <div><small>MAIN ABSTRACT</small><strong>collective communication</strong></div>
           <div><small>CRITICAL RESOURCE</small><strong>Bandwidth + latency</strong></div>
-          <div><small>AIM</small><strong>Matching account to contact</strong></div>
+          <div><small>GOAL</small><strong>Match compute to communication</strong></div>
         </div>
       </section>
 
-      <section className="section dark-section" id="temeller">
+      <section className="section dark-section" id="fundamentals">
         <div className="section-heading">
           <span className="section-index">01/NCCL</span>
           <div>
-            <h2>collective communication,<br />a single API.</h2>
+            <h2>Collective communication,<br />one API.</h2>
             <p>NCCL is not a “network protocol”. It establishes the optimal communication path between ranks using CUDA cores, GPU memory and existing connections.</p>
           </div>
         </div>
@@ -176,11 +176,11 @@ export default function NcclMultiGpuEmbedded() {
         </div>
       </section>
 
-      <section className="section paper-section" id="paralellik">
+      <section className="section paper-section" id="parallelism">
         <div className="section-heading light">
           <span className="section-index">02 / PARALLELISM</span>
           <div>
-            <h2>not the model,<br />split the bottleneck.</h2>
+            <h2>Do not just split the model.<br />Split the bottleneck.</h2>
             <p>The right strategy depends on model size, batch, topology and communication frequency. Large tutorials often combine these dimensions in 3D.</p>
           </div>
         </div>
@@ -242,15 +242,15 @@ export default function NcclMultiGpuEmbedded() {
             <div className="path-flow">
               <span>GPU</span><i>DMA</i><span>NIC</span><b>RDMA FABRIC</b><span>NIC</span><i>DMA</i><span>GPU</span>
             </div>
-            <p>The NIC directly accesses registered GPU memory; The CPU remains in the control plane.</p>
+            <p>The NIC directly accesses registered GPU memory while the CPU remains in the control plane.</p>
           </div>
         </div>
 
         <div className="rdma-cards">
           <article><span>01</span><h3>Memory registration</h3><p>The memory to be DMAed is pre-pinned and registered with access keys.</p></article>
-          <article><span>02</span><h3>Queue pairs</h3><p>Send/receive job requests are written to queues; The completion queue reports the result.</p></article>
-          <article><span>03</span><h3>lossless fabric</h3><p>InfiniBand or properly configured RoCEv2; Requires queue and congestion management.</p></article>
-          <article><span>04</span><h3>topology affinity</h3><p>When the GPU–NIC is under the same PCIe root complex, throughputs and latency are reduced.</p></article>
+          <article><span>02</span><h3>Queue pairs</h3><p>Send and receive work requests are written to queues, and the completion queue reports their results.</p></article>
+          <article><span>03</span><h3>Lossless fabric</h3><p>InfiniBand or properly configured RoCEv2 requires careful queue and congestion management.</p></article>
+          <article><span>04</span><h3>Topology affinity</h3><p>Keeping the GPU and NIC under the same PCIe root complex reduces hops and latency.</p></article>
         </div>
 
         <aside className="reality-check">
@@ -262,8 +262,8 @@ export default function NcclMultiGpuEmbedded() {
       <section className="section lab-section" id="lab">
         <div className="lab-title">
           <span className="section-index">04 / PERFORMANCE LAB</span>
-          <h2>AllReduce cost<br />calculate it yourself.</h2>
-          <p>Simplified Hockney-like model. For real result <code>nccl-tests</code> Measurement is required with .</p>
+          <h2>Calculate the<br />AllReduce cost.</h2>
+          <p>This is a simplified Hockney-style model. Measure the real system with <code>nccl-tests</code>.</p>
         </div>
         <div className="lab-console">
           <div className="controls">
@@ -279,14 +279,14 @@ export default function NcclMultiGpuEmbedded() {
               <div className="metric"><span>Moved data / rank</span><strong>{formatNumber(metrics.ringBytes)} GB</strong></div>
               <div className="metric hero-metric"><span>Estimated communication time</span><strong>{formatNumber(metrics.total)} ms</strong></div>
               <div className="meter"><i style={{ width: `${metrics.efficiency}%` }} /></div>
-              <div className="metric"><span>Payload efficiency</span><strong>%{formatNumber(metrics.efficiency)}</strong></div>
+              <div className="metric"><span>Payload efficiency</span><strong>{formatNumber(metrics.efficiency)}%</strong></div>
               <small>Model: T ≈ 2(N−1)α + 2(N−1)/N × M/B</small>
             </div>
           </div>
         </div>
         <div className="lab-notes">
           <div><b>LATENCY-BOUND</b><p>Small message + multi rank. Think tree algorithm or bulk shipping.</p></div>
-          <div><b>BANDWIDTH-BOUND</b><p>Great message. Fill links with Ring and multi-channel.</p></div>
+          <div><b>BANDWIDTH-BOUND</b><p>For large messages, fill the links with ring and multi-channel algorithms.</p></div>
           <div><b>TOPOLOGY-BOUND</b><p>Slow PCIe migration or incorrect NIC affinity. Measure the path first.</p></div>
         </div>
       </section>

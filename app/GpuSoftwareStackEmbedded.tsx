@@ -238,7 +238,7 @@ export default function GpuSoftwareStackEmbedded() {
         </a>
         <nav aria-label="Ana navigasyon">
           <a href="#harita">Harita</a>
-          <a href="#workbench">Workbench</a>
+          <a href="#workbench">Çalışma tezgâhı</a>
           <a href="#rota">Rota</a>
           <a href="#sozluk">Sözlük</a>
         </nav>
@@ -250,7 +250,7 @@ export default function GpuSoftwareStackEmbedded() {
           <div className="kicker"><span /> GPU SİSTEMLERİ / SAHA KILAVUZU</div>
           <h1>GPU yazılım<br />yığınının <em>içine</em> bak.</h1>
           <p className="hero-lead">
-            Kernel kodundan compiler IR&apos;ına, optimize inference engine&apos;ine kadar üç kritik katmanı tek bir interaktif atlas üzerinde öğren.
+            Kernel kodundan derleyici IR&apos;ına, optimize edilmiş çıkarım motoruna kadar üç kritik katmanı tek bir etkileşimli atlas üzerinde öğren.
           </p>
           <div className="hero-actions">
             <a className="button primary" href="#harita">Sistemi aç <span>↓</span></a>
@@ -264,7 +264,7 @@ export default function GpuSoftwareStackEmbedded() {
         </div>
 
         <div className="stack-visual" aria-label="GPU yazılım yığını şeması">
-          <div className="visual-topline"><span>STACK / 001</span><span className="live-dot">CANLI MODEL</span></div>
+          <div className="visual-topline"><span>YIĞIN / 001</span><span className="live-dot">CANLI MODEL</span></div>
           <div className="stack-grid">
             <div className="stack-layer layer-app">
               <span className="layer-index">L3</span>
@@ -341,7 +341,7 @@ export default function GpuSoftwareStackEmbedded() {
 
       <section className="workbench" id="workbench">
         <div className="workbench-header">
-          <div><div className="section-label light">02 / INTERAKTİF WORKBENCH</div><h2>Bir pipeline&apos;ı<br />parçalarına ayır.</h2></div>
+          <div><div className="section-label light">02 / ETKİLEŞİMLİ ÇALIŞMA TEZGÂHI</div><h2>Bir işlem hattını<br />parçalarına ayır.</h2></div>
           <div className="track-tabs" role="tablist" aria-label="Teknoloji modülleri">
             {(Object.keys(tracks) as TrackKey[]).map((key) => (
               <button key={key} role="tab" aria-selected={activeTrack === key} onClick={() => selectTrack(key)}>

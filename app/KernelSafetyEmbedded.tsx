@@ -34,7 +34,7 @@ const toolData: Record<Tool, { eyebrow: string; title: string; catches: string; 
   initcheck: {
     eyebrow: "03 · başlangıç durumu",
     title: "initcheck",
-    catches: "Yazılmadan veya kopyalanmadan okunan device global memory; isteğe bağlı olarak shared memory.",
+    catches: "Yazılmadan veya kopyalanmadan okunan aygıt genel belleği; isteğe bağlı olarak paylaşılan bellek.",
     misses: "Bellek sınırı hatası ve senkronizasyon ihlali. Önce memcheck ile temiz bir koşu gerekir.",
     command: "compute-sanitizer --tool initcheck ./build/stencil",
     report: [
@@ -61,7 +61,7 @@ const toolData: Record<Tool, { eyebrow: string; title: string; catches: string; 
 
 const questions = [
   { q: "FP32 paralel reduction sonucu CPU referansından 2e-6 farklı. İlk doğru yaklaşım?", a: ["Bit-bit eşitlik istemek", "rtol/atol ile hata bütçesi tanımlamak", "memcheck çalıştırıp geçerse kabul etmek"], correct: 1 },
-  { q: "Sınır dışı global memory yazımını hangi araç doğrudan yakalar?", a: ["racecheck", "synccheck", "memcheck"], correct: 2 },
+  { q: "Sınır dışı genel bellek yazımını hangi araç doğrudan yakalar?", a: ["racecheck", "synccheck", "memcheck"], correct: 2 },
   { q: "Kernel yalnızca N=1024 için doğru. En olası test açığı nedir?", a: ["Şekil ve sınır matrisi", "Daha düşük rtol", "Daha uzun benchmark"], correct: 0 },
   { q: "Koşullu __syncthreads() şüphesinde hangi sıra uygundur?", a: ["synccheck → profiler", "benchmark → initcheck", "racecheck → bit-bit kıyas"], correct: 0 },
 ];
@@ -264,4 +264,3 @@ export default function KernelSafetyEmbedded() {
     </main>
   );
 }
-

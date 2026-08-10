@@ -15,20 +15,20 @@ const topics: { id: TopicId; index: string; name: string; eyebrow: string; color
 const topicCopy: Record<TopicId, { kicker: string; title: string; lead: string; formula: string }> = {
   gemm: {
     kicker: "CHAPTER 01 · THE ENGINE OF COMPUTATION",
-    title: "GEMM: move calculation, not data",
+    title: "GEMM: move data once, compute many times",
     lead: "General matrix multiplication, C = A × B, is the backbone of modern AI workloads. A good kernel shares tiles in fast memory instead of requesting each element A and B from global memory over and over again.",
     formula: "Cᵢⱼ = Σₖ Aᵢₖ · Bₖⱼ",
   },
   reduction: {
-    kicker: "EPISODE 02 · MUTAN TEKE",
-    title: "Reduction: securely combine thousands of values",
-    lead: "Operations such as sum, maximum and average reduce many inputs to a single output. The goal is not just parallelism; It features minimal synchronization, regular memory access, and a numerically controlled union tree.",
+    kicker: "CHAPTER 02 · MANY TO ONE",
+    title: "Reduction: combine thousands of values safely",
+    lead: "Operations such as sum, maximum, and average reduce many inputs to one output. The goal is not parallelism alone: use minimal synchronization, regular memory access, and a numerically controlled reduction tree.",
     formula: "y = x₀ ⊕ x₁ ⊕ … ⊕ xₙ₋₁",
   },
   softmax: {
     kicker: "CHAPTER 03 · FROM SCORE TO PROBABILITY",
     title: "Softmax: stable, online and fuseable",
-    lead: "Softmax transforms the scores into a distribution that is positive and sums to 1. The naive exp(x) may overflow on large inputs; The correct kernel first extracts the row maximum and then calculates the exponential sum.",
+    lead: "Softmax transforms scores into a positive distribution that sums to 1. A naive exp(x) can overflow on large inputs, so a correct kernel first finds the row maximum and then computes the exponential sum.",
     formula: "pᵢ = exp(xᵢ − m) / Σⱼ exp(xⱼ − m)",
   },
   normalization: {
@@ -50,7 +50,7 @@ const quiz: Record<TopicId, { q: string; options: string[]; answer: number; note
   reduction: { q: "How many join steps does a 16-element balanced reduction tree require?", options: ["4", "8", "16"], answer: 0, note: "Each stage halves the number of active values: log₂(16) = 4." },
   softmax: { q: "Why is max(x) subtracted before exponential operation?", options: ["To reset the total", "To change the order", "To prevent overflow"], answer: 2, note: "Subtracting a constant value from all scores does not change the distribution; makes the largest exponential value 1." },
   normalization: { q: "What statistic does RMSNorm subtract from LayerNorm?", options: ["Mean centering", "mean squares", "Learned γ"], answer: 0, note: "RMSNorm does not center the input; Calculates the RMS scale and multiplies it by the learned γ." },
-  attention: { q: "What is the main memory advantage of Flash-style attention?", options: ["delete Q, K, V", "Not writing the S×S score matrix to HBM", "Skipping Softmax"], answer: 1, note: "Score tiles are processed with online softmax; The intermediate score matrix is ​​not materialized in global memory." },
+  attention: { q: "What is the main memory advantage of Flash-style attention?", options: ["Delete Q, K, and V", "Avoid writing the S×S score matrix to HBM", "Skip softmax"], answer: 1, note: "Score tiles are processed with online softmax, so the intermediate score matrix is not materialized in global memory." },
 };
 
 function fmt(n: number) {
@@ -79,7 +79,7 @@ function GemmLab() {
   return (
     <div className="lab-grid">
       <section className="panel visual-panel">
-        <div className="panel-label"><span>tile walk</span><b>BLOCK 32×32</b></div>
+        <div className="panel-label"><span>Tile walkthrough</span><b>BLOCK 32×32</b></div>
         <div className="gemm-visual">
           <div><small>A·M×K</small><DotGrid active={32} /></div>
           <strong>×</strong>
@@ -96,7 +96,7 @@ function GemmLab() {
         ))}
         <div className="metric-strip">
           <div><span>Work</span><b>{fmt(flops)} FLOP</b></div>
-          <div><span>least traffic</span><b>{fmt(bytes)}B.</b></div>
+          <div><span>Minimum traffic</span><b>{fmt(bytes)} B</b></div>
           <div><span>Intensity</span><b>{intensity.toFixed(1)} F/B</b></div>
         </div>
       </section>
@@ -117,7 +117,7 @@ function ReductionLab() {
   return (
     <div className="lab-grid">
       <section className="panel visual-panel">
-        <div className="panel-label"><span>parallel join tree</span><b>{stages.length - 1} STAGE</b></div>
+        <div className="panel-label"><span>Parallel reduction tree</span><b>{stages.length - 1} STAGES</b></div>
         <div className="tree">
           {stages.map((stage, i) => <div className="tree-row" key={i}>{stage.map((v, j) => <span key={j}>{v}</span>)}</div>)}
         </div>
@@ -188,7 +188,7 @@ function AttentionLab() {
   return (
     <div className="lab-grid">
       <section className="panel visual-panel">
-        <div className="panel-label"><span>casual mask</span><b>{causal ? "HISTORY OPEN" : "FULL ACCESS"}</b></div>
+        <div className="panel-label"><span>Causal mask</span><b>{causal ? "HISTORY ONLY" : "FULL ACCESS"}</b></div>
         <div className="attention-matrix" aria-label="Attention mask matrix">{Array.from({ length: 64 }, (_, i) => { const r = Math.floor(i / 8), c = i % 8; const open = !causal || c <= r; return <span key={i} className={open ? "open" : "masked"} style={{ opacity: open ? 0.35 + (8 - Math.abs(r - c)) / 14 : 1 }} />; })}</div>
         <button className="toggle-row" onClick={() => setCausal(!causal)} aria-pressed={causal}><span>Mask future tokens</span><i className={causal ? "on" : ""}><b /></i></button>
       </section>
@@ -231,7 +231,7 @@ function Quiz({ topic, onComplete }: { topic: TopicId; onComplete: () => void })
     <section className="quiz-card" key={topic}>
       <div><span>INFORMATION CHECK</span><h2>{q.q}</h2></div>
       <div className="quiz-options">{q.options.map((o, i) => <button key={o} className={selected === i ? (i === q.answer ? "correct" : "wrong") : ""} onClick={() => { setSelected(i); if (i === q.answer) onComplete(); }}><i>{String.fromCharCode(65 + i)}</i>{o}<b>{selected === i ? (i === q.answer ? "✓" : "×") : ""}</b></button>)}</div>
-      {selected !== null && <p className="quiz-note"><b>{selected === q.answer ? "TRUE." : "Think again."}</b> {q.note}</p>}
+      {selected !== null && <p className="quiz-note"><b>{selected === q.answer ? "CORRECT." : "Think again."}</b> {q.note}</p>}
     </section>
   );
 }
@@ -254,18 +254,18 @@ export default function LlmKernelPatternsEmbedded() {
       <section className={`hero theme-${topic}`}>
         <div className="hero-grid" />
         <div className="hero-content">
-          <div className="hero-copy"><span className="kicker">{current.kicker}</span><h1>{current.title}</h1><p>{current.lead}</p><div className="formula"><span>basic expression</span><code>{current.formula}</code></div></div>
+          <div className="hero-copy"><span className="kicker">{current.kicker}</span><h1>{current.title}</h1><p>{current.lead}</p><div className="formula"><span>Core expression</span><code>{current.formula}</code></div></div>
           <aside className="topic-rail"><span>LEARNING ROUTE</span>{topics.map(t => <button key={t.id} className={`${topic === t.id ? "active" : ""} ${completed.includes(t.id) ? "done" : ""}`} onClick={() => selectTopic(t.id)}><i>{t.index}</i><span><small>{t.eyebrow}</small><b>{t.name}</b></span><em>{completed.includes(t.id) ? "✓" : "→"}</em></button>)}</aside>
         </div>
       </section>
 
       <div className="content-wrap">
-        <section className="lab-heading"><div><span>LIVE LAB</span><h2>Play with the numbers, see the pattern.</h2></div><p>Change controls; Monitor how throughput, memory traffic, and numerical behavior change.</p></section>
+        <section className="lab-heading"><div><span>LIVE LAB</span><h2>Change the numbers. See the pattern.</h2></div><p>Adjust the controls and observe how work, memory traffic, and numerical behavior change.</p></section>
         <Lab />
         <KernelPattern topic={topic} />
         <section className="principles">
-          <article><span>01</span><h3>accuracy first</h3><p>Tolerant comparison with reference output; end shapes, masks and dtypes are tested separately.</p></article>
-          <article><span>02</span><h3>Making decisions without measuring</h3><p>Report median time, effective bandwidth and FLOP/s after warm-up.</p></article>
+          <article><span>01</span><h3>Correctness first</h3><p>Compare against a reference with tolerances; test boundary shapes, masks, and dtypes separately.</p></article>
+          <article><span>02</span><h3>Measure before deciding</h3><p>Report median time, effective bandwidth, and FLOP/s after warm-up.</p></article>
           <article><span>03</span><h3>Name the bottleneck</h3><p>Is the kernel compute-bound or memory-bound? Prove it with occupancy, registration and access patterns.</p></article>
         </section>
         <Quiz topic={topic} onComplete={() => setCompleted(c => c.includes(topic) ? c : [...c, topic])} />
