@@ -9,6 +9,7 @@ import LlmKernelPatternsEmbedded from "./LlmKernelPatternsEmbedded";
 import KernelSafetyEmbedded from "./KernelSafetyEmbedded";
 import NsightBenchmarkEmbedded from "./NsightBenchmarkEmbedded";
 import CutlassCuteEmbedded from "./CutlassCuteEmbedded";
+import InferenceSystemsEmbedded from "./InferenceSystemsEmbedded";
 
 type LabKind =
   | "toolchain"
@@ -627,21 +628,8 @@ function CutlassLab({ locale }: { locale: Locale }) {
 }
 
 function InferenceLab({ locale }: { locale: Locale }) {
-  const [batching, setBatching] = useState(true);
-  const [prefix, setPrefix] = useState(true);
-  const [graphs, setGraphs] = useState(true);
-  const [goal, setGoal] = useState<"memory" | "latency" | "quality">("memory");
-  const throughput = 42 + (batching ? 31 : 0) + (prefix ? 11 : 0) + (graphs ? 8 : 0);
-  const ttft = 920 + (batching ? 80 : 0) - (prefix ? 270 : 0) - (graphs ? 90 : 0);
-  const advice = locale === "tr"
-    ? goal === "memory" ? "INT4/AWQ adayını dene; KV-cache ve workspace’i ayrıca bütçele." : goal === "latency" ? "FP8 + optimize kernel yolunu sabit iş yükünde ölç." : "BF16 taban çizgisini koru; aynı istemlerle kalite karşılaştır."
-    : goal === "memory" ? "Try an INT4/AWQ candidate; budget KV-cache and workspace separately." : goal === "latency" ? "Measure the FP8 + optimized-kernel path on a fixed workload." : "Keep the BF16 baseline and compare quality with the same prompts.";
-  const goals = locale === "tr" ? [["memory", "Bellek"], ["latency", "Gecikme"], ["quality", "Kalite"]] : [["memory", "Memory"], ["latency", "Latency"], ["quality", "Quality"]];
-  return <LabShell label="LAB / SERVING LEVERS" title={locale === "tr" ? "Darboğaza göre kaldıracı seç." : "Choose the lever that matches the bottleneck."} note={locale === "tr" ? "Rakamlar pedagojik modeldir; gerçek serving benchmark’ı değildir." : "Numbers are a pedagogical model, not a real serving benchmark."}>
-    <div className="toggle-row">{[["Continuous batching", batching, setBatching], ["Prefix cache", prefix, setPrefix], ["CUDA Graphs", graphs, setGraphs]].map(([name, value, setter]) => <button key={name as string} className={value ? "on" : ""} onClick={() => (setter as (v: boolean) => void)(!value)}><i /><span>{name as string}</span></button>)}</div>
-    <div className="metric-grid"><Metric label={locale === "tr" ? "Throughput tahmini" : "Estimated throughput"} value={`${throughput} tok/s`} /><Metric label={locale === "tr" ? "TTFT tahmini" : "Estimated TTFT"} value={`${ttft} ms`} /><Metric label={locale === "tr" ? "İzlenecek decode metriği" : "Decode metric to track"} value="ITL p50 / p95" /><Metric label={locale === "tr" ? "Bellek" : "Memory"} value="weights + KV + workspace" /></div>
-    <div className="goal-panel"><div className="segmented">{goals.map(([id, label]) => <button key={id} className={goal === id ? "active" : ""} onClick={() => setGoal(id as typeof goal)}>{label}</button>)}</div><p>{advice}</p></div>
-  </LabShell>;
+  void locale;
+  return <InferenceSystemsEmbedded />;
 }
 
 function MultiGpuLab({ locale }: { locale: Locale }) {
