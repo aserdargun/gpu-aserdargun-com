@@ -6,6 +6,7 @@ import CudaSimtEmbedded from "./CudaSimtEmbedded";
 import GpuMemoryEmbedded from "./GpuMemoryEmbedded";
 import PyTorchTritonEmbedded from "./PyTorchTritonEmbedded";
 import LlmKernelPatternsEmbedded from "./LlmKernelPatternsEmbedded";
+import KernelSafetyEmbedded from "./KernelSafetyEmbedded";
 
 type LabKind =
   | "toolchain"
@@ -608,23 +609,8 @@ function OperatorsLab({ locale }: { locale: Locale }) {
 }
 
 function CorrectnessLab({ locale }: { locale: Locale }) {
-  const scenarios = [
-    ["FP32 reduction", "FP32 reduction", 12.5, 12.500012, 1e-5, 1e-5],
-    ["Yanlış indeks", "Wrong index", 4, 4.25, 1e-5, 1e-5],
-    ["Sıfıra yakın", "Near zero", 0.000001, 0.000002, 0.000002, 0],
-  ] as const;
-  const [scenario, setScenario] = useState(0);
-  const [tool, setTool] = useState("memcheck");
-  const row = scenarios[scenario];
-  const error = Math.abs(row[2] - row[3]);
-  const threshold = row[4] + row[5] * Math.abs(row[2]);
-  const pass = error <= threshold;
-  const sanitizerNotes = locale === "tr"
-    ? { memcheck: "Sınır dışı ve hizasız erişim", racecheck: "Shared-memory veri yarışı", initcheck: "Başlatılmamış global memory okuması", synccheck: "Geçersiz bariyer kullanımı" }
-    : { memcheck: "Out-of-bounds and misaligned access", racecheck: "Shared-memory data race", initcheck: "Uninitialized global-memory read", synccheck: "Invalid barrier use" };
-  return <LabShell label="LAB / EVIDENCE GATE" title={locale === "tr" ? "Tolerans sözleşmesini test et." : "Test the tolerance contract."} note={locale === "tr" ? "allclose sayısal yakınlığı ölçer; bellek güvenliğini ayrıca kanıtla." : "allclose measures numerical proximity; prove memory safety separately."}>
-    <div className="dual-lab"><div className="lab-panel"><span>{locale === "tr" ? "SAYISAL DOĞRULUK" : "NUMERICAL CORRECTNESS"}</span><h3>{row[locale === "tr" ? 0 : 1]}</h3><div className="segmented vertical">{scenarios.map((item, index) => <button key={item[0]} className={scenario === index ? "active" : ""} onClick={() => setScenario(index)}>{item[locale === "tr" ? 0 : 1]}</button>)}</div><div className={pass ? "verdict pass" : "verdict fail"}><b>{pass ? "PASS" : "FAIL"}</b><span>|a−b| {error.toExponential(2)} · limit {threshold.toExponential(2)}</span></div></div><div className="lab-panel"><span>{locale === "tr" ? "BELLEK & SENKRON" : "MEMORY & SYNC"}</span><h3>Compute Sanitizer</h3><div className="segmented vertical">{["memcheck", "racecheck", "initcheck", "synccheck"].map((name) => <button key={name} className={tool === name ? "active" : ""} onClick={() => setTool(name)}>{name}</button>)}</div><div className="terminal"><code>$ compute-sanitizer --tool {tool}</code><p>{sanitizerNotes[tool as keyof typeof sanitizerNotes]}</p></div></div></div>
-  </LabShell>;
+  void locale;
+  return <KernelSafetyEmbedded />;
 }
 
 function ProfilingLab({ locale }: { locale: Locale }) {
