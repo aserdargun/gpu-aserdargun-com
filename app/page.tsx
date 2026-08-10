@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import KernelForgeEmbedded from "./KernelForgeEmbedded";
 
 type LabKind =
   | "toolchain"
@@ -578,15 +579,8 @@ function LabShell({ label, title, note, children }: { label: string; title: stri
 }
 
 function ToolchainLab({ locale }: { locale: Locale }) {
-  const tracks = locale === "tr" ? toolchainTracks : enToolchainTracks;
-  const names = Object.keys(tracks) as Array<keyof typeof tracks>;
-  const [track, setTrack] = useState<(typeof names)[number]>("Modern C++");
-  const lessonSteps = locale === "tr" ? ["Modeli kur", "Laboratuvarda boz ve düzelt", "Test ile sözleşmeye bağla"] : ["Build the model", "Break and repair it in the lab", "Turn it into a tested contract"];
-  return <LabShell label="LAB / TOOLCHAIN" title={locale === "tr" ? "Temeli seç, öğrenme zincirini gör." : "Choose a foundation and trace the learning chain."} note={locale === "tr" ? "Araç sürümlerinden önce kalıcı zihinsel modelleri kur." : "Build durable mental models before chasing tool versions."}>
-    <div className="segmented">{names.map((name) => <button key={name} className={track === name ? "active" : ""} onClick={() => setTrack(name)}>{name}</button>)}</div>
-    <div className="pipeline-list">{tracks[track].map((lesson, index) => <article key={lesson}><span>{index + 1}</span><div><b>{lesson}</b><p>{lessonSteps[index]}</p></div><i>→</i></article>)}</div>
-    <div className="lab-callout"><span>{locale === "tr" ? "ÇALIŞMA SÖZLEŞMESİ" : "WORKFLOW CONTRACT"}</span><code>configure → build → test → profile → record</code></div>
-  </LabShell>;
+  void locale;
+  return <KernelForgeEmbedded />;
 }
 
 function ArchitectureLab({ locale }: { locale: Locale }) {
