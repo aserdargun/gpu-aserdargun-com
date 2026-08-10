@@ -5,6 +5,7 @@ import KernelForgeEmbedded from "./KernelForgeEmbedded";
 import CudaSimtEmbedded from "./CudaSimtEmbedded";
 import GpuMemoryEmbedded from "./GpuMemoryEmbedded";
 import PyTorchTritonEmbedded from "./PyTorchTritonEmbedded";
+import LlmKernelPatternsEmbedded from "./LlmKernelPatternsEmbedded";
 
 type LabKind =
   | "toolchain"
@@ -602,16 +603,8 @@ function TritonLab({ locale }: { locale: Locale }) {
 }
 
 function OperatorsLab({ locale }: { locale: Locale }) {
-  const operators = locale === "tr" ? operatorData : enOperatorData;
-  const names = Object.keys(operators) as Array<keyof typeof operators>;
-  const [operator, setOperator] = useState<(typeof names)[number]>("RMSNorm");
-  const [size, setSize] = useState(2048);
-  const data = operators[operator];
-  return <LabShell label="LAB / OPERATOR PATTERNS" title={locale === "tr" ? "Operatörü seç, veri yolunu çöz." : "Choose an operator and trace its data path."} note={locale === "tr" ? "Aynı building block’lar farklı LLM operatörlerinde tekrar eder." : "The same building blocks recur across LLM operators."}>
-    <div className="segmented">{names.map((name) => <button key={name} className={operator === name ? "active" : ""} onClick={() => setOperator(name)}>{name}</button>)}</div>
-    <div className="operator-stage"><div><span>{locale === "tr" ? "FORMÜL" : "FORMULA"}</span><code>{data[0]}</code><p>{data[1]}</p></div><aside><Range label={locale === "tr" ? "Çalışma boyutu" : "Working size"} value={size} min={128} max={8192} step={128} onChange={setSize} /><Metric label={locale === "tr" ? "Örnek eleman" : "Example elements"} value={size.toLocaleString(locale === "tr" ? "tr-TR" : "en-US")} /><Metric label={locale === "tr" ? "Kernel yolu" : "Kernel path"} value={data[2]} /></aside></div>
-    <div className="operator-pack">{["RMSNorm", "Half-split RoPE", "SwiGLU", "Masked softmax", "KV-cache update"].map((name, index) => <span key={name}><b>0{index + 1}</b>{name}</span>)}</div>
-  </LabShell>;
+  void locale;
+  return <LlmKernelPatternsEmbedded />;
 }
 
 function CorrectnessLab({ locale }: { locale: Locale }) {
