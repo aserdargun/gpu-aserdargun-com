@@ -11,6 +11,7 @@ import "./kernel-safety.css";
 import "./nsight-benchmark.css";
 import "./cutlass-cute.css";
 import "./inference-systems.css";
+import "./nccl-multigpu.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });

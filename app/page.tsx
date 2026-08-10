@@ -10,6 +10,7 @@ import KernelSafetyEmbedded from "./KernelSafetyEmbedded";
 import NsightBenchmarkEmbedded from "./NsightBenchmarkEmbedded";
 import CutlassCuteEmbedded from "./CutlassCuteEmbedded";
 import InferenceSystemsEmbedded from "./InferenceSystemsEmbedded";
+import NcclMultiGpuEmbedded from "./NcclMultiGpuEmbedded";
 
 type LabKind =
   | "toolchain"
@@ -633,21 +634,8 @@ function InferenceLab({ locale }: { locale: Locale }) {
 }
 
 function MultiGpuLab({ locale }: { locale: Locale }) {
-  const [gpus, setGpus] = useState(8);
-  const [payload, setPayload] = useState(4);
-  const [bandwidth, setBandwidth] = useState(200);
-  const [strategy, setStrategy] = useState<"DP" | "TP" | "PP" | "EP">("TP");
-  const ringBytes = 2 * ((gpus - 1) / gpus) * payload;
-  const transferMs = ringBytes * 8 * 1000 / bandwidth;
-  const strategyCopy = (locale === "tr"
-    ? { DP: "Model kopyası + gradient AllReduce", TP: "Katman içi bölme + sık AllReduce/AllGather", PP: "Katman aşamaları + mikro-batch P2P", EP: "MoE uzmanları + All-to-All" }
-    : { DP: "Model replicas + gradient AllReduce", TP: "Intra-layer sharding + frequent AllReduce/AllGather", PP: "Layer stages + micro-batch P2P", EP: "MoE experts + All-to-All" })[strategy];
-  return <LabShell label="LAB / COLLECTIVE COST" title={locale === "tr" ? "AllReduce maliyetini hesapla." : "Calculate the cost of AllReduce."} note={locale === "tr" ? "Basitleştirilmiş ring modeli; topoloji ve protokol ayrıntıları ayrıca ölçülür." : "Simplified ring model; measure topology and protocol details separately."}>
-    <div className="control-grid three"><Range label="GPU" value={gpus} min={2} max={64} step={2} onChange={setGpus} /><Range label="Payload (GB)" value={payload} min={1} max={32} step={1} onChange={setPayload} /><Range label="Link (Gb/s)" value={bandwidth} min={25} max={800} step={25} onChange={setBandwidth} /></div>
-    <div className="network-visual">{Array.from({ length: Math.min(12, gpus) }, (_, index) => <span key={index}>GPU {index}</span>)}<i>RING</i></div>
-    <div className="metric-grid"><Metric label={locale === "tr" ? "Ring trafik / rank" : "Ring traffic / rank"} value={`${ringBytes.toFixed(1)} GB`} /><Metric label={locale === "tr" ? "İdeal transfer" : "Ideal transfer"} value={`${transferMs.toFixed(1)} ms`} /><Metric label={locale === "tr" ? "Kolektif" : "Collective"} value="ReduceScatter + AllGather" /></div>
-    <div className="goal-panel"><div className="segmented">{(["DP", "TP", "PP", "EP"] as const).map((name) => <button key={name} className={strategy === name ? "active" : ""} onClick={() => setStrategy(name)}>{name}</button>)}</div><p>{strategyCopy}</p></div>
-  </LabShell>;
+  void locale;
+  return <NcclMultiGpuEmbedded />;
 }
 
 function SystemsLab({ locale }: { locale: Locale }) {
