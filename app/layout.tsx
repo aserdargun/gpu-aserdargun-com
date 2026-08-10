@@ -8,6 +8,7 @@ import "./gpu-memory.css";
 import "./pytorch-triton.css";
 import "./llm-kernel-patterns.css";
 import "./kernel-safety.css";
+import "./nsight-benchmark.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });

@@ -7,6 +7,7 @@ import GpuMemoryEmbedded from "./GpuMemoryEmbedded";
 import PyTorchTritonEmbedded from "./PyTorchTritonEmbedded";
 import LlmKernelPatternsEmbedded from "./LlmKernelPatternsEmbedded";
 import KernelSafetyEmbedded from "./KernelSafetyEmbedded";
+import NsightBenchmarkEmbedded from "./NsightBenchmarkEmbedded";
 
 type LabKind =
   | "toolchain"
@@ -614,22 +615,8 @@ function CorrectnessLab({ locale }: { locale: Locale }) {
 }
 
 function ProfilingLab({ locale }: { locale: Locale }) {
-  const [lens, setLens] = useState<"Systems" | "Compute" | "Benchmark">("Systems");
-  const trCopy = {
-    Systems: ["Uygulama neden bekliyor?", "CPU/GPU timeline · copy · launch · idle gap", "Sıcak kerneli ve bekleme bölgesini bul."],
-    Compute: ["Kernel neden yavaş?", "Memory workload · occupancy · scheduler · roofline", "Tek bir hipotezi section set ile test et."],
-    Benchmark: ["Kazanç gerçek mi?", "Warm-up · median · p95 · aynı ortam", "İki sürümü kontrollü deneyle kıyasla."],
-  }[lens];
-  const enCopy = {
-    Systems: ["Why is the application waiting?", "CPU/GPU timeline · copy · launch · idle gap", "Find the hot kernel and the waiting region."],
-    Compute: ["Why is the kernel slow?", "Memory workload · occupancy · scheduler · roofline", "Test one hypothesis with a targeted section set."],
-    Benchmark: ["Is the gain real?", "Warm-up · median · p95 · same environment", "Compare two versions in a controlled experiment."],
-  }[lens];
-  const copy = locale === "tr" ? trCopy : enCopy;
-  return <LabShell label="LAB / MEASUREMENT CHAIN" title={locale === "tr" ? "Doğru aracı, doğru soruya bağla." : "Match the right tool to the right question."} note={locale === "tr" ? "Her metriği toplamak yerine belirsizliği sırayla azalt." : "Reduce uncertainty in sequence instead of collecting every metric."}>
-    <div className="lens-grid">{(["Systems", "Compute", "Benchmark"] as const).map((name, index) => <button key={name} className={lens === name ? "active" : ""} onClick={() => setLens(name)}><span>0{index + 1}</span><b>Nsight {name}</b><small>{["Timeline", "Kernel metrics", "Controlled experiment"][index]}</small></button>)}</div>
-    <div className="evidence-panel"><span>{locale === "tr" ? "AKTİF MERCEK" : "ACTIVE LENS"} · {lens.toUpperCase()}</span><h3>{copy[0]}</h3><code>{copy[1]}</code><p>{copy[2]}</p><div className="fake-chart">{[28, 44, 36, 74, 58, 92, 64, 81, 52, 88, 69, 95].map((height, index) => <i key={index} style={{ height: `${height}%` }} />)}</div></div>
-  </LabShell>;
+  void locale;
+  return <NsightBenchmarkEmbedded />;
 }
 
 function CutlassLab({ locale }: { locale: Locale }) {
