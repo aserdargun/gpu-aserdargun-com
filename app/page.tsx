@@ -8,6 +8,7 @@ import PyTorchTritonEmbedded from "./PyTorchTritonEmbedded";
 import LlmKernelPatternsEmbedded from "./LlmKernelPatternsEmbedded";
 import KernelSafetyEmbedded from "./KernelSafetyEmbedded";
 import NsightBenchmarkEmbedded from "./NsightBenchmarkEmbedded";
+import CutlassCuteEmbedded from "./CutlassCuteEmbedded";
 
 type LabKind =
   | "toolchain"
@@ -620,20 +621,9 @@ function ProfilingLab({ locale }: { locale: Locale }) {
 }
 
 function CutlassLab({ locale }: { locale: Locale }) {
-  const layers = ["CUTLASS", "CuTe", "PTX", "Tensor Core"] as const;
-  const [layer, setLayer] = useState<(typeof layers)[number]>("CuTe");
-  const [m, setM] = useState(128);
-  const [n, setN] = useState(128);
-  const [k, setK] = useState(64);
-  const flop = 2 * m * n * k;
-  const bytes = 2 * (m * k + k * n + m * n);
-  const notes = locale === "tr"
-    ? { CUTLASS: "Kernel politikasını ve mainloop + epilogue bileşimini kurar.", CuTe: "Shape, stride ve thread–data eşlemesini layout cebiriyle ifade eder.", PTX: "Derleyici ile makine kodu arasındaki sanal ISA sözleşmesidir.", "Tensor Core": "Warp/warpgroup kolektif küçük matris MAC donanımıdır." }
-    : { CUTLASS: "Builds the kernel policy and the mainloop + epilogue composition.", CuTe: "Expresses shapes, strides, and thread-to-data mapping with layout algebra.", PTX: "The virtual ISA contract between the compiler and machine code.", "Tensor Core": "Hardware for warp/warpgroup-level collective small-matrix MAC operations." };
-  return <LabShell label="LAB / GEMM DESCENT" title={locale === "tr" ? "Tile’ı değiştir, maliyeti gör." : "Change the tile and inspect its cost."} note={locale === "tr" ? "PTX son söz değildir; hedef GPU’nun SASS çıktısı ve profiler sonucu doğrular." : "PTX is not the final word; verify the target GPU’s SASS and profiler results."}>
-    <div className="cutlass-map">{layers.map((name, index) => <button key={name} className={layer === name ? "active" : ""} onClick={() => setLayer(name)}><span>0{index + 1}</span><b>{name}</b><i>↓</i></button>)}</div>
-    <div className="tile-lab"><div><Range label="M tile" value={m} min={16} max={256} step={16} onChange={setM} /><Range label="N tile" value={n} min={16} max={256} step={16} onChange={setN} /><Range label="K tile" value={k} min={16} max={128} step={16} onChange={setK} /></div><div className="tile-visual"><span>CTA TILE</span><b>{m} × {n} × {k}</b><div>{Array.from({ length: 48 }, (_, index) => <i key={index} className={index % Math.max(1, Math.round(k / 16)) === 0 ? "hot" : ""} />)}</div></div><aside><p>{notes[layer]}</p><Metric label="FLOP" value={flop.toLocaleString(locale === "tr" ? "tr-TR" : "en-US")} /><Metric label={locale === "tr" ? "Yaklaşık F/B" : "Approx. F/B"} value={(flop / bytes).toFixed(1)} /></aside></div>
-  </LabShell>;
+  const localeNumberFormat = (value: number) => value.toLocaleString(locale === "tr" ? "tr-TR" : "en-US");
+  void localeNumberFormat;
+  return <CutlassCuteEmbedded />;
 }
 
 function InferenceLab({ locale }: { locale: Locale }) {
