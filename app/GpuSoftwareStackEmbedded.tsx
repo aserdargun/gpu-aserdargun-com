@@ -247,7 +247,7 @@ export default function GpuSoftwareStackEmbedded() {
 
       <section className="hero" id="top">
         <div className="hero-copy">
-          <div className="kicker"><span /> GPU SYSTEMS / FIELD GUIDE</div>
+          <div className="kicker"><span /> GPU SİSTEMLERİ / SAHA KILAVUZU</div>
           <h1>GPU yazılım<br />yığınının <em>içine</em> bak.</h1>
           <p className="hero-lead">
             Kernel kodundan compiler IR&apos;ına, optimize inference engine&apos;ine kadar üç kritik katmanı tek bir interaktif atlas üzerinde öğren.
@@ -280,7 +280,7 @@ export default function GpuSoftwareStackEmbedded() {
             <div className="flow-mark">↓ <span>hedefe özgü kod</span></div>
             <div className="stack-layer layer-runtime">
               <span className="layer-index">L1</span>
-              <div><small>RUNTIME + KERNEL</small><strong>ROCm / HIP</strong><p>Grid · Memory · Synchronize</p></div>
+              <div><small>ÇALIŞMA ZAMANI + KERNEL</small><strong>ROCm / HIP</strong><p>Izgara · Bellek · Eşzamanla</p></div>
               <b>GPU</b>
             </div>
           </div>
@@ -289,7 +289,7 @@ export default function GpuSoftwareStackEmbedded() {
               <i key={i} style={{ height: `${height}%` }} />
             ))}
           </div>
-          <div className="visual-footer"><span>DATA MOVEMENT</span><span>→</span><span>EXECUTION</span><span>→</span><span>MEASUREMENT</span></div>
+          <div className="visual-footer"><span>VERİ HAREKETİ</span><span>→</span><span>YÜRÜTME</span><span>→</span><span>ÖLÇÜM</span></div>
         </div>
       </section>
 
@@ -300,7 +300,7 @@ export default function GpuSoftwareStackEmbedded() {
             <h2 id="decision-title">Bugün neyi<br />optimize ediyorsun?</h2>
             <div className="segmented" role="group" aria-label="Optimizasyon hedefi">
               {([
-                ["kernel", "Kernel"], ["compiler", "Compiler"], ["inference", "Inference"],
+                ["kernel", "Kernel"], ["compiler", "Derleyici"], ["inference", "Çıkarım"],
               ] as const).map(([key, label]) => (
                 <button key={key} className={choice === key ? "active" : ""} onClick={() => setChoice(key)}>{label}</button>
               ))}
@@ -372,7 +372,7 @@ export default function GpuSoftwareStackEmbedded() {
 
         <div className="code-and-risks">
           <div className="code-window">
-            <div className="code-titlebar"><span><i /><i /><i /></span><b>{activeTrack === "rocm" ? "saxpy.hip" : activeTrack === "mlir" ? "matmul.mlir" : "build_engine.py"}</b><span>READ ONLY</span></div>
+            <div className="code-titlebar"><span><i /><i /><i /></span><b>{activeTrack === "rocm" ? "saxpy.hip" : activeTrack === "mlir" ? "matmul.mlir" : "build_engine.py"}</b><span>SALT OKUNUR</span></div>
             <pre><code>{track.code}</code></pre>
           </div>
           <aside className="risk-panel">
@@ -392,9 +392,9 @@ export default function GpuSoftwareStackEmbedded() {
         <div className="comparison-table" role="table" aria-label="Teknoloji karşılaştırması">
           <div className="comparison-row comparison-head" role="row"><span>KARŞILAŞTIR</span><b>ROCm / HIP</b><b>MLIR</b><b>TensorRT</b></div>
           {[
-            ["Ana soru", "Kernel nasıl çalışıyor?", "Kod nasıl dönüşüyor?", "Model nasıl servis ediliyor?"],
+            ["Temel soru", "Kernel nasıl çalışıyor?", "Kod nasıl dönüşüyor?", "Model nasıl servis ediliyor?"],
             ["Kontrol yüzeyi", "Thread, bellek, stream", "IR, dialect, pass", "Graph, precision, profile"],
-            ["Birincil ölçüm", "Bandwidth / kernel süresi", "IR kalite / compile time", "Latency / throughput"],
+            ["Birincil ölçüm", "Bandwidth / kernel süresi", "IR kalitesi / derleme süresi", "Gecikme / iş hacmi"],
             ["Hata tipi", "Race / invalid access", "Illegal IR / miscompile", "Unsupported op / accuracy drift"],
             ["Başlangıç artefaktı", ".hip / C++ kaynak", "Dialect veya frontend IR", "ONNX / network definition"],
           ].map((row) => <div className="comparison-row" role="row" key={row[0]}>{row.map((cell, i) => i === 0 ? <span key={cell}>{cell}</span> : <b key={cell}>{cell}</b>)}</div>)}
@@ -410,16 +410,16 @@ export default function GpuSoftwareStackEmbedded() {
             <label>Hassasiyet
               <select value={precision} onChange={(e) => setPrecision(e.target.value)}><option>FP32</option><option>FP16</option><option>INT8</option></select>
             </label>
-            <label>Shape
+            <label>Şekil
               <select value={shapeMode} onChange={(e) => setShapeMode(e.target.value)}><option>Sabit</option><option>Dinamik</option></select>
             </label>
-            <label className="toggle-label">Fusion
+            <div className="toggle-label"><span>Birleştirme</span>
               <button className={`toggle ${fusion ? "on" : ""}`} role="switch" aria-checked={fusion} onClick={() => setFusion(!fusion)}><span /></button>
-            </label>
+            </div>
           </div>
         </div>
         <div className="lab-output" aria-live="polite">
-          <div className="lab-screen-top"><span>MEASUREMENT PLAN</span><span>SCENARIO / A</span></div>
+          <div className="lab-screen-top"><span>ÖLÇÜM PLANI</span><span>SENARYO / A</span></div>
           <div className="metric-grid">
             <div><span>ÖNCELİKLİ METRİK</span><strong>{shapeMode === "Dinamik" ? "P99 latency / shape" : "Latency + throughput"}</strong></div>
             <div><span>DOĞRULUK KAPISI</span><strong>{precision === "INT8" ? "Kalibrasyon + görev metriği" : precision === "FP16" ? "FP32 parity kontrolü" : "Referans çıktı farkı"}</strong></div>
@@ -478,4 +478,3 @@ export default function GpuSoftwareStackEmbedded() {
     </main>
   );
 }
-

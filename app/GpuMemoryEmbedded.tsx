@@ -6,17 +6,17 @@ type ModuleId = "hierarchy" | "coalescing" | "banks" | "occupancy";
 
 const modules: { id: ModuleId; number: string; label: string; short: string }[] = [
   { id: "hierarchy", number: "01", label: "Bellek hiyerarşisi", short: "Hiyerarşi" },
-  { id: "coalescing", number: "02", label: "Coalescing", short: "Coalescing" },
-  { id: "banks", number: "03", label: "Bank conflict", short: "Bank conflict" },
-  { id: "occupancy", number: "04", label: "Occupancy", short: "Occupancy" },
+  { id: "coalescing", number: "02", label: "Birleşik erişim", short: "Birleşik erişim" },
+  { id: "banks", number: "03", label: "Banka çakışması", short: "Banka çakışması" },
+  { id: "occupancy", number: "04", label: "Doluluk", short: "Doluluk" },
 ];
 
 const hierarchyLayers = [
   {
     id: "register",
-    name: "Register",
+    name: "Yazmaç",
     place: "SM üzerinde",
-    scope: "Tek thread",
+    scope: "Tek iş parçacığı",
     speed: "En düşük gecikme",
     capacity: "Çok küçük",
     color: "violet",
@@ -24,9 +24,9 @@ const hierarchyLayers = [
   },
   {
     id: "shared",
-    name: "Shared memory / L1",
+    name: "Paylaşılan bellek / L1",
     place: "SM üzerinde",
-    scope: "Thread block",
+    scope: "İş parçacığı bloğu",
     speed: "Çok düşük gecikme",
     capacity: "Küçük, programlanabilir",
     color: "blue",
@@ -34,7 +34,7 @@ const hierarchyLayers = [
   },
   {
     id: "l2",
-    name: "L2 cache",
+    name: "L2 önbelleği",
     place: "Tüm GPU'ya ortak",
     scope: "Bütün SM'ler",
     speed: "Orta gecikme",
@@ -44,9 +44,9 @@ const hierarchyLayers = [
   },
   {
     id: "global",
-    name: "Global memory",
+    name: "Genel bellek",
     place: "GPU DRAM",
-    scope: "Grid ve host",
+    scope: "Izgara ve ana sistem",
     speed: "Yüksek gecikme",
     capacity: "En büyük",
     color: "orange",
@@ -54,7 +54,7 @@ const hierarchyLayers = [
   },
   {
     id: "host",
-    name: "Host / sistem belleği",
+    name: "Ana sistem belleği",
     place: "CPU tarafı",
     scope: "Sistem",
     speed: "Bağlantı ile sınırlı",
@@ -69,7 +69,7 @@ function Header({ active, setActive, visited }: { active: ModuleId; setActive: (
     <header className="topbar">
       <button className="brand" onClick={() => setActive("hierarchy")} aria-label="GPU Memory Lab ana sayfa">
         <span className="brand-mark" aria-hidden="true"><i /><i /><i /></span>
-        <span><strong>GPU MEMORY</strong><small>INTERACTIVE LAB</small></span>
+        <span><strong>GPU BELLEĞİ</strong><small>ETKİLEŞİMLİ LABORATUVAR</small></span>
       </button>
       <nav className="module-nav" aria-label="Ders modülleri">
         {modules.map((module) => (
@@ -173,8 +173,8 @@ function CoalescingLab() {
   const rating = result.efficiency === 100 ? "İdeal" : result.efficiency >= 50 ? "Kısmi" : "Dağınık";
   return (
     <section className="module-layout">
-      <ModuleIntro eyebrow="MODÜL 02 · GLOBAL MEMORY" title="Coalescing" lead="Bir warp'ın 32 thread'i yakın adreslere eriştiğinde donanım bu istekleri az sayıda bellek işleminde birleştirir.">
-        <Fact label="MODEL">Her thread bir <code>float</code> (4 byte) okuyor. Compute capability 6.0+ için erişimler gereken 32-byte sektörler üzerinden gösteriliyor.</Fact>
+      <ModuleIntro eyebrow="MODÜL 02 · GENEL BELLEK" title="Birleşik erişim" lead="Bir warp'ın 32 iş parçacığı yakın adreslere eriştiğinde donanım bu istekleri az sayıda bellek işleminde birleştirir.">
+        <Fact label="MODEL">Her iş parçacığı bir <code>float</code> (4 byte) okuyor. Compute capability 6.0+ için erişimler gereken 32-byte sektörler üzerinden gösteriliyor.</Fact>
         <Fact label="NEDEN ÖNEMLİ?">İstenen 128 byte aynı kalırken taşınan sektör sayısı büyüyebilir. Kullanılmayan byte'lar bant genişliğini tüketir.</Fact>
         <div className="formula"><span>Yararlılık</span><strong>istenen byte / taşınan byte</strong></div>
       </ModuleIntro>
@@ -190,7 +190,7 @@ function CoalescingLab() {
             </button>
           ))}
         </div>
-        <div className="sim-label"><span>WARP · 32 THREAD</span><span>Her kare 4-byte <code>float</code> erişimi</span></div>
+        <div className="sim-label"><span>WARP · 32 İŞ PARÇACIĞI</span><span>Her kare 4-byte <code>float</code> erişimi</span></div>
         <div className="lane-grid">
           {result.addresses.map((address, lane) => <div key={lane} className="lane" title={`Thread ${lane}: byte ${address}`}><span>T{String(lane).padStart(2, "0")}</span><strong>{address}</strong></div>)}
         </div>
@@ -234,7 +234,7 @@ function BankConflictLab() {
         <div className="stride-control" role="group" aria-label="Shared memory erişim stride değeri">
           {(["1", "2", "4", "8", "16", "32", "broadcast"] as BankPattern[]).map((value) => <button key={value} onClick={() => setPattern(value)} className={pattern === value ? "active" : ""} aria-pressed={pattern === value}>{value === "broadcast" ? "Aynı adres" : `Stride ${value}`}</button>)}
         </div>
-        <div className="mapping-equation"><span>THREAD <b>t</b></span><i>→</i><code>word[{pattern === "broadcast" ? "0" : `t × ${pattern}`}]</code><i>→</i><span>BANK <b>{pattern === "broadcast" ? "0" : `(t × ${pattern}) % 32`}</b></span></div>
+        <div className="mapping-equation"><span>İŞ PARÇACIĞI <b>t</b></span><i>→</i><code>word[{pattern === "broadcast" ? "0" : `t × ${pattern}`}]</code><i>→</i><span>BANK <b>{pattern === "broadcast" ? "0" : `(t × ${pattern}) % 32`}</b></span></div>
         <div className="bank-grid" aria-label="32 shared memory bank doluluk haritası">
           {result.counts.map((count, bank) => (
             <div key={bank} className={count === 0 ? "empty" : count === 1 ? "single" : count <= 4 ? "warm" : "hot"}>
@@ -256,11 +256,11 @@ function BankConflictLab() {
 function Slider({ label, value, min, max, step, unit, onChange }: { label: string; value: number; min: number; max: number; step: number; unit: string; onChange: (value: number) => void }) {
   const percent = ((value - min) / (max - min)) * 100;
   return (
-    <label className="slider-row">
+    <div className="slider-row">
       <span><strong>{label}</strong><output>{value}{unit}</output></span>
-      <input type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} style={{ "--value": `${percent}%` } as React.CSSProperties} />
+      <input aria-label={label} type="range" min={min} max={max} step={step} value={value} onChange={(event) => onChange(Number(event.target.value))} style={{ "--value": `${percent}%` } as React.CSSProperties} />
       <small><i>{min}{unit}</i><i>{max}{unit}</i></small>
-    </label>
+    </div>
   );
 }
 
@@ -293,16 +293,16 @@ function OccupancyLab() {
       <div className="lab-surface occupancy-lab">
         <div className="surface-heading">
           <div><span>KAYNAK HESAPLAYICI</span><h2>Kernel konfigürasyonunu değiştir</h2></div>
-          <div className={`occupancy-ring ${result.occupancy >= 75 ? "good" : result.occupancy >= 40 ? "mid" : "bad"}`} style={{ "--occ": `${result.occupancy * 3.6}deg` } as React.CSSProperties}><div><strong>{result.occupancy}%</strong><span>OCCUPANCY</span></div></div>
+          <div className={`occupancy-ring ${result.occupancy >= 75 ? "good" : result.occupancy >= 40 ? "mid" : "bad"}`} style={{ "--occ": `${result.occupancy * 3.6}deg` } as React.CSSProperties}><div><strong>{result.occupancy}%</strong><span>DOLULUK</span></div></div>
         </div>
         <div className="occupancy-body">
           <div className="controls-panel">
-            <Slider label="Thread / block" value={threads} min={32} max={1024} step={32} unit="" onChange={setThreads} />
-            <Slider label="Register / thread" value={registers} min={8} max={128} step={8} unit="" onChange={setRegisters} />
-            <Slider label="Shared memory / block" value={shared} min={0} max={100} step={4} unit=" KB" onChange={setShared} />
+            <Slider label="İş parçacığı / blok" value={threads} min={32} max={1024} step={32} unit="" onChange={setThreads} />
+            <Slider label="Yazmaç / iş parçacığı" value={registers} min={8} max={128} step={8} unit="" onChange={setRegisters} />
+            <Slider label="Paylaşılan bellek / blok" value={shared} min={0} max={100} step={4} unit=" KB" onChange={setShared} />
           </div>
           <div className="sm-visual">
-            <div className="sm-label"><span>STREAMING MULTIPROCESSOR</span><strong>{result.activeBlocks} aktif block · {result.activeWarps} aktif warp</strong></div>
+            <div className="sm-label"><span>AKIŞ ÇOKLU İŞLEMCİSİ</span><strong>{result.activeBlocks} aktif block · {result.activeWarps} aktif warp</strong></div>
             <div className="block-slots">
               {Array.from({ length: 12 }, (_, index) => <div key={index} className={index < Math.min(result.activeBlocks, 12) ? "filled" : ""}><span>{index < result.activeBlocks ? `B${index}` : ""}</span></div>)}
             </div>
@@ -334,11 +334,10 @@ export default function GpuMemoryEmbedded() {
         {active === "occupancy" && <OccupancyLab />}
       </div>
       <footer>
-        <span>GPU Memory Interactive Lab</span>
+        <span>GPU Belleği Etkileşimli Laboratuvarı</span>
         <p>Simülasyonlar kavramsal öğrenme içindir; gerçek kernel için ölçüm yap.</p>
         <div><a href="https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/writing-cuda-kernels.html#memory-performance" target="_blank" rel="noreferrer">CUDA Programming Guide ↗</a><a href="https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/" target="_blank" rel="noreferrer">Best Practices ↗</a></div>
       </footer>
     </main>
   );
 }
-

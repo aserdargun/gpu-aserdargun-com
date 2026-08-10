@@ -119,7 +119,7 @@ export default function InferenceSystemsEmbedded() {
       <header className="topbar">
         <a className="brand" href="#top" aria-label="Inference Systems Lab ana sayfa">
           <span className="brand-mark">IS</span>
-          <span>INFERENCE SYSTEMS LAB</span>
+          <span>ÇIKARIM SİSTEMLERİ LABORATUVARI</span>
         </a>
         <nav className="desktop-nav" aria-label="Ana navigasyon">
           <a href="#vllm">Konular</a>
@@ -186,9 +186,9 @@ export default function InferenceSystemsEmbedded() {
 
             <div className="concept-grid">
               <article><span className="concept-tag">PAGED ATTENTION</span><h3>KV cache'i bloklara ayırır</h3><p>Her isteğe büyük ve bitişik alan ayırmak yerine sabit boyutlu bloklarla çalışır. Böylece parçalanma azalır, istekler büyüdükçe bloklar eklenebilir.</p><div className="block-viz">{Array.from({ length: 18 }).map((_, i) => <i className={i % 5 === 4 ? "gap" : i < 13 ? "used" : ""} key={i} />)}</div></article>
-              <article><span className="concept-tag">CONTINUOUS BATCHING</span><h3>Batch, istek bitmesini beklemez</h3><p>Her decode adımında tamamlanan istek çıkar, bekleyen istek girebilir. Statik batch'in “en yavaşı bekle” maliyetini azaltır.</p><div className="timeline-viz"><i style={{ width: "82%" }} /><i style={{ width: "48%" }} /><i style={{ width: "68%" }} /><i className="new" style={{ width: "31%" }} /></div></article>
-              <article><span className="concept-tag">CHUNKED PREFILL</span><h3>Uzun prompt'u dilimler</h3><p>Compute-ağırlıklı prefill parçalarını memory-ağırlıklı decode işleriyle aynı adımda planlayabilir. Token bütçesi, TTFT–ITL dengesinin ana düğmelerinden biridir.</p><div className="chunk-viz"><i /><i /><i /><b>D</b><b>D</b><i /></div></article>
-              <article><span className="concept-tag">PREFIX CACHING</span><h3>Ortak başlangıcı yeniden kullanır</h3><p>Aynı sistem prompt'u veya paylaşılan bağlam tekrar geldiğinde eşleşen KV blokları yeniden hesaplanmaz. En büyük değer tekrarlı prefix iş yüklerinde oluşur.</p><div className="prefix-viz"><span>SYSTEM</span><span>POLICY</span><b>USER A</b><b>USER B</b></div></article>
+              <article><span className="concept-tag">SÜREKLİ TOPLU İŞLEME</span><h3>Batch, istek bitmesini beklemez</h3><p>Her decode adımında tamamlanan istek çıkar, bekleyen istek girebilir. Statik batch'in “en yavaşı bekle” maliyetini azaltır.</p><div className="timeline-viz"><i style={{ width: "82%" }} /><i style={{ width: "48%" }} /><i style={{ width: "68%" }} /><i className="new" style={{ width: "31%" }} /></div></article>
+              <article><span className="concept-tag">PARÇALI ÖN DOLDURMA</span><h3>Uzun prompt'u dilimler</h3><p>Compute-ağırlıklı prefill parçalarını memory-ağırlıklı decode işleriyle aynı adımda planlayabilir. Token bütçesi, TTFT–ITL dengesinin ana düğmelerinden biridir.</p><div className="chunk-viz"><i /><i /><i /><b>D</b><b>D</b><i /></div></article>
+              <article><span className="concept-tag">ÖNEK ÖNBELLEĞİ</span><h3>Ortak başlangıcı yeniden kullanır</h3><p>Aynı sistem prompt'u veya paylaşılan bağlam tekrar geldiğinde eşleşen KV blokları yeniden hesaplanmaz. En büyük değer tekrarlı prefix iş yüklerinde oluşur.</p><div className="prefix-viz"><span>SYSTEM</span><span>POLICY</span><b>USER A</b><b>USER B</b></div></article>
             </div>
           </section>
 
@@ -219,8 +219,8 @@ export default function InferenceSystemsEmbedded() {
             <div className="section-index">02 / CUDA GRAPHS</div>
             <div className="section-heading"><h2>Bir kez yakala.<br />Defalarca replay et.</h2><p>Normal eager akışta CPU her kernel için hazırlık ve launch işi yapar. CUDA Graphs, tekrarlanan GPU operasyonlarını bağımlılıklarıyla kaydeder; instantiate eder ve tek bir replay çağrısıyla yeniden yürütür.</p></div>
             <div className="compare-board">
-              <div className="compare-lane"><span>EAGER / HER ADIM</span><div className="kernel-row">{["LN", "QKV", "ATTN", "MLP", "SAMPLE"].map((k) => <b key={k}>{k}</b>)}</div><small>CPU → launch → CPU → launch → CPU → launch…</small></div>
-              <div className="compare-lane graph"><span>GRAPH / REPLAY</span><div className="graph-capsule"><b>cudaGraphLaunch()</b><i>LN</i><i>QKV</i><i>ATTN</i><i>MLP</i><i>SAMPLE</i></div><small>Önceden tanımlı bağımlılık grafiği</small></div>
+              <div className="compare-lane"><span>ANLIK / HER ADIM</span><div className="kernel-row">{["LN", "QKV", "ATTN", "MLP", "SAMPLE"].map((k) => <b key={k}>{k}</b>)}</div><small>CPU → launch → CPU → launch → CPU → launch…</small></div>
+              <div className="compare-lane graph"><span>GRAPH / YENİDEN OYNATMA</span><div className="graph-capsule"><b>cudaGraphLaunch()</b><i>LN</i><i>QKV</i><i>ATTN</i><i>MLP</i><i>SAMPLE</i></div><small>Önceden tanımlı bağımlılık grafiği</small></div>
             </div>
             <div className="rule-grid">
               <div><span>01</span><h3>Shape kararlı olmalı</h3><p>Captured graph belirli shape ve adres varsayımlarına bağlıdır. Serving sistemleri farklı batch boyutları için graph havuzu ve padding kullanabilir.</p></div>
@@ -242,7 +242,7 @@ export default function InferenceSystemsEmbedded() {
             <div className="section-heading"><h2>Az bit, tek başına hızlı demek değildir.</h2><p>Quantization ağırlıkların, aktivasyonların veya KV cache'in sayısal temsilini daraltır. Sonuç; daha az bellek ve veri hareketi olabilir. Hız ancak donanımın ve kernel yolunun bu formatı verimli çalıştırmasıyla gelir.</p></div>
 
             <div className="precision-stack">
-              <div className="precision-head"><span>FORMAT</span><span>YAKLAŞIK WEIGHT BOYUTU*</span><span>ANA TRADE-OFF</span></div>
+              <div className="precision-head"><span>FORMAT</span><span>YAKLAŞIK WEIGHT BOYUTU*</span><span>ANA ÖDÜNLEŞİM</span></div>
               {[
                 ["BF16", "16 bit", "1.00×", "Güçlü taban çizgisi", "100%"],
                 ["FP8", "8 bit", "0.50×", "Donanım + scale yolu", "50%"],
@@ -255,8 +255,8 @@ export default function InferenceSystemsEmbedded() {
             <div className="quant-tools">
               <div className="memory-calc">
                 <span className="tool-label">LAB / 03 · WEIGHT HAFIZASI</span><h3>Modeli tart</h3>
-                <label>PARAMETRE <b>{params}B</b></label><input type="range" min="1" max="70" value={params} onChange={(e) => setParams(Number(e.target.value))} />
-                <label>PRECISION</label><div className="segmented">{[16, 8, 4].map((b) => <button type="button" className={bits === b ? "selected" : ""} onClick={() => setBits(b)} key={b}>{b}-BIT</button>)}</div>
+                <label htmlFor="parameter-count">PARAMETRE <b>{params}B</b></label><input id="parameter-count" type="range" min="1" max="70" value={params} onChange={(e) => setParams(Number(e.target.value))} />
+                <span className="tool-label">HASSASİYET</span><div className="segmented">{[16, 8, 4].map((b) => <button type="button" className={bits === b ? "selected" : ""} onClick={() => setBits(b)} key={b}>{b}-BIT</button>)}</div>
                 <div className="memory-output"><span>TEORİK WEIGHT BELLEĞİ</span><b>{weightMemory.toFixed(1)} <small>GB</small></b><p>GiB değil, ondalık GB yaklaşımıdır.</p></div>
               </div>
               <div className="decision-card">
@@ -298,9 +298,9 @@ export default function InferenceSystemsEmbedded() {
             <div className="section-index">05 / ÖLÇÜM DİSİPLİNİ</div>
             <div className="section-heading"><h2>Benchmark, tek sayı değildir.</h2><p>Latency ve throughput aynı deneyde bile farklı hikâyeler anlatır. Warm-up, concurrency, prompt/output uzunluğu ve yüzdelikleri raporlanmayan sonuçlar taşınabilir değildir.</p></div>
             <div className="metric-grid">
-              <article><span>TTFT</span><h3>Time to First Token</h3><p>Kuyruk + prefill + ilk decode. Kullanıcının “cevap başladı” algısı.</p></article>
-              <article><span>ITL</span><h3>Inter-token Latency</h3><p>Streaming sırasında ardışık token'lar arasındaki süre.</p></article>
-              <article><span>TPOT</span><h3>Time per Output Token</h3><p>İlk token sonrası üretim süresinin output token sayısına oranı.</p></article>
+              <article><span>TTFT</span><h3>İlk Belirtece Kadar Süre</h3><p>Kuyruk + prefill + ilk decode. Kullanıcının “cevap başladı” algısı.</p></article>
+              <article><span>ITL</span><h3>Belirteçler Arası Gecikme</h3><p>Streaming sırasında ardışık token'lar arasındaki süre.</p></article>
+              <article><span>TPOT</span><h3>Çıktı Belirteci Başına Süre</h3><p>İlk token sonrası üretim süresinin output token sayısına oranı.</p></article>
               <article><span>TOK/S</span><h3>Throughput</h3><p>Birim zamanda sistemin tamamladığı input/output token miktarı.</p></article>
             </div>
             <div className="benchmark-card">
@@ -318,7 +318,7 @@ export default function InferenceSystemsEmbedded() {
           </section>
 
           <section className="quiz" id="quiz">
-            <div className="quiz-intro"><span>KNOWLEDGE CHECK</span><h2>Sistemi anladın mı?</h2><p>Üç kısa soruyla temel trade-off'ları doğrula.</p><div className="score"><b>{quizScore}</b><span>/ 3<br />DOĞRU</span></div></div>
+            <div className="quiz-intro"><span>BİLGİ KONTROLÜ</span><h2>Sistemi anladın mı?</h2><p>Üç kısa soruyla temel trade-off'ları doğrula.</p><div className="score"><b>{quizScore}</b><span>/ 3<br />DOĞRU</span></div></div>
             <div className="quiz-list">
               {quiz.map((item, qIndex) => <fieldset key={item.q}><legend><span>0{qIndex + 1}</span>{item.q}</legend>{item.options.map((option, oIndex) => {
                 const selected = answers[qIndex] === oIndex;
@@ -341,8 +341,7 @@ export default function InferenceSystemsEmbedded() {
         </div>
       </div>
 
-      <footer><a className="brand" href="#top"><span className="brand-mark">IS</span><span>INFERENCE SYSTEMS LAB</span></a><p>ÖLÇ → TEŞHİS ET → DEĞİŞTİR → TEKRAR ÖLÇ</p><a href="#top">BAŞA DÖN ↑</a></footer>
+      <footer><a className="brand" href="#top"><span className="brand-mark">IS</span><span>ÇIKARIM SİSTEMLERİ LABORATUVARI</span></a><p>ÖLÇ → TEŞHİS ET → DEĞİŞTİR → TEKRAR ÖLÇ</p><a href="#top">BAŞA DÖN ↑</a></footer>
     </main>
   );
 }
-

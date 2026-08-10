@@ -109,14 +109,14 @@ export default function KernelSafetyEmbedded() {
           <a href="#sinav" onClick={() => setMenu(false)}>Sınav</a>
         </nav>
         <div className="top-actions">
-          <span className="status"><i /> CUDA TOOLKIT</span>
+          <span className="status"><i /> CUDA ARAÇ KİTİ</span>
           <button className="menu-button" onClick={() => setMenu(!menu)} aria-expanded={menu} aria-label="Menüyü aç">≡</button>
         </div>
       </header>
 
       <section className="hero" id="top">
         <div className="hero-copy">
-          <div className="kicker"><span>GPU KERNEL ENGINEERING</span><i /> MODÜL 03</div>
+          <div className="kicker"><span>GPU KERNEL MÜHENDİSLİĞİ</span><i /> MODÜL 03</div>
           <h1>Hızlı olması yetmez.<br /><em>Doğru</em> olduğunu kanıtla.</h1>
           <p>GPU kernel doğruluğunu; referans uygulama, tolerans matrisi, uç durumlar ve NVIDIA Compute Sanitizer ile sistematik biçimde test etmeyi öğren.</p>
           <div className="hero-actions">
@@ -125,12 +125,12 @@ export default function KernelSafetyEmbedded() {
           </div>
         </div>
         <div className="hero-terminal" aria-label="Örnek başarılı test çıktısı">
-          <div className="terminal-head"><span><i /><i /><i /></span><code>kernel_tests — zsh</code><b>PASS</b></div>
+          <div className="terminal-head"><span><i /><i /><i /></span><code>kernel_tests — zsh</code><b>GEÇTİ</b></div>
           <pre><span className="muted">$</span> pytest tests/test_rmsnorm.py -q{`\n`}
-<span className="cyan">test_forward_fp32</span>      <span className="green">PASSED</span>{`\n`}
-<span className="cyan">test_odd_shapes</span>         <span className="green">PASSED</span>{`\n`}
-<span className="cyan">test_noncontiguous</span>      <span className="green">PASSED</span>{`\n`}
-<span className="cyan">test_extreme_values</span>     <span className="green">PASSED</span>{`\n\n`}
+<span className="cyan">test_forward_fp32</span>      <span className="green">GEÇTİ</span>{`\n`}
+<span className="cyan">test_odd_shapes</span>         <span className="green">GEÇTİ</span>{`\n`}
+<span className="cyan">test_noncontiguous</span>      <span className="green">GEÇTİ</span>{`\n`}
+<span className="cyan">test_extreme_values</span>     <span className="green">GEÇTİ</span>{`\n\n`}
 <span className="muted">$</span> compute-sanitizer --tool memcheck ...{`\n`}
 ========= <span className="green">ERROR SUMMARY: 0 errors</span></pre>
           <div className="terminal-foot"><span>14 test</span><span>0 hata</span><span>2.81s</span></div>
@@ -243,7 +243,7 @@ export default function KernelSafetyEmbedded() {
           ].map((step, i) => <li key={step[0]}><span>{String(i + 1).padStart(2, "0")}</span><div><b>{step[0]}</b><p>{step[1]}</p></div>{i < 6 && <i>↓</i>}</li>)}
         </ol>
         <div className="acceptance">
-          <div><span>MERGE GATE</span><h3>“Hızlandı” tek başına kabul ölçütü değildir.</h3></div>
+          <div><span>BİRLEŞTİRME KAPISI</span><h3>“Hızlandı” tek başına kabul ölçütü değildir.</h3></div>
           <div className="gate-list"><span>✓ referans karşılaştırması</span><span>✓ uç durum matrisi</span><span>✓ 0 sanitizer hatası</span><span>✓ performans dağılımı</span></div>
         </div>
       </section>

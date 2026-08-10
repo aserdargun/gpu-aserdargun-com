@@ -13,26 +13,26 @@ const tabs: { id: Tab; label: string }[] = [
   { id: "architecture", label: "2 · Hiyerarşi" },
   { id: "simt", label: "3 · SIMT" },
   { id: "memory", label: "4 · Bellek" },
-  { id: "lab", label: "5 · Kernel Lab" },
+  { id: "lab", label: "5 · Kernel Laboratuvarı" },
 ];
 
 const archData: Record<ArchLevel, { label: string; code: string; title: string; body: string; owner: string; sharing: string; result: string }> = {
   grid: {
-    label: "Grid", code: "kernel launch", title: "Grid · tüm problem uzayı",
-    body: "Bir kernel launch’ın bütün thread block’larıdır. Block’lar uygun SM’lere dalgalar halinde dağıtılır.",
-    owner: "Host tarafındaki kernel launch", sharing: "Block’lar global memory üzerinden haberleşebilir; normal kernel içinde genel grid bariyeri yoktur.",
+    label: "Grid", code: "kernel çalıştırma", title: "Grid · tüm problem uzayı",
+    body: "Bir kernel çalıştırma’ın bütün thread block’larıdır. Block’lar uygun SM’lere dalgalar halinde dağıtılır.",
+    owner: "Host tarafındaki kernel çalıştırma", sharing: "Block’lar global memory üzerinden haberleşebilir; normal kernel içinde genel grid bariyeri yoktur.",
     result: "Block sırasına güvenme; block’lar herhangi bir sırada çalışabilir.",
   },
   block: {
     label: "Block", code: "blockIdx", title: "Block · işbirliği ve kaynak tahsisi",
     body: "Thread’lerin birlikte schedule edilen grubudur. Bir block ömrü boyunca tek bir SM’de kalır ve warp’lara bölünür.",
-    owner: "Grid scheduler → uygun bir SM", sharing: "Aynı block thread’leri shared memory kullanabilir ve __syncthreads() ile bariyer kurabilir.",
+    owner: "Izgara zamanlayıcısı → uygun bir SM", sharing: "Aynı block thread’leri shared memory kullanabilir ve __syncthreads() ile bariyer kurabilir.",
     result: "Register veya shared memory tüketimi yükselirse aynı SM’de eşzamanlı yaşayabilen block sayısı düşebilir.",
   },
   warp: {
-    label: "Warp", code: "32 thread", title: "Warp · temel issue / schedule grubu",
+    label: "Warp", code: "32 iş parçacığı", title: "Warp · temel gönderim / zamanlama grubu",
     body: "32 ardışık thread’den oluşur. Scheduler hazır warp’lardan instruction issue ederek bellek ve pipeline beklemelerini gizlemeye çalışır.",
-    owner: "SM warp scheduler", sharing: "Lane’ler warp-level primitives ile register verisi paylaşabilir; aktif maske önemlidir.",
+    owner: "SM warp zamanlayıcısı", sharing: "Lane’ler warp-level primitives ile register verisi paylaşabilir; aktif maske önemlidir.",
     result: "Aynı warp içindeki branch ayrışması yolları maskelerle seri hale getirebilir.",
   },
   thread: {
@@ -42,18 +42,18 @@ const archData: Record<ArchLevel, { label: string; code: string; title: string; 
     result: "Thread mantıksal bir program örneğidir; kalıcı fiziksel bir CUDA core değildir.",
   },
   instruction: {
-    label: "Instruction", code: "lane op", title: "Instruction · execution pipeline işi",
+    label: "Instruction", code: "şerit işlemi", title: "Instruction · execution pipeline işi",
     body: "Warp instruction’ı FP/INT, load-store, special function veya tensor pipeline’larından uygun olana issue edilir.",
-    owner: "Warp scheduler + dispatch", sharing: "Aktif lane maskesi hangi thread’lerin sonuç yazacağını belirler.",
+    owner: "Warp zamanlayıcısı + gönderim", sharing: "Aktif lane maskesi hangi thread’lerin sonuç yazacağını belirler.",
     result: "Throughput; instruction karışımı, bağımlılıklar, hazır warp’lar ve execution-unit kapasitesiyle şekillenir.",
   },
 };
 
 const memoryData: Record<MemoryLevel, { title: string; scope: string; body: string; risk: string }> = {
   register: { title: "Registers", scope: "Thread", body: "Her thread’in özel çalışma alanı. Çok düşük gecikme ve yüksek bant genişliği; SM başına toplam bütçe sınırlıdır.", risk: "Register baskısı occupancy’yi azaltabilir; spill olursa local memory global memory yoluna düşer." },
-  shared: { title: "Shared memory / L1", scope: "Block / SM", body: "On-chip kaynak. Shared memory block içi yeniden kullanım için yazılımcı; L1 erişimleri donanım tarafından yönetir.", risk: "Bank conflict erişimi serileştirebilir; yüksek tahsis resident block sayısını düşürebilir." },
-  l2: { title: "L2 cache", scope: "Tüm device", body: "Tüm SM’lerce paylaşılan device düzeyi cache; global memory trafiğini azaltır.", risk: "Çalışma seti büyük veya erişim düzensizse hit oranı düşebilir." },
-  global: { title: "Global memory", scope: "Tüm device", body: "Yüksek kapasiteli GDDR/HBM. Yüksek gecikmesine karşın düzenli ve paralel erişimde yüksek bant genişliği sağlar.", risk: "Coalescing zayıfsa küçük faydalı veri için çok fazla sektör taşınır." },
+  shared: { title: "Paylaşılan bellek / L1", scope: "Blok / SM", body: "On-chip kaynak. Shared memory block içi yeniden kullanım için yazılımcı; L1 erişimleri donanım tarafından yönetir.", risk: "Bank conflict erişimi serileştirebilir; yüksek tahsis resident block sayısını düşürebilir." },
+  l2: { title: "L2 önbelleği", scope: "Tüm device", body: "Tüm SM’lerce paylaşılan device düzeyi cache; global memory trafiğini azaltır.", risk: "Çalışma seti büyük veya erişim düzensizse hit oranı düşebilir." },
+  global: { title: "Genel bellek", scope: "Tüm device", body: "Yüksek kapasiteli GDDR/HBM. Yüksek gecikmesine karşın düzenli ve paralel erişimde yüksek bant genişliği sağlar.", risk: "Coalescing zayıfsa küçük faydalı veri için çok fazla sektör taşınır." },
 };
 
 const phases = ["Predicate", "Path A", "Path B", "Reconverge"];
@@ -101,7 +101,7 @@ export default function CudaSimtEmbedded() {
       <header className="hero">
         <div>
           <p className="eyebrow">ETKİLEŞİMLİ GPU MENTAL MODELİ</p>
-          <h1>Computer Architecture <span>→</span> SIMT <span>→</span> CUDA</h1>
+          <h1>Bilgisayar Mimarisi <span>→</span> SIMT <span>→</span> CUDA</h1>
           <p className="hero-copy">Bir kernel çağrısının CPU’dan başlayıp warp, bellek ve SM zamanlayıcısına uzanan yolculuğu.</p>
         </div>
         <div className="hero-chip" aria-label="Öğrenme rotası">
@@ -109,24 +109,24 @@ export default function CudaSimtEmbedded() {
         </div>
       </header>
 
-      <nav className="tabs" role="tablist" aria-label="CUDA öğrenme bölümleri">
+      <div className="tabs" role="tablist" aria-label="CUDA öğrenme bölümleri">
         {tabs.map((item) => (
           <button key={item.id} type="button" role="tab" aria-selected={tab === item.id} onClick={() => setTab(item.id)}>{item.label}</button>
         ))}
-      </nav>
+      </div>
 
       {tab === "overview" && (
         <section className="panel-stack" role="tabpanel">
-          <SectionHead title="Heterojen sistem: kontrol CPU’da, paralel iş GPU’da" subtitle="Host kodu kernel’i başlatır; device kodu binlerce thread olarak çalışır." badge="Host + Device" />
+          <SectionHead title="Heterojen sistem: kontrol CPU’da, paralel iş GPU’da" subtitle="Host kodu kernel’i başlatır; device kodu binlerce thread olarak çalışır." badge="Ana sistem + Aygıt" />
           <div className="flow" aria-label="CPU'dan GPU'ya yürütme akışı">
-            <FlowNode tone="blue" title="CPU · Host" copy="Seri kontrol, I/O, kernel launch, bellek orkestrasyonu" />
+            <FlowNode tone="blue" title="CPU · Ana sistem" copy="Seri kontrol, I/O, kernel çalıştırma, bellek orkestrasyonu" />
             <b aria-hidden>→</b>
             <FlowNode tone="amber" title="CUDA Runtime + Driver" copy="Grid yapılandırması, komut kuyruğu, veri hareketi" />
             <b aria-hidden>→</b>
             <FlowNode tone="cyan" title="GPU · Device" copy="SM’ler, warp scheduler’lar, execution unit’ler, GDDR/HBM" />
           </div>
           <div className="launch-strip">
-            {[ ["Allocate", "Device belleği ayır"], ["Copy H→D", "Girdiyi GPU’ya taşı"], ["Launch", "<<<grid, block>>>"], ["Execute", "Grid → block → warp"], ["Copy D→H", "Sonucu CPU’ya al"] ].map(([title, copy], index) => (
+            {[ ["Allocate", "Device belleği ayır"], ["Kopyala H→D", "Girdiyi GPU’ya taşı"], ["Launch", "<<<grid, block>>>"], ["Execute", "Izgara → blok → warp"], ["Kopyala D→H", "Sonucu CPU’ya al"] ].map(([title, copy], index) => (
               <div className="launch-step" key={title}><em>{index + 1}</em><div><strong>{title}</strong><span>{copy}</span></div></div>
             ))}
           </div>
@@ -152,8 +152,8 @@ export default function CudaSimtEmbedded() {
               <div className="mapping-grid">
                 <Fact label="Grid" value="Tüm GPU / birden çok SM" />
                 <Fact label="Block" value="Tek SM; bitene dek göç etmez" />
-                <Fact label="Warp" value="SM warp scheduler" />
-                <Fact label="Thread" value="Register durumu + lane" />
+                <Fact label="Warp" value="SM warp zamanlayıcısı" />
+                <Fact label="Thread" value="Yazmaç durumu + şerit" />
               </div>
               <DetailCard title={archData[arch].title} body={archData[arch].body} facts={[["Kim yönetir?", archData[arch].owner], ["Paylaşım", archData[arch].sharing], ["Önemli sonuç", archData[arch].result]]} />
             </div>
@@ -164,7 +164,7 @@ export default function CudaSimtEmbedded() {
 
       {tab === "simt" && (
         <section className="panel-stack" role="tabpanel">
-          <SectionHead title="SIMT: tek instruction, 32 bağımsız thread durumu" subtitle="Her lane farklı veriye ve register durumuna sahip; warp ortak instruction akışını issue eder." badge="Warp = 32 thread" />
+          <SectionHead title="SIMT: tek instruction, 32 bağımsız thread durumu" subtitle="Her lane farklı veriye ve register durumuna sahip; warp ortak instruction akışını issue eder." badge="Warp = 32 iş parçacığı" />
           <div className="controls">
             <label>Predicate<select value={predicate} onChange={(e) => { setPredicate(e.target.value as Predicate); setPhase(0); }}><option value="cutoff">lane &lt; eşik</option><option value="even">lane % 2 == 0</option><option value="quarter">lane % 4 == 0</option><option value="uniform">tüm lane’ler true</option></select></label>
             {predicate === "cutoff" && <label>Eşik: <strong>{cutoff}</strong><input type="range" min="1" max="31" value={cutoff} onChange={(e) => { setCutoff(Number(e.target.value)); setPhase(0); }} /></label>}
@@ -172,7 +172,7 @@ export default function CudaSimtEmbedded() {
           </div>
           <div className="simt-layout">
             <div className="warp-stage">
-              <div className="stage-title"><strong>Warp 0 · lane 0…31</strong><b>{phases[phase]}</b></div>
+              <div className="stage-title"><strong>Warp 0 · şerit 0…31</strong><b>{phases[phase]}</b></div>
               <div className="lane-grid">
                 {Array.from({ length: 32 }, (_, lane) => {
                   const pathA = laneTakesA(lane);
@@ -182,7 +182,7 @@ export default function CudaSimtEmbedded() {
               </div>
               <div className="path-strip"><Path title="Path A · if" value={`${aCount} aktif lane`} tone="blue" /><Path title="Path B · else" value={`${32 - aCount} aktif lane`} tone="amber" /><Path title="Reconverge" value="Warp yeniden birleşir" tone="cyan" /></div>
             </div>
-            <DetailCard title="Divergence maliyeti" body={serialPaths === 1 ? "Tüm aktif lane’ler aynı yolu aldığı için warp-level branch divergence oluşmaz." : "Warp önce A yolunu A-maskesiyle, sonra B yolunu B-maskesiyle yürütür. Maskeli lane’ler sonuç yazmaz."} facts={[["Path A", `${aCount} / 32`], ["Path B", `${32 - aCount} / 32`], ["Seri yollar", String(serialPaths)], ["Seçili lane", `Lane ${selectedLane} → ${laneTakesA(selectedLane) ? "Path A" : "Path B"}`]]} />
+            <DetailCard title="Dallanma maliyeti" body={serialPaths === 1 ? "Tüm aktif lane’ler aynı yolu aldığı için warp-level branch divergence oluşmaz." : "Warp önce A yolunu A-maskesiyle, sonra B yolunu B-maskesiyle yürütür. Maskeli lane’ler sonuç yazmaz."} facts={[["Path A", `${aCount} / 32`], ["Path B", `${32 - aCount} / 32`], ["Ardışık yollar", String(serialPaths)], ["Seçili lane", `Lane ${selectedLane} → ${laneTakesA(selectedLane) ? "Path A" : "Path B"}`]]} />
           </div>
           <Lesson title="Kritik sınır" copy="Farklı warp’ların farklı branch alması divergence değildir. Maliyet, aynı warp içindeki lane’lerin ayrışmasıyla doğar." />
         </section>
@@ -199,7 +199,7 @@ export default function CudaSimtEmbedded() {
             <div className="coalesce-stage">
               <label className="select-label">Warp erişim deseni<select value={pattern} onChange={(e) => setPattern(e.target.value as Pattern)}><option value="contiguous">Ardışık: base + lane</option><option value="stride2">Stride 2: base + 2×lane</option><option value="stride4">Stride 4: base + 4×lane</option><option value="broadcast">Broadcast: tüm lane → base</option></select></label>
               <div className="stats"><Stat label="Element" value="4 B int" /><Stat label="Dokunulan sektör" value={`${sectors.length} × 32 B`} /><Stat label="Adres yayılımı" value={`${Math.min(...addresses)}…${Math.max(...addresses)}`} /></div>
-              <div><h3>Lane → element index</h3><div className="address-grid">{addresses.map((address, lane) => <div key={lane}><strong>{lane}</strong><span>→{address}</span></div>)}</div></div>
+              <div><h3>Şerit → eleman indisi</h3><div className="address-grid">{addresses.map((address, lane) => <div key={lane}><strong>{lane}</strong><span>→{address}</span></div>)}</div></div>
               <div><h3>32 B sektör görünümü</h3><div className="sector-grid">{Array.from({ length: Math.min(Math.max(...sectors) + 1, 16) }, (_, sector) => <div key={sector} className={sectors.includes(sector) ? "hit" : ""}>S{sector}</div>)}</div></div>
               <p className="muted">{pattern === "contiguous" ? "Hizalı ardışık erişim 128 B veriyi 4 sektörde toplar." : pattern === "stride2" ? "Stride 2 erişimi 8 sektöre yayar; sektörlerin yaklaşık yarısı kullanılmaz." : pattern === "stride4" ? "Stride 4 erişimi 16 sektöre yayar; sektör başına faydalı veri azalır." : "Tüm lane’ler aynı kelimeyi hedefler; cache/broadcast davranışı tekrarları azaltabilir."}</p>
             </div>
@@ -214,19 +214,19 @@ export default function CudaSimtEmbedded() {
           <div className="lab-layout">
             <div className="lab-controls">
               <Range label="Problem boyutu N" value={n} min={1} max={4096} onChange={setN} />
-              <Range label="Block boyutu" value={blockSize} suffix=" thread" min={32} max={1024} step={32} onChange={setBlockSize} />
+              <Range label="Blok boyutu" value={blockSize} suffix=" thread" min={32} max={1024} step={32} onChange={setBlockSize} />
               <Range label="Örnek SM sayısı" value={smCount} min={1} max={8} onChange={setSmCount} />
-              <div className="formula"><code>grid = ceil(N / blockDim)</code><strong>ceil({n} / {blockSize}) = {blocks} block</strong></div>
+              <div className="formula"><code>ızgara = ceil(N / blockDim)</code><strong>ceil({n} / {blockSize}) = {blocks} block</strong></div>
               <p className="muted">SM sayısı yalnız dağıtımı gösterir; gerçek eşzamanlılık kaynak limitlerine bağlıdır.</p>
             </div>
             <div className="lab-stage">
-              <div className="stats"><Stat label="Grid" value={`${blocks} block`} /><Stat label="Toplam warp" value={String(totalWarps)} /><Stat label="Fazla thread" value={String(extraThreads)} /></div>
+              <div className="stats"><Stat label="Grid" value={`${blocks} block`} /><Stat label="Toplam warp" value={String(totalWarps)} /><Stat label="Fazladan iş parçacığı" value={String(extraThreads)} /></div>
               <div><h3>Block’ların SM’lere olası dalga dağılımı</h3><div className="sm-grid" style={{ gridTemplateColumns: `repeat(${Math.min(smCount, 4)}, minmax(0, 1fr))` }}>{Array.from({ length: smCount }, (_, sm) => { const owned = Array.from({ length: blocks }, (_, block) => block).filter((block) => block % smCount === sm); return <div className="sm-column" key={sm}><strong>SM {sm}</strong>{owned.slice(0, 8).map((block) => <span key={block} className={block === blocks - 1 ? "last" : ""}>Block {block}</span>)}{owned.length === 0 && <small>bekliyor</small>}{owned.length > 8 && <small>+{owned.length - 8} block</small>}</div>; })}</div></div>
-              <div><div className="stage-title"><strong>Son block · son warp</strong><span>{lastWarpActive} aktif, {32 - lastWarpActive} guard ile kapalı lane</span></div><div className="lane-grid">{Array.from({ length: 32 }, (_, lane) => <div key={lane} className={`lane ${lane < lastWarpActive ? "path-a" : "masked"}`}>{lane}</div>)}</div></div>
+              <div><div className="stage-title"><strong>Son blok · son warp</strong><span>{lastWarpActive} aktif, {32 - lastWarpActive} guard ile kapalı lane</span></div><div className="lane-grid">{Array.from({ length: 32 }, (_, lane) => <div key={lane} className={`lane ${lane < lastWarpActive ? "path-a" : "masked"}`}>{lane}</div>)}</div></div>
             </div>
           </div>
-          <div className="checklist"><Fact label="Correctness" value="if (i < N) sınır koruması" /><Fact label="Coalescing" value="Komşu lane → komşu adres" /><Fact label="Occupancy" value="Thread + register + shared memory + block limitleri" /></div>
-          <Lesson title="Block boyutu tek başına cevap değildir" copy="128/256 thread iyi başlangıç deneyleridir; doğru seçim profiler, register kullanımı, shared memory, latency hiding ve bellek davranışıyla ölçülür." />
+          <div className="checklist"><Fact label="Correctness" value="if (i < N) sınır koruması" /><Fact label="Coalescing" value="Komşu lane → komşu adres" /><Fact label="Occupancy" value="İş parçacığı + yazmaç + paylaşılan bellek + blok sınırları" /></div>
+          <Lesson title="Blok boyutu tek başına cevap değildir" copy="128/256 thread iyi başlangıç deneyleridir; doğru seçim profiler, register kullanımı, shared memory, latency hiding ve bellek davranışıyla ölçülür." />
         </section>
       )}
     </main>
@@ -242,4 +242,3 @@ function DetailCard({ title, body, facts }: { title: string; body: string; facts
 function Path({ title, value, tone }: { title: string; value: string; tone: string }) { return <div className={`path ${tone}`}><strong>{title}</strong><span>{value}</span></div>; }
 function Stat({ label, value }: { label: string; value: string }) { return <div className="stat"><span>{label}</span><strong>{value}</strong></div>; }
 function Range({ label, value, suffix = "", min, max, step = 1, onChange }: { label: string; value: number; suffix?: string; min: number; max: number; step?: number; onChange: (value: number) => void }) { return <label className="range-label"><span>{label}: <strong>{value}{suffix}</strong></span><input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} /></label>; }
-

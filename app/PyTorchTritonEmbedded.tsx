@@ -4,17 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 
 const weeks = [
   { id: 1, title: "Tensor anatomisi", eyebrow: "Temel", desc: "Stride, layout ve eager yürütmeyi çıplak gözle gör.", status: "done", minutes: 90, skills: ["stride", "broadcast", "profiling"] },
-  { id: 2, title: "Custom operator", eyebrow: "PyTorch", desc: "torch.library ile şema, CPU referansı ve fake kernel kur.", status: "active", minutes: 120, skills: ["torch.library", "FakeTensor", "opcheck"] },
+  { id: 2, title: "Özel operatör", eyebrow: "PyTorch", desc: "torch.library ile şema, CPU referansı ve fake kernel kur.", status: "active", minutes: 120, skills: ["torch.library", "FakeTensor", "opcheck"] },
   { id: 3, title: "İlk Triton kernel", eyebrow: "Triton", desc: "Program ID, bloklar, maske ve coalesced erişim.", status: "next", minutes: 150, skills: ["tl.program_id", "mask", "BLOCK_SIZE"] },
-  { id: 4, title: "Autograd + compile", eyebrow: "Entegrasyon", desc: "Geri yayılımı kaydet; torch.compile ile graph break avla.", status: "locked", minutes: 150, skills: ["register_autograd", "torch.compile", "AOT"] },
+  { id: 4, title: "Otomatik türev + derleme", eyebrow: "Entegrasyon", desc: "Geri yayılımı kaydet; torch.compile ile graph break avla.", status: "locked", minutes: 150, skills: ["register_autograd", "torch.compile", "AOT"] },
   { id: 5, title: "RMSNorm", eyebrow: "Operatör 01", desc: "Referanstan fused Triton kernel'e, üç şekil üzerinde ölç.", status: "locked", minutes: 180, skills: ["reduction", "numerics", "fusion"] },
   { id: 6, title: "RoPE", eyebrow: "Operatör 02", desc: "Half-split rotary embedding ve stride-aware indeksleme.", status: "locked", minutes: 180, skills: ["indexing", "vectorization", "backward"] },
   { id: 7, title: "SwiGLU", eyebrow: "Operatör 03", desc: "Aktivasyon ve çarpımı tek kernel'de birleştir.", status: "locked", minutes: 180, skills: ["fusion", "occupancy", "precision"] },
-  { id: 8, title: "Masked softmax", eyebrow: "Operatör 04", desc: "Stabil reduction, maskeleme ve sınır durumları.", status: "locked", minutes: 210, skills: ["online softmax", "masking", "NaN"] },
-  { id: 9, title: "KV-cache update", eyebrow: "Operatör 05", desc: "Paged bellek düzenine güvenli ve hızlı yazma.", status: "locked", minutes: 210, skills: ["scatter", "cache", "race"] },
-  { id: 10, title: "Benchmark bilimi", eyebrow: "Performans", desc: "Isınma, quantile ve roofline ile dürüst kıyaslama.", status: "locked", minutes: 150, skills: ["triton.testing", "roofline", "Nsight"] },
+  { id: 8, title: "Maskeli softmax", eyebrow: "Operatör 04", desc: "Stabil reduction, maskeleme ve sınır durumları.", status: "locked", minutes: 210, skills: ["online softmax", "masking", "NaN"] },
+  { id: 9, title: "KV-cache güncellemesi", eyebrow: "Operatör 05", desc: "Paged bellek düzenine güvenli ve hızlı yazma.", status: "locked", minutes: 210, skills: ["scatter", "cache", "race"] },
+  { id: 10, title: "Kıyaslama bilimi", eyebrow: "Performans", desc: "Isınma, quantile ve roofline ile dürüst kıyaslama.", status: "locked", minutes: 150, skills: ["triton.testing", "roofline", "Nsight"] },
   { id: 11, title: "Füzyon stüdyosu", eyebrow: "Optimizasyon", desc: "İki fused kernel'de en az %15 medyan iyileşme hedefle.", status: "locked", minutes: 240, skills: ["fusion", "register pressure", "autotune"] },
-  { id: 12, title: "Inference capstone", eyebrow: "Mezuniyet", desc: "vLLM iş yükünde TTFT, ITL ve throughput raporu üret.", status: "locked", minutes: 300, skills: ["vLLM", "TTFT", "portfolio"] },
+  { id: 12, title: "Çıkarım bitirme projesi", eyebrow: "Mezuniyet", desc: "vLLM iş yükünde TTFT, ITL ve throughput raporu üret.", status: "locked", minutes: 300, skills: ["vLLM", "TTFT", "portfolio"] },
 ];
 
 const customOpCode = `import torch
@@ -82,8 +82,10 @@ export default function PyTorchTritonEmbedded() {
   useEffect(() => {
     const stored = window.localStorage.getItem("kernel-lab-note");
     const storedLabs = window.localStorage.getItem("kernel-lab-completed");
-    if (stored) setNote(stored);
-    if (storedLabs) setCompletedLabs(Number(storedLabs));
+    window.queueMicrotask(() => {
+      if (stored) setNote(stored);
+      if (storedLabs) setCompletedLabs(Number(storedLabs));
+    });
   }, []);
 
   const activeWeek = weeks.find((week) => week.id === selectedWeek) ?? weeks[1];
@@ -177,7 +179,7 @@ export default function PyTorchTritonEmbedded() {
           </div>
           <div className="week-gate">
             <p>HAFTA ÇIKIŞ KAPISI</p>
-            <strong>{activeWeek.id < 4 ? "Kod + test + kendi cümlelerinle açıklama" : "Correctness matrisi + benchmark raporu"}</strong>
+            <strong>{activeWeek.id < 4 ? "Kod + test + kendi cümlelerinle açıklama" : "Doğruluk matrisi + kıyaslama raporu"}</strong>
             <button onClick={() => document.querySelector("#lab")?.scrollIntoView({ behavior: "smooth" })}>İçeriği aç <span>→</span></button>
           </div>
         </article>
@@ -202,7 +204,7 @@ export default function PyTorchTritonEmbedded() {
 
           <div className="lab-main">
             <div className="editor-pane">
-              <div className="editor-heading"><span>{codeTab === "triton" ? "TRITON UYGULAMASI" : "PYTORCH CUSTOM OP"}</span><span>Python</span></div>
+              <div className="editor-heading"><span>{codeTab === "triton" ? "TRITON UYGULAMASI" : "PYTORCH ÖZEL OPERATÖR"}</span><span>Python</span></div>
               <pre aria-label={`${codeTab} örnek kodu`}><code>{(codeTab === "triton" ? tritonCode : customOpCode).split("\n").map((line, index) => <span className="code-line" key={index}><i>{index + 1}</i>{line || " "}</span>)}</code></pre>
             </div>
             <aside className="task-pane">
@@ -251,7 +253,7 @@ export default function PyTorchTritonEmbedded() {
               <output>{blockSize}</output>
             </div>
             <div className="memory-visual">
-              <div className="memory-label"><span>GLOBAL MEMORY</span><span>n = 1,024 eleman</span></div>
+              <div className="memory-label"><span>GENEL BELLEK</span><span>n = 1,024 eleman</span></div>
               <div className="memory-cells">
                 {Array.from({ length: 32 }).map((_, index) => <i key={index} className={index < Math.min(32, blockSize / 16) ? "hot" : ""} style={{ animationDelay: `${index * 25}ms` }} />)}
               </div>
@@ -265,7 +267,7 @@ export default function PyTorchTritonEmbedded() {
 
           <div className="explanation">
             <p className="eyebrow">KENDİ CÜMLELERİNLE</p>
-            <h3>Program ≠ thread</h3>
+            <h3>Program ≠ iş parçacığı</h3>
             <p>Triton’da tek bir program, bir veri bloğu üzerinde vektör halinde çalışır. <code>tl.arange</code> tek tek thread numarası değil, programın işleyeceği offset vektörüdür.</p>
             <ol>
               <li><b>Grid</b><span>Kaç program örneği çalışacak?</span></li>
@@ -319,4 +321,3 @@ export default function PyTorchTritonEmbedded() {
     </main>
   );
 }
-

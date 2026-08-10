@@ -22,7 +22,7 @@ const tracks: Array<{
     color: "#f2c14e",
     version: "C++23 • C++26 radarı",
     note: "Değer semantiğinden eşzamanlılığa",
-    lessons: ["Derleme modeli & tür sistemi", "RAII, ownership & yaşam süresi", "STL, ranges & algoritmalar", "Templates, concepts & constexpr", "Hata yönetimi & test", "Concurrency & performans"],
+    lessons: ["Derleme modeli & tür sistemi", "RAII, ownership & yaşam süresi", "STL, aralıklar ve algoritmalar", "Şablonlar, kavramlar ve constexpr", "Hata yönetimi & test", "Eşzamanlılık ve performans"],
   },
   {
     key: "python",
@@ -31,7 +31,7 @@ const tracks: Array<{
     color: "#7dd3fc",
     version: "Python 3.14.6",
     note: "Temiz koddan production araçlarına",
-    lessons: ["Veri modeli & koleksiyonlar", "Fonksiyonlar, closure & decorator", "Typing, dataclass & protocol", "Iterator, generator & context manager", "Asyncio & concurrency", "Paketleme, test & profiling"],
+    lessons: ["Veri modeli & koleksiyonlar", "Fonksiyonlar, kapanışlar ve dekoratörler", "Tür belirtimi, dataclass ve protokol", "Yineleyici, üretici ve bağlam yöneticisi", "asyncio ve eşzamanlılık", "Paketleme, test ve profil çıkarma"],
   },
   {
     key: "linux",
@@ -40,7 +40,7 @@ const tracks: Array<{
     color: "#a7f3d0",
     version: "Kernel 7.1.5 stable",
     note: "Shell hâkimiyeti ve sistem temelleri",
-    lessons: ["Dosya sistemi & izinler", "Process, signal & job control", "Pipe, redirect & text araçları", "Bash scripting güvenliği", "Systemd, loglar & ağ", "Performans gözlemi"],
+    lessons: ["Dosya sistemi & izinler", "Süreç, sinyal ve iş denetimi", "Pipe, redirect & text araçları", "Bash scripting güvenliği", "Systemd, loglar & ağ", "Performans gözlemi"],
   },
   {
     key: "git",
@@ -49,7 +49,7 @@ const tracks: Array<{
     color: "#fb7185",
     version: "Git 2.55",
     note: "Commit grafiğini gerçekten anlamak",
-    lessons: ["Object modeli & üç alan", "Branch, merge & rebase", "Remote iş akışları", "Çatışma çözümü", "Bisect, reflog & kurtarma", "Takım stratejileri"],
+    lessons: ["Object modeli & üç alan", "Dal, birleştirme ve rebase", "Remote iş akışları", "Çatışma çözümü", "Bisect, reflog & kurtarma", "Takım stratejileri"],
   },
   {
     key: "cmake",
@@ -58,7 +58,7 @@ const tracks: Array<{
     color: "#c4b5fd",
     version: "CMake 4.4",
     note: "Modern target tabanlı build sistemleri",
-    lessons: ["Configure → generate → build", "Targets & usage requirements", "Libraries & transitive deps", "Presets & toolchains", "CTest, install & package", "CPS & instrumentation"],
+    lessons: ["Yapılandır → üret → derle", "Hedefler ve kullanım gereksinimleri", "Kütüphaneler ve geçişli bağımlılıklar", "Önayarlar ve araç zincirleri", "CTest, kurulum ve paketleme", "CPS & instrumentation"],
   },
 ];
 
@@ -70,7 +70,7 @@ const curriculum: Record<TrackKey, Array<{ title: string; eyebrow: string; summa
   ],
   python: [
     { title: "Python veri modeli", eyebrow: "MODÜL 01 · 70 DK", summary: "İsim, nesne ve referans farkını; mutability, identity ve special method’ların protokollerle ilişkisini öğren.", tags: ["object model", "dunder", "mutability"], lab: "Mutable default tuzağını çöz" },
-    { title: "Modern typing", eyebrow: "MODÜL 02 · 80 DK", summary: "Protocol, generics, type narrowing ve deferred annotations ile çalışma zamanını bozmadan güçlü sözleşmeler kur.", tags: ["typing", "Protocol", "3.14"], lab: "Bir Protocol tasarla" },
+    { title: "Modern tür belirtimi", eyebrow: "MODÜL 02 · 80 DK", summary: "Protocol, generics, type narrowing ve deferred annotations ile çalışma zamanını bozmadan güçlü sözleşmeler kur.", tags: ["typing", "Protocol", "3.14"], lab: "Bir Protocol tasarla" },
     { title: "Eşzamanlılık seçenekleri", eyebrow: "MODÜL 03 · 95 DK", summary: "asyncio, thread, process ve 3.14 free-threaded build seçimini I/O, CPU ve paylaşılan durum üzerinden yap.", tags: ["asyncio", "free-threading", "profiling"], lab: "Async iş kuyruğu yaz" },
   ],
   linux: [
@@ -173,7 +173,7 @@ export default function KernelForgeEmbedded() {
 
   useEffect(() => {
     const saved = localStorage.getItem("kernel-forge-progress");
-    if (saved) setCompleted(JSON.parse(saved));
+    if (saved) window.queueMicrotask(() => setCompleted(JSON.parse(saved)));
   }, []);
 
   const progress = Math.round((completed.length / 15) * 100);
@@ -295,10 +295,10 @@ export default function KernelForgeEmbedded() {
 
           {view === "lab" && (
             <div className="lab-page">
-              <div className="page-title"><div><span>WEB IDE</span><h1>Deneyerek öğren.</h1><p>İzolasyonlu tarayıcı laboratuvarı. Dosyana dokunmaz, sistem komutu çalıştırmaz.</p></div><div className="runtime-pill"><span/> SANDBOX HAZIR</div></div>
+              <div className="page-title"><div><span>WEB GELİŞTİRME ORTAMI</span><h1>Deneyerek öğren.</h1><p>İzolasyonlu tarayıcı laboratuvarı. Dosyana dokunmaz, sistem komutu çalıştırmaz.</p></div><div className="runtime-pill"><span/> KORUMALI ALAN HAZIR</div></div>
               <div className="lab-tabs">
                 <button className={lab === "cpp" ? "active" : ""} onClick={() => changeLab("cpp")}><b>C++</b><span>C++23 sözdizimi</span></button>
-                <button className={lab === "python" ? "active" : ""} onClick={() => changeLab("python")}><b>Python</b><span>Pyodide runtime</span></button>
+                <button className={lab === "python" ? "active" : ""} onClick={() => changeLab("python")}><b>Python</b><span>Pyodide çalışma zamanı</span></button>
                 <button className={lab === "bash" ? "active" : ""} onClick={() => changeLab("bash")}><b>Bash</b><span>Güvenli mini-shell</span></button>
               </div>
               <div className="ide">
@@ -336,4 +336,3 @@ export default function KernelForgeEmbedded() {
     </main>
   );
 }
-

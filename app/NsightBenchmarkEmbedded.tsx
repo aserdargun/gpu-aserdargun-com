@@ -188,7 +188,7 @@ export default function NsightBenchmarkEmbedded() {
 
         <div className="content">
           <section className="hero" id="model">
-            <div className="eyebrow"><span>GPU PERFORMANCE FIELD GUIDE</span><i /></div>
+            <div className="eyebrow"><span>GPU PERFORMANS SAHA KILAVUZU</span><i /></div>
             <div className="hero-grid">
               <div>
                 <h1>Hız tahmin edilmez.<br /><em>Kanıtlanır.</em></h1>
@@ -241,7 +241,7 @@ export default function NsightBenchmarkEmbedded() {
             <div className="section-number cyan-text">01 / NSIGHT SYSTEMS</div>
             <div className="section-title-row">
               <div><h2 id="systems-title">Önce zaman çizelgesini oku</h2><p>Systems sana “hangi kernel yavaş?”tan önce “uygulama neden bekliyor?” sorusunu cevaplatır.</p></div>
-              <span className="tool-pill cyan-pill">NSYS · SYSTEM-WIDE</span>
+              <span className="tool-pill cyan-pill">NSYS · SİSTEM GENELİ</span>
             </div>
 
             <div className="scenario-tabs" role="tablist" aria-label="Zaman çizelgesi senaryoları">
@@ -258,9 +258,9 @@ export default function NsightBenchmarkEmbedded() {
                 <div>0 µs <span>············</span> 100 µs</div>
               </div>
               <div className="timeline-ruler">{[0, 20, 40, 60, 80, 100].map(n => <span key={n} style={{ left: `${n}%` }}>{n}</span>)}</div>
-              <div className="track"><label>CPU / CUDA API</label><div className="track-line cpu-line">{activeScenario.cpu.map((x, i) => <i key={i} style={{ left: `${x}%`, width: scenario === "launch" ? "4%" : "13%" }} />)}</div></div>
-              <div className="track"><label>GPU / STREAM 7</label><div className="track-line gpu-line">{activeScenario.gpu.map((x, i) => <i key={i} style={{ left: `${x}%`, width: scenario === "launch" ? "4.6%" : "18%" }} />)}</div></div>
-              <div className="track"><label>MEMCPY</label><div className="track-line copy-line">{activeScenario.copy.map((x, i) => <i key={i} style={{ left: `${x}%`, width: "18%" }} />)}</div></div>
+              <div className="track"><span>CPU / CUDA API</span><div className="track-line cpu-line">{activeScenario.cpu.map((x, i) => <i key={i} style={{ left: `${x}%`, width: scenario === "launch" ? "4%" : "13%" }} />)}</div></div>
+              <div className="track"><span>GPU / AKIŞ 7</span><div className="track-line gpu-line">{activeScenario.gpu.map((x, i) => <i key={i} style={{ left: `${x}%`, width: scenario === "launch" ? "4.6%" : "18%" }} />)}</div></div>
+              <div className="track"><span>BELLEK KOPYASI</span><div className="track-line copy-line">{activeScenario.copy.map((x, i) => <i key={i} style={{ left: `${x}%`, width: "18%" }} />)}</div></div>
               <div className="timeline-analysis">
                 <div><span>GÖZLEM</span><strong>{activeScenario.verdict}</strong></div>
                 <ul>{activeScenario.clues.map(clue => <li key={clue}>{clue}</li>)}</ul>
@@ -297,16 +297,16 @@ export default function NsightBenchmarkEmbedded() {
             <div className="section-number lime-text">02 / NSIGHT COMPUTE</div>
             <div className="section-title-row">
               <div><h2 id="compute-title">Sonra tek kerneli mikroskoba al</h2><p>Systems’ta kanıtlanan sıcak kerneli filtrele. Her metriği değil, hipotezini test eden section’ları topla.</p></div>
-              <span className="tool-pill lime-pill">NCU · KERNEL-SCOPE</span>
+              <span className="tool-pill lime-pill">NCU · KERNEL KAPSAMI</span>
             </div>
 
             <div className="compute-layout">
               <div className="roofline-card">
-                <div className="chart-head"><div><span>ROOFLINE / ŞEMATİK</span><b>PERFORMANCE</b></div><small>yukarı daha iyi</small></div>
+                <div className="chart-head"><div><span>ROOFLINE / ŞEMATİK</span><b>PERFORMANS</b></div><small>yukarı daha iyi</small></div>
                 <div className="roofline-chart" aria-label="Şematik Roofline grafiği">
                   <div className="y-label">FLOP/s</div><div className="x-label">Arithmetic intensity →</div>
                   <div className="roof-slope" /><div className="roof-flat" />
-                  <div className="roof-label memory-label">memory roof</div><div className="roof-label compute-label">compute roof</div>
+                  <div className="roof-label memory-label">bellek tavanı</div><div className="roof-label compute-label">hesap tavanı</div>
                   <div className={`chart-point ${computeMode}`} style={{ left: `${activeCompute.point[0]}%`, top: `${activeCompute.point[1]}%` }}><span /></div>
                 </div>
                 <p className="chart-caveat">Roofline bir hüküm değil, yön bulma aracıdır. Noktanın hangi tavana yakın olduğu sonraki metriği seçtirir.</p>
@@ -355,7 +355,7 @@ export default function NsightBenchmarkEmbedded() {
             <div className="section-number orange-text">03 / GÜVENİLİR BENCHMARK</div>
             <div className="section-title-row">
               <div><h2 id="benchmark-title">Kazancı gürültüden ayır</h2><p>Benchmark bir kronometre değil; iki sürümü aynı koşullarda karşılaştıran küçük bir deneydir.</p></div>
-              <span className="tool-pill orange-pill">UNPROFILED · REPEATED</span>
+              <span className="tool-pill orange-pill">PROFİLLENMEMİŞ · TEKRARLI</span>
             </div>
 
             <div className="bench-lab">
@@ -451,4 +451,3 @@ export default function NsightBenchmarkEmbedded() {
     </main>
   );
 }
-

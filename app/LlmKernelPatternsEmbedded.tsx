@@ -5,11 +5,11 @@ import { useMemo, useState } from "react";
 type TopicId = "gemm" | "reduction" | "softmax" | "normalization" | "attention";
 
 const topics: { id: TopicId; index: string; name: string; eyebrow: string; color: string }[] = [
-  { id: "gemm", index: "01", name: "GEMM", eyebrow: "MATMUL", color: "cyan" },
-  { id: "reduction", index: "02", name: "Reduction", eyebrow: "AGGREGATE", color: "violet" },
-  { id: "softmax", index: "03", name: "Softmax", eyebrow: "PROBABILITY", color: "orange" },
-  { id: "normalization", index: "04", name: "Normalization", eyebrow: "STABILITY", color: "pink" },
-  { id: "attention", index: "05", name: "Attention", eyebrow: "SEQUENCE", color: "lime" },
+  { id: "gemm", index: "01", name: "GEMM", eyebrow: "MATRİS ÇARPIMI", color: "cyan" },
+  { id: "reduction", index: "02", name: "İndirgeme", eyebrow: "TOPLAMA", color: "violet" },
+  { id: "softmax", index: "03", name: "Softmax", eyebrow: "OLASILIK", color: "orange" },
+  { id: "normalization", index: "04", name: "Normalleştirme", eyebrow: "KARARLILIK", color: "pink" },
+  { id: "attention", index: "05", name: "Dikkat", eyebrow: "DİZİ", color: "lime" },
 ];
 
 const topicCopy: Record<TopicId, { kicker: string; title: string; lead: string; formula: string }> = {
@@ -132,11 +132,12 @@ function ReductionLab() {
   );
 }
 
+const softmaxScores = [2.1, 0.8, -0.4, 1.6, 3.2, 0.2];
+
 function SoftmaxLab() {
   const [temp, setTemp] = useState(1);
-  const scores = [2.1, 0.8, -0.4, 1.6, 3.2, 0.2];
   const probs = useMemo(() => {
-    const scaled = scores.map(v => v / temp);
+    const scaled = softmaxScores.map(v => v / temp);
     const max = Math.max(...scaled);
     const exps = scaled.map(v => Math.exp(v - max));
     const sum = exps.reduce((a, b) => a + b, 0);
@@ -205,10 +206,10 @@ const labs: Record<TopicId, () => React.ReactNode> = { gemm: GemmLab, reduction:
 
 function KernelPattern({ topic }: { topic: TopicId }) {
   const content: Record<TopicId, { title: string; items: { n: string; h: string; p: string }[]; code: string[] }> = {
-    gemm: { title: "Tiled GEMM veri yolu", items: [{ n: "01", h: "Coalesced load", p: "Komşu thread’ler komşu A/B adreslerini okur." }, { n: "02", h: "Shared tile", p: "Blok, yüklediği parçayı bütün warp’larla paylaşır." }, { n: "03", h: "Register accumulate", p: "Her thread küçük bir C parçasını FMA ile biriktirir." }], code: ["for k_tile in range(0, K, BK):", "  a = load(A[m, k_tile:k_tile+BK])", "  b = load(B[k_tile:k_tile+BK, n])", "  acc += dot(a, b)", "store(C[m, n], acc)"] },
-    reduction: { title: "Hiyerarşik reduction", items: [{ n: "01", h: "Thread-local", p: "Her thread strided girdilerden yerel bir sonuç üretir." }, { n: "02", h: "Warp combine", p: "Shuffle ile register’lar arası birleşim yapılır." }, { n: "03", h: "Block finalize", p: "Warp sonuçları küçük shared alanda sonlandırılır." }], code: ["acc = identity", "for i in thread_strided_indices:", "  acc = op(acc, x[i])", "acc = warp_reduce(acc)", "if lane == 0: partial[warp] = acc"] },
-    softmax: { title: "Üç geçişten tek kernela", items: [{ n: "01", h: "Row max", p: "Satırın maksimumu paralel reduction ile bulunur." }, { n: "02", h: "Exp + sum", p: "Kaydırılmış üsteller ve toplam aynı tile’da üretilir." }, { n: "03", h: "Normalize + store", p: "Register’daki değerler paydaya bölünüp yazılır." }], code: ["x = load(row, mask=cols < N)", "m = max(x, axis=0)", "z = exp(x - m)", "l = sum(z, axis=0)", "store(out, z / l)"] },
-    normalization: { title: "Reduction + pointwise füzyonu", items: [{ n: "01", h: "Load once", p: "Aktivasyon satırı coalesced olarak bir kez yüklenir." }, { n: "02", h: "Compute stats", p: "μ/σ² veya RMS ölçeği blok içinde hesaplanır." }, { n: "03", h: "Affine + residual", p: "γ, β ve residual mümkünse aynı yazımda birleşir." }], code: ["x = load(row)", "rms = sqrt(mean(x * x) + eps)", "y = x * rsqrt(rms * rms)", "y = y * gamma", "store(out, y)"] },
+    gemm: { title: "Tiled GEMM veri yolu", items: [{ n: "01", h: "Birleşik yükleme", p: "Komşu thread’ler komşu A/B adreslerini okur." }, { n: "02", h: "Paylaşılan döşeme", p: "Blok, yüklediği parçayı bütün warp’larla paylaşır." }, { n: "03", h: "Yazmaçta biriktirme", p: "Her thread küçük bir C parçasını FMA ile biriktirir." }], code: ["for k_tile in range(0, K, BK):", "  a = load(A[m, k_tile:k_tile+BK])", "  b = load(B[k_tile:k_tile+BK, n])", "  acc += dot(a, b)", "store(C[m, n], acc)"] },
+    reduction: { title: "Hiyerarşik reduction", items: [{ n: "01", h: "Thread-local", p: "Her thread strided girdilerden yerel bir sonuç üretir." }, { n: "02", h: "Warp birleştirmesi", p: "Shuffle ile register’lar arası birleşim yapılır." }, { n: "03", h: "Blok sonlandırma", p: "Warp sonuçları küçük shared alanda sonlandırılır." }], code: ["acc = identity", "for i in thread_strided_indices:", "  acc = op(acc, x[i])", "acc = warp_reduce(acc)", "if lane == 0: partial[warp] = acc"] },
+    softmax: { title: "Üç geçişten tek kernela", items: [{ n: "01", h: "Satır maksimumu", p: "Satırın maksimumu paralel reduction ile bulunur." }, { n: "02", h: "Üstel + toplam", p: "Kaydırılmış üsteller ve toplam aynı tile’da üretilir." }, { n: "03", h: "Normalleştir + yaz", p: "Register’daki değerler paydaya bölünüp yazılır." }], code: ["x = load(row, mask=cols < N)", "m = max(x, axis=0)", "z = exp(x - m)", "l = sum(z, axis=0)", "store(out, z / l)"] },
+    normalization: { title: "Reduction + pointwise füzyonu", items: [{ n: "01", h: "Bir kez yükle", p: "Aktivasyon satırı coalesced olarak bir kez yüklenir." }, { n: "02", h: "İstatistikleri hesapla", p: "μ/σ² veya RMS ölçeği blok içinde hesaplanır." }, { n: "03", h: "Doğrusal dönüşüm + artık bağlantı", p: "γ, β ve residual mümkünse aynı yazımda birleşir." }], code: ["x = load(row)", "rms = sqrt(mean(x * x) + eps)", "y = x * rsqrt(rms * rms)", "y = y * gamma", "store(out, y)"] },
     attention: { title: "IO-aware attention", items: [{ n: "01", h: "Q tile sabit", p: "Q parçası register/shared memory’de tutulur." }, { n: "02", h: "K/V akışı", p: "K ve V blokları sırayla hızlı bellekten geçirilir." }, { n: "03", h: "Online softmax", p: "Koşan max ve toplam, yeni tile geldikçe yeniden ölçeklenir." }], code: ["for kv_tile in sequence:", "  scores = dot(q, k.T) * scale", "  m_new = max(m, max(scores))", "  l = l * exp(m-m_new) + sum(exp(scores-m_new))", "  out = rescale(out) + exp(scores-m_new) @ v"] },
   };
   const c = content[topic];
@@ -247,7 +248,7 @@ export default function LlmKernelPatternsEmbedded() {
       <header className="topbar">
         <button className="brand" onClick={() => selectTopic("gemm")} aria-label="Kernel Atlas ana sayfa"><span className="brand-mark"><i /><i /><i /><i /></span><b>KERNEL<span>ATLAS</span></b></button>
         <nav aria-label="Ana bölümler">{topics.map(t => <button key={t.id} className={topic === t.id ? "active" : ""} onClick={() => selectTopic(t.id)}>{t.name}</button>)}</nav>
-        <div className="status"><i /> GPU LAB <span>{completed.length}/5</span></div>
+        <div className="status"><i /> GPU LABORATUVARI <span>{completed.length}/5</span></div>
       </header>
 
       <section className={`hero theme-${topic}`}>
@@ -275,4 +276,3 @@ export default function LlmKernelPatternsEmbedded() {
     </main>
   );
 }
-

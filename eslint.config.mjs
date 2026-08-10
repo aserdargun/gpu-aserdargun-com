@@ -36,6 +36,13 @@ const eslintConfig = defineConfig([
       },
     },
   },
+  {
+    files: ["app/*Embedded*.tsx"],
+    rules: {
+      "react/no-unescaped-entities": "off",
+      "react/no-children-prop": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

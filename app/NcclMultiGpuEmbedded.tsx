@@ -100,7 +100,7 @@ export default function NcclMultiGpuEmbedded() {
           <a href="#rdma">RDMA</a>
           <a href="#laboratuvar">Lab</a>
         </div>
-        <span className="status-pill"><i /> INTERACTIVE PRIMER</span>
+        <span className="status-pill"><i /> ETKİLEŞİMLİ BAŞLANGIÇ</span>
       </nav>
 
       <section className="hero" id="top">
@@ -115,21 +115,21 @@ export default function NcclMultiGpuEmbedded() {
             </div>
           </div>
           <div className="hero-visual" aria-label="İki sunucu arasında GPU ve ağ bağlantısı şeması">
-            <div className="visual-label top">NODE 0 · NVLINK DOMAIN</div>
+            <div className="visual-label top">DÜĞÜM 0 · NVLINK ALANI</div>
             <div className="node-row">
               {[0, 1, 2, 3].map((n) => <div className="gpu" key={n}><span>GPU</span><strong>{n}</strong></div>)}
             </div>
             <div className="bus"><span>NVSWITCH · 900 GB/s</span></div>
-            <div className="data-stream"><i /><i /><i /><span>RDMA FABRIC</span></div>
+            <div className="data-stream"><i /><i /><i /><span>RDMA AĞI</span></div>
             <div className="bus lower"><span>NIC · 400 Gb/s</span></div>
             <div className="node-row muted">
               {[4, 5, 6, 7].map((n) => <div className="gpu" key={n}><span>GPU</span><strong>{n}</strong></div>)}
             </div>
-            <div className="visual-label bottom">NODE 1 · REMOTE MEMORY PATH</div>
+            <div className="visual-label bottom">DÜĞÜM 1 · UZAK BELLEK YOLU</div>
           </div>
         </div>
         <div className="hero-facts">
-          <div><small>ANA SOYUTLAMA</small><strong>Collective communication</strong></div>
+          <div><small>ANA SOYUTLAMA</small><strong>Kolektif iletişim</strong></div>
           <div><small>KRİTİK KAYNAK</small><strong>Bant genişliği + gecikme</strong></div>
           <div><small>HEDEF</small><strong>Hesabı iletişimle örtüştürmek</strong></div>
         </div>
@@ -151,7 +151,7 @@ export default function NcclMultiGpuEmbedded() {
               {[0, 1, 2, 3].map((n) => (
                 <div className={`ring-node n${n}`} key={n}><span>RANK</span>{n}<i /></div>
               ))}
-              <div className="ring-center"><small>OP</small><strong>Σ</strong><span>REDUCE<br />+ SHARE</span></div>
+              <div className="ring-center"><small>OP</small><strong>Σ</strong><span>İNDİRGE<br />+ SHARE</span></div>
             </div>
             <div className="segmented" role="group" aria-label="Kolektif algoritma seçimi">
               {(["Ring", "Tree", "Hiyerarşik"] as Collective[]).map((item) => (
@@ -233,14 +233,14 @@ export default function NcclMultiGpuEmbedded() {
           <div className="path-card slow">
             <div className="card-label">GELENEKSEL YOL · EK KOPYALAR</div>
             <div className="path-flow">
-              <span>GPU</span><i>1</i><span>CPU<br />MEM</span><i>2</i><span>NIC</span><b>NETWORK</b><span>NIC</span><i>3</i><span>CPU<br />MEM</span><i>4</i><span>GPU</span>
+              <span>GPU</span><i>1</i><span>CPU<br />MEM</span><i>2</i><span>NIC</span><b>AĞ</b><span>NIC</span><i>3</i><span>CPU<br />MEM</span><i>4</i><span>GPU</span>
             </div>
             <p>GPU belleği → host belleği → NIC; karşı tarafta yol tersine döner.</p>
           </div>
           <div className="path-card fast">
-            <div className="card-label">GPUDIRECT RDMA · ZERO-COPY PATH</div>
+            <div className="card-label">GPUDIRECT RDMA · SIFIR KOPYALI YOL</div>
             <div className="path-flow">
-              <span>GPU</span><i>DMA</i><span>NIC</span><b>RDMA FABRIC</b><span>NIC</span><i>DMA</i><span>GPU</span>
+              <span>GPU</span><i>DMA</i><span>NIC</span><b>RDMA AĞI</b><span>NIC</span><i>DMA</i><span>GPU</span>
             </div>
             <p>NIC, kayıtlı GPU belleğine doğrudan erişir; CPU kontrol düzleminde kalır.</p>
           </div>
@@ -261,7 +261,7 @@ export default function NcclMultiGpuEmbedded() {
 
       <section className="section lab-section" id="laboratuvar">
         <div className="lab-title">
-          <span className="section-index">04 / PERFORMANCE LAB</span>
+          <span className="section-index">04 / PERFORMANS LABORATUVARI</span>
           <h2>AllReduce maliyetini<br />kendin hesapla.</h2>
           <p>Basitleştirilmiş Hockney benzeri model. Gerçek sonuç için <code>nccl-tests</code> ile ölçüm gerekir.</p>
         </div>
@@ -292,7 +292,7 @@ export default function NcclMultiGpuEmbedded() {
       </section>
 
       <section className="section glossary-section">
-        <div className="glossary-head"><span className="section-index">05 / FIELD GUIDE</span><h2>Hızlı referans.</h2></div>
+        <div className="glossary-head"><span className="section-index">05 / SAHA KILAVUZU</span><h2>Hızlı referans.</h2></div>
         <div className="glossary-grid">
           {glossary.map(([term, desc]) => <article key={term}><span>↳</span><h3>{term}</h3><p>{desc}</p></article>)}
         </div>
@@ -305,7 +305,7 @@ export default function NcclMultiGpuEmbedded() {
 
       <footer>
         <div className="brand"><span className="brand-mark">K/A</span><span>KERNEL ATLAS</span></div>
-        <p>NCCL · MULTI-GPU · RDMA<br />Interactive systems primer</p>
+        <p>NCCL · MULTI-GPU · RDMA<br />Etkileşimli sistemler başlangıcı</p>
         <a href="#top">Başa dön ↑</a>
       </footer>
     </main>
