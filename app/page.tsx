@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import KernelForgeEmbedded from "./KernelForgeEmbedded";
 import CudaSimtEmbedded from "./CudaSimtEmbedded";
+import GpuMemoryEmbedded from "./GpuMemoryEmbedded";
 
 type LabKind =
   | "toolchain"
@@ -590,21 +591,8 @@ function ArchitectureLab({ locale }: { locale: Locale }) {
 }
 
 function MemoryLab({ locale }: { locale: Locale }) {
-  const patterns = locale === "tr" ? { Ardışık: 1, "Stride 2": 2, "Stride 4": 4, "Stride 8": 8 } : { Contiguous: 1, "Stride 2": 2, "Stride 4": 4, "Stride 8": 8 };
-  const [patternIndex, setPatternIndex] = useState(0);
-  const [bankStride, setBankStride] = useState(1);
-  const patternNames = Object.keys(patterns);
-  const stride = Object.values(patterns)[patternIndex];
-  const sectors = new Set(Array.from({ length: 32 }, (_, lane) => Math.floor((lane * stride * 4) / 32))).size;
-  const efficiency = Math.round(128 / (sectors * 32) * 100);
-  const bankDegree = Math.max(1, Math.min(32, bankStride));
-  return <LabShell label="LAB / MEMORY TRAFFIC" title={locale === "tr" ? "Erişim düzenini değiştir." : "Change the access pattern."} note={locale === "tr" ? "Basitleştirilmiş 4-byte eleman ve 32-byte sektör modeli." : "Simplified model with 4-byte elements and 32-byte sectors."}>
-    <div className="dual-lab">
-      <div className="lab-panel"><span>GLOBAL MEMORY</span><h3>Coalescing</h3><div className="segmented vertical">{patternNames.map((name, index) => <button key={name} className={patternIndex === index ? "active" : ""} onClick={() => setPatternIndex(index)}>{name}</button>)}</div><div className="big-result"><b>{efficiency}%</b><span>{sectors} × 32 B {locale === "tr" ? "sektör" : "sectors"}</span></div></div>
-      <div className="lab-panel"><span>SHARED MEMORY</span><h3>Bank conflict</h3><Range label={locale === "tr" ? "Kelime stride" : "Word stride"} value={bankStride} min={1} max={32} step={1} onChange={setBankStride} /><div className="bank-map">{Array.from({ length: 32 }, (_, bank) => <i key={bank} className={bank % bankDegree === 0 ? "hot" : ""}>{bank}</i>)}</div><div className="big-result"><b>{bankDegree}×</b><span>{locale === "tr" ? "yaklaşık serileşme" : "approx. serialization"}</span></div></div>
-    </div>
-    <div className="lab-callout"><span>{locale === "tr" ? "OKUMA" : "READOUT"}</span><p>{locale === "tr" ? "Yüksek occupancy tek başına hız değildir; register, shared memory ve yeniden kullanım arasındaki dengeyi profiler ile doğrula." : "High occupancy alone does not guarantee speed; use a profiler to verify the tradeoff among registers, shared memory, and reuse."}</p></div>
-  </LabShell>;
+  void locale;
+  return <GpuMemoryEmbedded />;
 }
 
 function TritonLab({ locale }: { locale: Locale }) {
