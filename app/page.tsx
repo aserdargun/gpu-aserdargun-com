@@ -11,6 +11,7 @@ import NsightBenchmarkEmbedded from "./NsightBenchmarkEmbedded";
 import CutlassCuteEmbedded from "./CutlassCuteEmbedded";
 import InferenceSystemsEmbedded from "./InferenceSystemsEmbedded";
 import NcclMultiGpuEmbedded from "./NcclMultiGpuEmbedded";
+import GpuSoftwareStackEmbedded from "./GpuSoftwareStackEmbedded";
 
 type LabKind =
   | "toolchain"
@@ -639,27 +640,8 @@ function MultiGpuLab({ locale }: { locale: Locale }) {
 }
 
 function SystemsLab({ locale }: { locale: Locale }) {
-  const trData = {
-    "ROCm & HIP": [["Host", "C++"], ["Grid", "dim3"], ["Kernel", "__global__"], ["Bellek", "HBM → LDS"], ["Senkron", "barrier"]],
-    "Compiler & MLIR": [["Frontend", "AST / Graph"], ["Dialect", "linalg / tensor"], ["Transform", "tile + fuse"], ["Lowering", "scf → gpu"], ["Backend", "LLVM / ROCDL"]],
-    TensorRT: [["Import", "ONNX"], ["Analyze", "shape + layer"], ["Optimize", "fusion + tactics"], ["Build", "engine.plan"], ["Execute", "enqueueV3"]],
-  } as const;
-  const enData = {
-    "ROCm & HIP": [["Host", "C++"], ["Grid", "dim3"], ["Kernel", "__global__"], ["Memory", "HBM → LDS"], ["Sync", "barrier"]],
-    "Compiler & MLIR": [["Frontend", "AST / Graph"], ["Dialect", "linalg / tensor"], ["Transform", "tile + fuse"], ["Lowering", "scf → gpu"], ["Backend", "LLVM / ROCDL"]],
-    TensorRT: [["Import", "ONNX"], ["Analyze", "shape + layer"], ["Optimize", "fusion + tactics"], ["Build", "engine.plan"], ["Execute", "enqueueV3"]],
-  } as const;
-  const data = locale === "tr" ? trData : enData;
-  const names = Object.keys(data) as Array<keyof typeof data>;
-  const [track, setTrack] = useState<(typeof names)[number]>("Compiler & MLIR");
-  const note = locale === "tr"
-    ? track === "ROCm & HIP" ? "Kaynak taşınabilirliği performans taşınabilirliği garantisi değildir." : track === "Compiler & MLIR" ? "Çok erken lowering, optimize edilebilir niyeti kaybettirebilir." : "Dynamic shape min/opt/max aralığı bir performans sözleşmesidir."
-    : track === "ROCm & HIP" ? "Source portability does not guarantee performance portability." : track === "Compiler & MLIR" ? "Lowering too early can erase optimizable intent." : "The dynamic-shape min/opt/max range is a performance contract.";
-  return <LabShell label="LAB / SOFTWARE STACK" title={locale === "tr" ? "Pipeline’ı katmanlarına ayır." : "Separate the pipeline into layers."} note={locale === "tr" ? "Optimizasyon problemini doğru katmana yerleştir." : "Place the optimization problem in the correct layer."}>
-    <div className="segmented">{names.map((name) => <button key={name} className={track === name ? "active" : ""} onClick={() => setTrack(name)}>{name}</button>)}</div>
-    <div className="stack-pipeline">{data[track].map((step, index) => <article key={step[0]}><span>0{index + 1}</span><b>{step[0]}</b><code>{step[1]}</code>{index < data[track].length - 1 && <i>→</i>}</article>)}</div>
-    <div className="lab-callout"><span>{locale === "tr" ? "TAŞINABİLİRLİK SINIRI" : "PORTABILITY BOUNDARY"}</span><p>{note}</p></div>
-  </LabShell>;
+  void locale;
+  return <GpuSoftwareStackEmbedded />;
 }
 
 function Range({ label, value, min, max, step, onChange }: { label: string; value: number; min: number; max: number; step: number; onChange: (value: number) => void }) {
