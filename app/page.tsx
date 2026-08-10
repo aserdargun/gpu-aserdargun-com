@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import KernelForgeEmbedded from "./KernelForgeEmbedded";
+import CudaSimtEmbedded from "./CudaSimtEmbedded";
 
 type LabKind =
   | "toolchain"
@@ -584,20 +585,8 @@ function ToolchainLab({ locale }: { locale: Locale }) {
 }
 
 function ArchitectureLab({ locale }: { locale: Locale }) {
-  const [n, setN] = useState(1000);
-  const [block, setBlock] = useState(256);
-  const blocks = Math.ceil(n / block);
-  const warps = blocks * Math.ceil(block / 32);
-  const extra = blocks * block - n;
-  return <LabShell label="LAB / LAUNCH GEOMETRY" title={locale === "tr" ? "Problemi grid’e dönüştür." : "Map the problem onto a grid."} note={locale === "tr" ? "Her thread bir eleman; son block sınır korumasıyla güvenli." : "One element per thread; guard the final block at the boundary."}>
-    <div className="control-grid">
-      <Range label={locale === "tr" ? "Problem boyutu N" : "Problem size N"} value={n} min={1} max={4096} step={1} onChange={setN} />
-      <Range label="Thread / block" value={block} min={32} max={1024} step={32} onChange={setBlock} />
-    </div>
-    <div className="metric-grid"><Metric label="Grid" value={`${blocks} block`} /><Metric label={locale === "tr" ? "Toplam warp" : "Total warps"} value={String(warps)} /><Metric label="Guard lanes" value={String(extra)} /><Metric label={locale === "tr" ? "İndeks" : "Index"} value="blockIdx × blockDim + threadIdx" /></div>
-    <div className="warp-strip">{Array.from({ length: 32 }, (_, lane) => <span key={lane} className={lane < Math.max(0, 32 - Math.min(32, extra)) ? "active" : ""}>{lane}</span>)}</div>
-    <div className="lab-callout"><span>{locale === "tr" ? "KRİTİK KURAL" : "CRITICAL RULE"}</span><p>{locale === "tr" ? "Block sırasına güvenme. Aynı warp içindeki farklı branch yolları seri maskeler yaratabilir." : "Never rely on block order. Divergent branches within a warp may execute as serialized masks."}</p></div>
-  </LabShell>;
+  void locale;
+  return <CudaSimtEmbedded />;
 }
 
 function MemoryLab({ locale }: { locale: Locale }) {
