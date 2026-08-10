@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import KernelForgeEmbedded from "./KernelForgeEmbedded";
 import CudaSimtEmbedded from "./CudaSimtEmbedded";
 import GpuMemoryEmbedded from "./GpuMemoryEmbedded";
+import PyTorchTritonEmbedded from "./PyTorchTritonEmbedded";
 
 type LabKind =
   | "toolchain"
@@ -596,13 +597,8 @@ function MemoryLab({ locale }: { locale: Locale }) {
 }
 
 function TritonLab({ locale }: { locale: Locale }) {
-  const [tab, setTab] = useState<"PyTorch" | "Triton">("Triton");
-  const [block, setBlock] = useState(256);
-  const [ran, setRan] = useState(false);
-  const code = tab === "Triton" ? `@triton.jit\ndef add_kernel(x, y, out, n: tl.constexpr,\n               BLOCK: tl.constexpr):\n    pid = tl.program_id(0)\n    offsets = pid * BLOCK + tl.arange(0, BLOCK)\n    mask = offsets < n\n    tl.store(out + offsets,\n             tl.load(x + offsets, mask=mask) +\n             tl.load(y + offsets, mask=mask), mask=mask)` : `@custom_op("atlas::add", mutates_args=())\ndef vector_add(x: Tensor, y: Tensor) -> Tensor:\n    return x + y\n\n@vector_add.register_fake\ndef _(x, y):\n    torch._check(x.shape == y.shape)\n    return torch.empty_like(x)`;
-  return <LabShell label="LAB / CUSTOM OP" title={locale === "tr" ? "Referanstan kernel’e geç." : "Move from reference to kernel."} note={locale === "tr" ? "Tarayıcıdaki sonuç öğretim simülasyonudur; gerçek GPU benchmark’ı değildir." : "The browser result is an educational simulation, not a real GPU benchmark."}>
-    <div className="code-lab"><div className="code-editor"><div><span>{tab.toLowerCase()}.py</span><div className="segmented mini"><button className={tab === "PyTorch" ? "active" : ""} onClick={() => setTab("PyTorch")}>PyTorch</button><button className={tab === "Triton" ? "active" : ""} onClick={() => setTab("Triton")}>Triton</button></div></div><pre>{code}</pre></div><aside><Range label="BLOCK_SIZE" value={block} min={32} max={1024} step={32} onChange={setBlock} /><button className="run-button" onClick={() => { setRan(false); window.setTimeout(() => setRan(true), 450); }}>{locale === "tr" ? "Testleri çalıştır" : "Run tests"}</button><div className={ran ? "test-output passed" : "test-output"}><span>{ran ? "PASS" : "READY"}</span><p>{ran ? `opcheck ✓ · odd shape ✓ · BLOCK=${block}` : locale === "tr" ? "Referans ve maskeli kernel karşılaştırılacak." : "The reference and masked kernel will be compared."}</p></div></aside></div>
-  </LabShell>;
+  void locale;
+  return <PyTorchTritonEmbedded />;
 }
 
 function OperatorsLab({ locale }: { locale: Locale }) {
