@@ -300,7 +300,7 @@ const enWeeks = [
 
 const ui = {
   tr: {
-    home: "Kernel Atlas ana sayfa", mainNav: "Ana navigasyon", overview: "Genel bakış", weeks: "12 hafta",
+    home: "GPU Kernel Atlas ana sayfa", mainNav: "Ana navigasyon", weeks: "12 hafta",
     progress: "İlerleme yüzde", menu: "Atlas menüsünü aç", search: "Atlas içinde ara", command: "Komuta merkezi",
     unified: "11 BİRLEŞİK ATLAS", learningAtlases: "Öğrenme atlasları", localProgress: "YEREL İLERLEME", stored: "Bu cihazda saklanır.",
     eyebrow: "BİRLEŞİK ÖĞRENME SİSTEMİ · 2026", headlineA: "Kernel’i yaz.", headlineB: "Sistemi anla.", headlineC: "Kanıtla.",
@@ -314,7 +314,7 @@ const ui = {
     interactive: "ETKİLEŞİMLİ ATLAS", evidence: "ÇIKIŞ KANITI", learned: "Öğrendin mi?", record: "Kanıtını kaydet.", complete: "Atlası tamamla", completed: "✓ Tamamlandı", next: "Sonraki atlas →",
   },
   en: {
-    home: "Kernel Atlas home", mainNav: "Main navigation", overview: "Overview", weeks: "12 weeks",
+    home: "GPU Kernel Atlas home", mainNav: "Main navigation", weeks: "12 weeks",
     progress: "Progress percent", menu: "Open atlas menu", search: "Search the atlas", command: "Command center",
     unified: "11 UNIFIED ATLASES", learningAtlases: "Learning atlases", localProgress: "LOCAL PROGRESS", stored: "Stored on this device.",
     eyebrow: "UNIFIED LEARNING SYSTEM · 2026", headlineA: "Write the kernel.", headlineB: "Understand the system.", headlineC: "Prove it.",
@@ -386,11 +386,9 @@ export default function KernelAtlas({ initialLocale }: { initialLocale: Locale }
       <header className="topbar">
         <button className="brand" onClick={() => setActiveId(null)} aria-label={copy.home}>
           <span className="brand-mark">K//A</span>
-          <span><b>KERNEL ATLAS</b><small>{locale === "tr" ? "GPU KERNEL MÜHENDİSLİĞİ" : "GPU KERNEL ENGINEERING"}</small></span>
+          <span><b>GPU KERNEL ATLAS</b><small>{locale === "tr" ? "GPU KERNEL MÜHENDİSLİĞİ" : "GPU KERNEL ENGINEERING"}</small></span>
         </button>
         <nav className="topnav" aria-label={copy.mainNav}>
-          <button className={!active ? "active" : ""} onClick={() => setActiveId(null)}>{copy.overview}</button>
-          <button onClick={() => openModule("architecture")}>Atlas</button>
           <a href="#roadmap" onClick={() => setActiveId(null)}>{copy.weeks}</a>
         </nav>
         <div className="locale-switch" role="group" aria-label={locale === "tr" ? "Dil seçimi" : "Language selection"}>

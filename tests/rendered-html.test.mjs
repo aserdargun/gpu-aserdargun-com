@@ -36,7 +36,13 @@ test("server-renders the complete Turkish shell and metadata", async () => {
 
   const html = await response.text();
   assert.match(html, /<html lang="tr">/i);
-  assert.match(html, /<title>Kernel Atlas — GPU Kernel Mühendisliği<\/title>/i);
+  assert.match(html, /<title>GPU Kernel Atlas — GPU Kernel Mühendisliği<\/title>/i);
+  assert.match(html, /<b>GPU KERNEL ATLAS<\/b><small>GPU KERNEL MÜHENDİSLİĞİ<\/small>/);
+  assert.match(html, /aria-label="GPU Kernel Atlas ana sayfa"/);
+  assert.match(html, /<nav class="topnav" aria-label="Ana navigasyon"><a href="#roadmap">12 hafta<\/a><\/nav>/);
+  assert.doesNotMatch(html, /<button[^>]*>Genel bakış<\/button>|<button[^>]*>Atlas<\/button>/);
+  assert.match(html, /property="og:title" content="GPU Kernel Atlas — GPU Kernel Mühendisliği"/);
+  assert.match(html, /name="twitter:title" content="GPU Kernel Atlas — GPU Kernel Mühendisliği"/);
   assert.match(html, /Kernel’i yaz\./);
   assert.match(html, /GPU KERNEL MÜHENDİSLİĞİ/);
   assert.match(html, /11 atlas · 12 hafta · Tek öğrenme sistemi/);
@@ -54,7 +60,13 @@ test("server-renders the complete English shell and metadata", async () => {
 
   const html = await response.text();
   assert.match(html, /<html lang="en">/i);
-  assert.match(html, /<title>Kernel Atlas — GPU Kernel Engineering<\/title>/i);
+  assert.match(html, /<title>GPU Kernel Atlas — GPU Kernel Engineering<\/title>/i);
+  assert.match(html, /<b>GPU KERNEL ATLAS<\/b><small>GPU KERNEL ENGINEERING<\/small>/);
+  assert.match(html, /aria-label="GPU Kernel Atlas home"/);
+  assert.match(html, /<nav class="topnav" aria-label="Main navigation"><a href="#roadmap">12 weeks<\/a><\/nav>/);
+  assert.doesNotMatch(html, /<button[^>]*>Overview<\/button>|<button[^>]*>Atlas<\/button>/);
+  assert.match(html, /property="og:title" content="GPU Kernel Atlas — GPU Kernel Engineering"/);
+  assert.match(html, /name="twitter:title" content="GPU Kernel Atlas — GPU Kernel Engineering"/);
   assert.match(html, /Write the kernel\./);
   assert.match(html, /GPU KERNEL ENGINEERING/);
   assert.match(html, /11 atlases · 12 weeks · One learning system/);
@@ -80,13 +92,14 @@ test("wires every interactive lab to a separate Turkish and English experience",
   }
 });
 
-test("ships locale-aware routing, metadata, accessibility, and social cards", async () => {
-  const [page, atlas, layout, proxy, readme, trCard, enCard] = await Promise.all([
+test("ships locale-aware routing, metadata, accessibility, favicon, and social cards", async () => {
+  const [page, atlas, layout, proxy, readme, favicon, trCard, enCard] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/kernel-atlas.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../proxy.ts", import.meta.url), "utf8"),
     readFile(new URL("../README.md", import.meta.url), "utf8"),
+    readFile(new URL("../public/favicon.svg", import.meta.url), "utf8"),
     readFile(new URL("../public/og.png", import.meta.url)),
     readFile(new URL("../public/og-en.png", import.meta.url)),
   ]);
@@ -105,6 +118,13 @@ test("ships locale-aware routing, metadata, accessibility, and social cards", as
   assert.match(proxy, /Content-Language/);
   assert.match(proxy, /accept-language/);
   assert.match(readme, /Turkish and English UI/);
+  assert.match(favicon, /<title[^>]*>GPU Kernel Atlas cube favicon<\/title>/);
+  assert.match(favicon, /<desc[^>]*>Isometric cube with lime top, blue left, and orange right faces\.<\/desc>/);
+  assert.match(favicon, /#121310/);
+  assert.match(favicon, /#c8ff36/);
+  assert.match(favicon, /#6a8dff/);
+  assert.match(favicon, /#ff7043/);
+  assert.equal(favicon.match(/<polygon\b/g)?.length, 3);
 
   for (const image of [trCard, enCard]) {
     assert.equal(image.subarray(1, 4).toString(), "PNG");

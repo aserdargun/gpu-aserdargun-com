@@ -9,20 +9,20 @@ type PageProps = {
 
 const metadataCopy = {
   tr: {
-    title: "Kernel Atlas — GPU Kernel Mühendisliği",
+    title: "GPU Kernel Atlas — GPU Kernel Mühendisliği",
     description: "CUDA, Triton, GPU belleği, kernel işleçleri, profilleme, çıkarım ve çoklu GPU sistemleri için birleşik 12 haftalık etkileşimli öğrenme atlası.",
     socialDescription: "11 atlas · 12 hafta · Tek öğrenme sistemi",
     image: "/og.png",
-    imageAlt: "Kernel Atlas GPU Kernel Mühendisliği",
+    imageAlt: "GPU Kernel Atlas — GPU Kernel Mühendisliği",
     openGraphLocale: "tr_TR",
     alternateLocale: "en_US",
   },
   en: {
-    title: "Kernel Atlas — GPU Kernel Engineering",
+    title: "GPU Kernel Atlas — GPU Kernel Engineering",
     description: "A unified 12-week interactive learning atlas for CUDA, Triton, GPU memory, kernel operators, profiling, inference, and multi-GPU systems.",
     socialDescription: "11 atlases · 12 weeks · One learning system",
     image: "/og-en.png",
-    imageAlt: "Kernel Atlas GPU Kernel Engineering",
+    imageAlt: "GPU Kernel Atlas — GPU Kernel Engineering",
     openGraphLocale: "en_US",
     alternateLocale: "tr_TR",
   },
