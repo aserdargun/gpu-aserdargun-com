@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
 import KernelAtlas from "./kernel-atlas";
 import type { Locale } from "./i18n";
 
@@ -34,44 +33,37 @@ function normalizeLocale(value: string | string[] | undefined, fallback: Locale)
 }
 
 async function resolveLocale(searchParams: PageProps["searchParams"]): Promise<Locale> {
-  const [params, requestHeaders] = await Promise.all([searchParams, headers()]);
-  const hintedLocale = requestHeaders.get("x-kernel-atlas-locale") === "en" ? "en" : "tr";
-  return normalizeLocale(params.lang, hintedLocale);
+  const params = await searchParams;
+  return normalizeLocale(params.lang, "tr");
 }
 
-export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
-  const [locale, requestHeaders] = await Promise.all([resolveLocale(searchParams), headers()]);
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
-  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.includes("localhost") ? "http" : "https");
-  const base = new URL(`${protocol}://${host}`);
-  const copy = metadataCopy[locale];
-  const image = new URL(copy.image, base).toString();
+const productionBase = new URL("https://gpu.aserdargun.com");
+const defaultMetadata = metadataCopy.tr;
 
-  return {
-    metadataBase: base,
-    title: copy.title,
-    description: copy.description,
-    icons: { icon: "/favicon.svg" },
-    alternates: {
-      canonical: `/?lang=${locale}`,
-      languages: { "tr-TR": "/?lang=tr", "en-US": "/?lang=en" },
-    },
-    openGraph: {
-      title: copy.title,
-      description: copy.socialDescription,
-      type: "website",
-      locale: copy.openGraphLocale,
-      alternateLocale: [copy.alternateLocale],
-      images: [{ url: image, width: 1731, height: 909, alt: copy.imageAlt }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: copy.title,
-      description: copy.socialDescription,
-      images: [image],
-    },
-  };
-}
+export const metadata: Metadata = {
+  metadataBase: productionBase,
+  title: defaultMetadata.title,
+  description: defaultMetadata.description,
+  icons: { icon: "/favicon.svg" },
+  alternates: {
+    canonical: "/?lang=tr",
+    languages: { "tr-TR": "/?lang=tr", "en-US": "/?lang=en" },
+  },
+  openGraph: {
+    title: defaultMetadata.title,
+    description: defaultMetadata.socialDescription,
+    type: "website",
+    locale: defaultMetadata.openGraphLocale,
+    alternateLocale: [defaultMetadata.alternateLocale],
+    images: [{ url: defaultMetadata.image, width: 1731, height: 909, alt: defaultMetadata.imageAlt }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: defaultMetadata.title,
+    description: defaultMetadata.socialDescription,
+    images: [defaultMetadata.image],
+  },
+};
 
 export default async function Home({ searchParams }: PageProps) {
   return <KernelAtlas initialLocale={await resolveLocale(searchParams)} />;

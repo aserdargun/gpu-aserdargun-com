@@ -1,0 +1,51 @@
+name: Deploy GPU Kernel Atlas to Azure
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: swa-gpu-aserdargun-com-production
+  cancel-in-progress: false
+
+jobs:
+  build_and_deploy:
+    name: Validate, build, and deploy
+    runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22.x"
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test and build prebuilt artifact
+        run: npm test
+
+      - name: Verify Azure artifact
+        run: npm run verify:azure
+
+      - name: Deploy prebuilt artifact
+        uses: Azure/static-web-apps-deploy@1a947af9992250f3bc2e68ad0754c0b0c11566c9 # v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_SWA_GPU_ASERDARGUN_COM }}
+          action: upload
+          app_location: out
+          skip_app_build: true
+          output_location: ""

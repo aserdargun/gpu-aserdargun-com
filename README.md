@@ -26,8 +26,16 @@ Open the local URL shown by the development server. To build and validate the pr
 npm test
 ```
 
+Codex actions use `127.0.0.1:5173` through `npm run dev:codex`,
+`npm run validate:codex`, and `npm run stop:local`. Stop only terminates a
+listener whose working directory belongs to this checkout.
+
 ## Deployment
 
-The project uses the Sites-compatible vinext runtime. Hosting metadata is stored in `.openai/hosting.json`; no secrets are committed.
+The project uses the Sites-compatible vinext runtime. For Azure Static Web Apps,
+`npm run build:azure` snapshots the rendered application and versioned client
+assets into the prebuilt `out/` directory; `npm run verify:azure` validates the
+artifact. Hosting metadata is stored in `.openai/hosting.json`; no secrets are
+committed.
 
 Live site: [gpu-kernel-engineering-atlas.aserdargun.chatgpt.site](https://gpu-kernel-engineering-atlas.aserdargun.chatgpt.site/)

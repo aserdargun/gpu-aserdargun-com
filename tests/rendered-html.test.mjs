@@ -53,25 +53,25 @@ test("server-renders the complete Turkish shell and metadata", async () => {
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });
 
-test("server-renders the complete English shell and metadata", async () => {
+test("server-renders the complete English shell with static production metadata", async () => {
   const response = await render({ lang: "en", acceptLanguage: "en-US,en;q=0.9" });
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("content-language"), "en-US");
 
   const html = await response.text();
-  assert.match(html, /<html lang="en">/i);
-  assert.match(html, /<title>GPU Kernel Atlas — GPU Kernel Engineering<\/title>/i);
+  assert.match(html, /<html lang="tr">/i);
+  assert.match(html, /<title>GPU Kernel Atlas — GPU Kernel Mühendisliği<\/title>/i);
   assert.match(html, /<b>GPU KERNEL ATLAS<\/b><small>GPU KERNEL ENGINEERING<\/small>/);
   assert.match(html, /aria-label="GPU Kernel Atlas home"/);
   assert.match(html, /<nav class="topnav" aria-label="Main navigation"><a href="#roadmap">12 weeks<\/a><\/nav>/);
   assert.doesNotMatch(html, /<button[^>]*>Overview<\/button>|<button[^>]*>Atlas<\/button>/);
-  assert.match(html, /property="og:title" content="GPU Kernel Atlas — GPU Kernel Engineering"/);
-  assert.match(html, /name="twitter:title" content="GPU Kernel Atlas — GPU Kernel Engineering"/);
+  assert.match(html, /property="og:title" content="GPU Kernel Atlas — GPU Kernel Mühendisliği"/);
+  assert.match(html, /name="twitter:title" content="GPU Kernel Atlas — GPU Kernel Mühendisliği"/);
   assert.match(html, /Write the kernel\./);
   assert.match(html, /GPU KERNEL ENGINEERING/);
-  assert.match(html, /11 atlases · 12 weeks · One learning system/);
-  assert.match(html, /\/og-en\.png/);
-  assert.doesNotMatch(html, /Kernel’i yaz\.|GPU KERNEL MÜHENDİSLİĞİ/);
+  assert.match(html, /11 atlas · 12 hafta · Tek öğrenme sistemi/);
+  assert.match(html, /\/og\.png/);
+  assert.doesNotMatch(html, /Kernel’i yaz\./);
 });
 
 test("wires every interactive lab to a separate Turkish and English experience", async () => {
@@ -108,13 +108,14 @@ test("ships locale-aware routing, metadata, accessibility, favicon, and social c
   assert.match(atlas, /const enModules/);
   assert.match(atlas, /graph: "ÖĞRENME GRAFİĞİ", online: "ÇEVRİM İÇİ"/);
   assert.match(atlas, /kernel-atlas-language/);
-  assert.match(atlas, /router\.replace/);
+  assert.match(atlas, /window\.history\.replaceState/);
+  assert.match(atlas, /document\.documentElement\.lang/);
   assert.match(page, /"tr-TR": "\/\?lang=tr"/);
   assert.match(page, /"en-US": "\/\?lang=en"/);
   assert.match(page, /image: "\/og\.png"/);
   assert.match(page, /image: "\/og-en\.png"/);
   assert.match(page, /icons: \{ icon: "\/favicon\.svg" \}/);
-  assert.match(layout, /x-kernel-atlas-locale/);
+  assert.match(layout, /<html lang="tr">/);
   assert.match(proxy, /Content-Language/);
   assert.match(proxy, /accept-language/);
   assert.match(readme, /Turkish and English UI/);

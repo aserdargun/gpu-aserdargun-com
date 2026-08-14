@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import type { Locale } from "./i18n";
 import KernelForgeEmbedded from "./KernelForgeEmbedded";
 import KernelForgeEmbeddedEn from "./KernelForgeEmbedded.en";
@@ -334,17 +333,32 @@ function pct(value: number) {
 }
 
 export default function KernelAtlas({ initialLocale }: { initialLocale: Locale }) {
-  const router = useRouter();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [completed, setCompleted] = useState<string[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
-  const locale = initialLocale;
+  const [locale, setLocale] = useState<Locale>(initialLocale);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("kernel-atlas-completed");
+    const requested = new URL(window.location.href).searchParams.get("lang");
+    const stored = window.localStorage.getItem("kernel-atlas-language");
+    const detected = window.navigator.language.toLowerCase().startsWith("tr") ? "tr" : "en";
+    const nextLocale: Locale = requested === "tr" || requested === "en"
+      ? requested
+      : stored === "tr" || stored === "en"
+        ? stored
+        : detected;
     window.queueMicrotask(() => {
-      if (saved) setCompleted(JSON.parse(saved));
+      if (saved) {
+        try {
+          setCompleted(JSON.parse(saved));
+        } catch {
+          window.localStorage.removeItem("kernel-atlas-completed");
+        }
+      }
+      setLocale(nextLocale);
+      document.documentElement.lang = nextLocale;
     });
   }, []);
 
@@ -353,11 +367,12 @@ export default function KernelAtlas({ initialLocale }: { initialLocale: Locale }
 
   const changeLocale = (next: Locale) => {
     setQuery("");
+    setLocale(next);
     window.localStorage.setItem("kernel-atlas-language", next);
-    document.cookie = `kernel-atlas-language=${next}; path=/; max-age=31536000; samesite=lax`;
+    document.documentElement.lang = next;
     const url = new URL(window.location.href);
     url.searchParams.set("lang", next);
-    router.replace(`${url.pathname}${url.search}${url.hash}`, { scroll: false });
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
   };
 
   const filtered = useMemo(() => {
