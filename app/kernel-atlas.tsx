@@ -300,7 +300,7 @@ const enWeeks = [
 const ui = {
   tr: {
     home: "GPU Kernel Atlas ana sayfa", mainNav: "Ana navigasyon", weeks: "12 hafta",
-    progress: "İlerleme yüzde", menu: "Atlas menüsünü aç", search: "Atlas içinde ara", command: "Komuta merkezi",
+    progress: "İlerleme yüzde", menu: "Atlas menüsünü aç", collapse: "Paneli gizle", expand: "Paneli göster", search: "Atlas içinde ara", command: "Komuta merkezi",
     unified: "11 BİRLEŞİK ATLAS", learningAtlases: "Öğrenme atlasları", localProgress: "YEREL İLERLEME", stored: "Bu cihazda saklanır.",
     eyebrow: "BİRLEŞİK ÖĞRENME SİSTEMİ · 2026", headlineA: "Kernel’i yaz.", headlineB: "Sistemi anla.", headlineC: "Kanıtla.",
     hero: "CUDA’nın ilk warp’ından vLLM serving ve multi-GPU topolojisine kadar 11 etkileşimli atlas, tek bir 12 haftalık GPU Kernel Engineering uygulamasında.",
@@ -314,7 +314,7 @@ const ui = {
   },
   en: {
     home: "GPU Kernel Atlas home", mainNav: "Main navigation", weeks: "12 weeks",
-    progress: "Progress percent", menu: "Open atlas menu", search: "Search the atlas", command: "Command center",
+    progress: "Progress percent", menu: "Open atlas menu", collapse: "Hide panel", expand: "Show panel", search: "Search the atlas", command: "Command center",
     unified: "11 UNIFIED ATLASES", learningAtlases: "Learning atlases", localProgress: "LOCAL PROGRESS", stored: "Stored on this device.",
     eyebrow: "UNIFIED LEARNING SYSTEM · 2026", headlineA: "Write the kernel.", headlineB: "Understand the system.", headlineC: "Prove it.",
     hero: "Eleven interactive atlases—from your first CUDA warp to vLLM serving and multi-GPU topologies—in one 12-week GPU Kernel Engineering application.",
@@ -337,6 +337,7 @@ export default function KernelAtlas({ initialLocale }: { initialLocale: Locale }
   const [query, setQuery] = useState("");
   const [completed, setCompleted] = useState<string[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [locale, setLocale] = useState<Locale>(initialLocale);
 
   useEffect(() => {
@@ -413,10 +414,11 @@ export default function KernelAtlas({ initialLocale }: { initialLocale: Locale }
         <div className="top-progress" aria-label={`${copy.progress} ${progress}`}>
           <span>{completed.length}/11 {locale === "tr" ? "ATLAS" : "ATLASES"}</span><i><b style={{ width: pct(progress) }} /></i>
         </div>
+        <button className="collapse-toggle" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? copy.expand : copy.collapse} aria-expanded={!collapsed}>{collapsed ? "»" : "«"}</button>
         <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-label={copy.menu}>≡</button>
       </header>
 
-      <div className="workspace">
+      <div className={collapsed ? "workspace collapsed" : "workspace"}>
         <aside className={menuOpen ? "sidebar open" : "sidebar"}>
           <div className="search-wrap">
             <span>⌕</span>
