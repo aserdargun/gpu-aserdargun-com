@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-type Tab = "overview" | "architecture" | "simt" | "memory" | "lab";
+type Tab = "overview" | "architecture" | "simt" | "memory" | "lab" | "latency" | "occupancy" | "quiz";
 type ArchLevel = "grid" | "block" | "warp" | "thread" | "instruction";
 type MemoryLevel = "register" | "shared" | "l2" | "global";
 type Predicate = "cutoff" | "even" | "quarter" | "uniform";
@@ -14,6 +14,9 @@ const tabs: { id: Tab; label: string }[] = [
   { id: "simt", label: "3 · SIMT" },
   { id: "memory", label: "4 · Bellek" },
   { id: "lab", label: "5 · Kernel Laboratuvarı" },
+  { id: "latency", label: "6 · Gecikme gizleme" },
+  { id: "occupancy", label: "7 · Doluluk" },
+  { id: "quiz", label: "8 · Test" },
 ];
 
 const archData: Record<ArchLevel, { label: string; code: string; title: string; body: string; owner: string; sharing: string; result: string }> = {
@@ -58,6 +61,28 @@ const memoryData: Record<MemoryLevel, { title: string; scope: string; body: stri
 
 const phases = ["Predicate", "Path A", "Path B", "Reconverge"];
 
+const simtVsSimd = [
+  ["Yürütme modeli", "Kilitli adım (lockstep): tüm lane'ler aynı anda aynı işlemi yapar", "Bağımsız thread durumları: her lane kendi register'ı ve akışıyla ilerler"],
+  ["Program sayacı", "Tüm vektör tek bir PC paylaşır", "Her thread kendi program sayacına sahiptir"],
+  ["Dallanma", "Tüm vektör aynı yolu alır; ayrışma yok", "Lane başına maske ile yollar seri yürütülür"],
+  ["Genişlik", "Sabit vektör genişliği (ör. 4/8/16 eleman)", "32 lane'lik warp (donanım birimi)"],
+  ["Donanım", "CPU vektör birimi (AVX/NEON)", "GPU SM + warp scheduler"],
+  ["Amaç", "Tek çekirdekte veri paralelliği", "Binlerce thread ile throughput"],
+];
+
+type QuizQuestion = { q: string; options: string[]; answer: number; explain: string };
+
+const quizQuestions: QuizQuestion[] = [
+  { q: "Bir warp kaç thread'den oluşur?", options: ["8", "16", "32", "64"], answer: 2, explain: "Warp, 32 ardışık thread'den oluşan temel gönderim/zamanlama birimidir." },
+  { q: "Aynı warp içindeki lane'ler farklı branch alırsa ne olur?", options: ["Hiçbir şey; paralel çalışırlar", "Yollar maske ile seri yürütülür (divergence)", "Kernel hata verir", "Sadece ilk lane çalışır"], answer: 1, explain: "Warp önce A yolunu A-maskesiyle, sonra B yolunu B-maskesiyle yürütür; maskeli lane'ler sonuç yazmaz." },
+  { q: "SIMT ile SIMD arasındaki temel fark nedir?", options: ["SIMT daha hızlıdır", "SIMT'de her thread bağımsız program durumuna sahiptir", "SIMD sadece GPU'da çalışır", "Aralarında fark yoktur"], answer: 1, explain: "SIMT'de her lane kendi register'ı ve program sayacına sahiptir; SIMD kilitli adımda tek PC paylaşır." },
+  { q: "Global thread indeksi nasıl hesaplanır?", options: ["i = threadIdx.x", "i = blockIdx.x", "i = blockIdx.x * blockDim.x + threadIdx.x", "i = blockIdx.x + threadIdx.x"], answer: 2, explain: "blockIdx.x * blockDim.x + threadIdx.x, thread'in tüm grid içindeki benzersiz indeksidir." },
+  { q: "Son block'ta sınır kontrolü (if (i < N)) neden gerekli?", options: ["Performansı artırmak için", "N, block boyutunun tam katı olmayabilir; fazla thread'ler bellek dışına yazar", "Derleyici zorunlu kılar", "Gerekli değildir"], answer: 1, explain: "Fazla thread'lerin dizi sınırı dışına yazmasını engeller." },
+  { q: "Bellek gecikmesini gizlemek için ne gerekir?", options: ["Daha hızlı bellek", "Yeterli sayıda hazır warp (occupancy)", "Daha az thread", "Daha büyük block"], answer: 1, explain: "Bir warp bellek beklerken scheduler hazır başka warp'a geçer; yeterli warp yoksa SM boş kalır." },
+  { q: "Occupancy'yi ne belirler?", options: ["Sadece thread sayısı", "En kısıtlı kaynak (register/shared/thread/block)", "Sadece register sayısı", "GPU sıcaklığı"], answer: 1, explain: "Doluluk, en kısıtlı kaynak tarafından belirlenir." },
+  { q: "Coalescing (birleşik erişim) nedir?", options: ["Komşu lane'lerin komşu adreslere erişmesi", "Thread'lerin farklı kernel çalıştırması", "Bellek temizleme", "Register paylaşımı"], answer: 0, explain: "Komşu lane → komşu adres; erişim 32B sektörlerde toplanır ve gereksiz trafik azalır." },
+];
+
 export default function CudaSimtEmbedded() {
   const [tab, setTab] = useState<Tab>("overview");
   const [arch, setArch] = useState<ArchLevel>("grid");
@@ -70,6 +95,12 @@ export default function CudaSimtEmbedded() {
   const [n, setN] = useState(1000);
   const [blockSize, setBlockSize] = useState(256);
   const [smCount, setSmCount] = useState(4);
+  const [warps, setWarps] = useState(4);
+  const [latency, setLatency] = useState(80);
+  const [computeCycles, setComputeCycles] = useState(8);
+  const [occBlockSize, setOccBlockSize] = useState(256);
+  const [regsPerThread, setRegsPerThread] = useState(32);
+  const [sharedPerBlock, setSharedPerBlock] = useState(0);
 
   const laneTakesA = (lane: number) => {
     if (predicate === "cutoff") return lane < cutoff;
@@ -95,6 +126,32 @@ export default function CudaSimtEmbedded() {
   const validThreadsInLastBlock = n - (blocks - 1) * blockSize;
   const lastWarpStart = (warpsPerBlock - 1) * 32;
   const lastWarpActive = Math.max(0, Math.min(32, validThreadsInLastBlock - lastWarpStart));
+
+  const period = computeCycles + latency;
+  const neededWarps = Math.ceil(period / computeCycles);
+  const utilization = Math.min(1, (warps * computeCycles) / period);
+  const warpComputing = (warp: number, t: number) => {
+    const s = ((t - warp * computeCycles) % period + period) % period;
+    return s < computeCycles;
+  };
+  const smBusy = (t: number) => Array.from({ length: warps }, (_, w) => warpComputing(w, t)).some(Boolean);
+
+  const occWarpsPerBlock = Math.ceil(occBlockSize / 32);
+  const blocksByThreads = Math.floor(2048 / occBlockSize);
+  const regsPerBlock = regsPerThread * occBlockSize;
+  const blocksByRegs = Math.floor(65536 / regsPerBlock);
+  const sharedBytes = sharedPerBlock * 1024;
+  const blocksByShared = sharedBytes === 0 ? 32 : Math.floor(49152 / sharedBytes);
+  const blocksPerSM = Math.min(blocksByThreads, blocksByRegs, blocksByShared, 32);
+  const warpsPerSM = blocksPerSM * occWarpsPerBlock;
+  const occupancy = warpsPerSM / 64;
+  const occLimits = [
+    { name: "Thread sınırı", detail: "2048 / " + occBlockSize, blocks: blocksByThreads },
+    { name: "Register sınırı", detail: "65536 / (" + regsPerThread + " × " + occBlockSize + ")", blocks: blocksByRegs },
+    { name: "Shared memory", detail: sharedBytes === 0 ? "kullanılmıyor" : "49152 / " + sharedBytes, blocks: blocksByShared },
+    { name: "Block sınırı", detail: "32", blocks: 32 },
+  ];
+  const occMinBlocks = Math.min(...occLimits.map((l) => l.blocks));
 
   return (
     <main className="cuda-simt-embed atlas-shell">
@@ -184,6 +241,7 @@ export default function CudaSimtEmbedded() {
             </div>
             <DetailCard title="Dallanma maliyeti" body={serialPaths === 1 ? "Tüm aktif lane’ler aynı yolu aldığı için warp-level branch divergence oluşmaz." : "Warp önce A yolunu A-maskesiyle, sonra B yolunu B-maskesiyle yürütür. Maskeli lane’ler sonuç yazmaz."} facts={[["Path A", `${aCount} / 32`], ["Path B", `${32 - aCount} / 32`], ["Ardışık yollar", String(serialPaths)], ["Seçili lane", `Lane ${selectedLane} → ${laneTakesA(selectedLane) ? "Path A" : "Path B"}`]]} />
           </div>
+          <SimtVsSimd title="SIMD ile SIMT aynı şey değildir" rows={simtVsSimd} />
           <Lesson title="Kritik sınır" copy="Farklı warp’ların farklı branch alması divergence değildir. Maliyet, aynı warp içindeki lane’lerin ayrışmasıyla doğar." />
         </section>
       )}
@@ -225,8 +283,77 @@ export default function CudaSimtEmbedded() {
               <div><div className="stage-title"><strong>Son blok · son warp</strong><span>{lastWarpActive} aktif, {32 - lastWarpActive} guard ile kapalı lane</span></div><div className="lane-grid">{Array.from({ length: 32 }, (_, lane) => <div key={lane} className={`lane ${lane < lastWarpActive ? "path-a" : "masked"}`}>{lane}</div>)}</div></div>
             </div>
           </div>
+          <div className="kernel-code-block">
+            <h3>Gerçek CUDA kodu</h3>
+            <KernelCode n={n} blockSize={blockSize} blocks={blocks} />
+          </div>
           <div className="checklist"><Fact label="Correctness" value="if (i < N) sınır koruması" /><Fact label="Coalescing" value="Komşu lane → komşu adres" /><Fact label="Occupancy" value="İş parçacığı + yazmaç + paylaşılan bellek + blok sınırları" /></div>
           <Lesson title="Blok boyutu tek başına cevap değildir" copy="128/256 thread iyi başlangıç deneyleridir; doğru seçim profiler, register kullanımı, shared memory, latency hiding ve bellek davranışıyla ölçülür." />
+        </section>
+      )}
+      {tab === "latency" && (
+        <section className="panel-stack" role="tabpanel">
+          <SectionHead title="Latency hiding: bellek beklerken SM boş durmaz" subtitle="Bir warp bellekten veri beklerken scheduler hazır başka bir warp'a geçer; yeterli warp yoksa SM boş kalır." badge={"Periyot = " + computeCycles + " + " + latency + " = " + period + " çevrim"} />
+          <div className="latency-controls">
+            <Range label="Resident warp sayısı" value={warps} min={1} max={16} onChange={setWarps} />
+            <Range label="Bellek gecikmesi" value={latency} suffix=" çevrim" min={20} max={200} step={10} onChange={setLatency} />
+            <Range label="Compute süresi" value={computeCycles} suffix=" çevrim" min={4} max={32} step={4} onChange={setComputeCycles} />
+          </div>
+          <div className="stats">
+            <Stat label="Kullanım" value={Math.round(utilization * 100) + "%"} />
+            <Stat label="Tam gizleme için warp" value={String(neededWarps)} />
+            <Stat label="Periyot" value={period + " çevrim"} />
+          </div>
+          <div className="latency-timeline">
+            {Array.from({ length: warps }, (_, w) => (
+              <div className="latency-row" key={w}>
+                <span className="latency-label">W{w}</span>
+                {Array.from({ length: 48 }, (_, t) => <div key={t} className={"latency-cell " + (warpComputing(w, t) ? "compute" : "memory")} />)}
+              </div>
+            ))}
+            <div className="latency-row sm">
+              <span className="latency-label">SM</span>
+              {Array.from({ length: 48 }, (_, t) => <div key={t} className={"latency-cell " + (smBusy(t) ? "busy" : "idle")} />)}
+            </div>
+          </div>
+          <div className="latency-legend">
+            <span><i className="compute" /> Compute</span>
+            <span><i className="memory" /> Bellek bekleme</span>
+            <span><i className="busy" /> SM meşgul</span>
+            <span><i className="idle" /> SM boş</span>
+          </div>
+          <Lesson title="Kritik eşik" copy={warps >= neededWarps ? "Yeterli warp var (" + warps + " ≥ " + neededWarps + "): bellek gecikmesi tamamen gizlenir ve SM her çevrimde meşgul kalır." : "Warp sayısı yetersiz (" + warps + " < " + neededWarps + "): tüm warp'lar bellek beklerken SM boş kalır. Tam gizleme için ceil((C+L)/C) = " + neededWarps + " warp gerekir."} />
+        </section>
+      )}
+      {tab === "occupancy" && (
+        <section className="panel-stack" role="tabpanel">
+          <SectionHead title="Occupancy: bir SM'ye kaç warp sığar?" subtitle="Register, shared memory ve thread sınırları aynı anda geçerlidir; en kısıtlı kaynak doluluğu belirler." badge={"Occupancy = " + Math.round(occupancy * 100) + "%"} />
+          <div className="occ-controls">
+            <Range label="Blok boyutu" value={occBlockSize} suffix=" thread" min={32} max={1024} step={32} onChange={setOccBlockSize} />
+            <Range label="Register / thread" value={regsPerThread} min={16} max={255} step={8} onChange={setRegsPerThread} />
+            <Range label="Shared memory / block" value={sharedPerBlock} suffix=" KB" min={0} max={48} step={4} onChange={setSharedPerBlock} />
+          </div>
+          <div className="stats">
+            <Stat label="Occupancy" value={Math.round(occupancy * 100) + "%"} />
+            <Stat label="Block / SM" value={String(blocksPerSM)} />
+            <Stat label="Warp / SM" value={warpsPerSM + " / 64"} />
+          </div>
+          <div className="occ-limits">
+            {occLimits.map((l) => (
+              <div key={l.name} className={l.blocks === occMinBlocks ? "occ-limit binding" : "occ-limit"}>
+                <span>{l.name}</span>
+                <code>{l.detail}</code>
+                <b>{l.blocks} block</b>
+              </div>
+            ))}
+          </div>
+          <Lesson title="Kritik kural" copy="Doluluk en kısıtlı kaynak tarafından belirlenir. Register veya shared memory kullanımını düşürerek aynı SM'de daha fazla block yaşatabilirsin." />
+        </section>
+      )}
+      {tab === "quiz" && (
+        <section className="panel-stack" role="tabpanel">
+          <SectionHead title="Bilgini test et" subtitle="8 soru; her cevaptan sonra açıklamayı gör." badge="Kontrol noktası" />
+          <Quiz questions={quizQuestions} />
         </section>
       )}
     </main>
@@ -241,4 +368,59 @@ function Lesson({ title, copy }: { title: string; copy: string }) { return <div 
 function DetailCard({ title, body, facts }: { title: string; body: string; facts: string[][] }) { return <article className="detail-card"><h3>{title}</h3><p>{body}</p>{facts.map(([label, value]) => <Fact key={label} label={label} value={value} />)}</article>; }
 function Path({ title, value, tone }: { title: string; value: string; tone: string }) { return <div className={`path ${tone}`}><strong>{title}</strong><span>{value}</span></div>; }
 function Stat({ label, value }: { label: string; value: string }) { return <div className="stat"><span>{label}</span><strong>{value}</strong></div>; }
+function SimtVsSimd({ title, rows }: { title: string; rows: string[][] }) { return <div className="simt-vs-block"><h3 className="simt-vs-title">{title}</h3><div className="simt-vs-simd"><div className="simt-vs-head"><span className="dim" aria-hidden /><span className="simd">SIMD</span><span className="simt">SIMT</span></div>{rows.map(([dim, simd, simt]) => <div className="simt-vs-row" key={dim}><span className="dim">{dim}</span><span className="simd">{simd}</span><span className="simt">{simt}</span></div>)}</div></div>; }
+function KernelCode({ n, blockSize, blocks }: { n: number; blockSize: number; blocks: number }) {
+  const segs: (string | { hl: string })[] = [
+    "// 1) Kernel: her thread bir elementi işler\n",
+    "__global__ void scale_kernel(const float* x, float* y, float alpha, int n) {\n",
+    "    int i = blockIdx.x * blockDim.x + threadIdx.x;\n",
+    "    if (i < n) {  // sınır koruması\n",
+    "        y[i] = alpha * x[i];\n",
+    "    }\n",
+    "}\n",
+    "\n",
+    "// 2) Host: grid boyutunu hesapla ve başlat\n",
+    "int blockSize = ", { hl: String(blockSize) }, ";\n",
+    "int gridSize  = (", { hl: String(n) }, " + ", { hl: String(blockSize) }, " - 1) / ", { hl: String(blockSize) }, ";  // ceil(n / blockSize) = ", { hl: String(blocks) }, "\n",
+    "\n",
+    "scale_kernel<<<", { hl: String(blocks) }, ", ", { hl: String(blockSize) }, ">>>(d_x, d_y, 2.0f, ", { hl: String(n) }, ");\n",
+  ];
+  return <pre className="kernel-code"><code>{segs.map((seg, i) => typeof seg === "string" ? seg : <span key={i} className="hl">{seg.hl}</span>)}</code></pre>;
+}
+function Quiz({ questions }: { questions: QuizQuestion[] }) {
+  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const answered = Object.keys(answers).length;
+  const correct = questions.filter((q, i) => answers[i] === q.answer).length;
+  return (
+    <div className="quiz">
+      <div className="quiz-score">
+        <div><span>Skor</span><b>{correct} / {questions.length}</b></div>
+        {answered === questions.length && <button type="button" onClick={() => setAnswers({})}>Tekrar dene</button>}
+      </div>
+      {questions.map((q, i) => {
+        const chosen = answers[i];
+        const isAnswered = chosen !== undefined;
+        const isCorrect = chosen === q.answer;
+        return (
+          <div key={i} className={"quiz-q" + (isAnswered ? (isCorrect ? " correct" : " wrong") : "")}>
+            <h3>{i + 1}. {q.q}</h3>
+            <div className="quiz-options">
+              {q.options.map((opt, j) => {
+                const isChosen = chosen === j;
+                const isAnswer = q.answer === j;
+                let cls = "";
+                if (isAnswered) {
+                  if (isAnswer) cls = "answer";
+                  else if (isChosen) cls = "chosen-wrong";
+                }
+                return <button key={j} type="button" disabled={isAnswered} onClick={() => setAnswers({ ...answers, [i]: j })} className={cls}>{opt}</button>;
+              })}
+            </div>
+            {isAnswered && <p className="quiz-explain">{isCorrect ? "✓ Doğru" : "✗ Yanlış"} — {q.explain}</p>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 function Range({ label, value, suffix = "", min, max, step = 1, onChange }: { label: string; value: number; suffix?: string; min: number; max: number; step?: number; onChange: (value: number) => void }) { return <label className="range-label"><span>{label}: <strong>{value}{suffix}</strong></span><input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(Number(e.target.value))} /></label>; }
