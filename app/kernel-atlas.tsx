@@ -24,6 +24,8 @@ import NcclMultiGpuEmbedded from "./NcclMultiGpuEmbedded";
 import NcclMultiGpuEmbeddedEn from "./NcclMultiGpuEmbedded.en";
 import GpuSoftwareStackEmbedded from "./GpuSoftwareStackEmbedded";
 import GpuSoftwareStackEmbeddedEn from "./GpuSoftwareStackEmbedded.en";
+import VisualFoundationsEmbedded from "./VisualFoundationsEmbedded";
+import VisualFoundationsEmbeddedEn from "./VisualFoundationsEmbedded.en";
 
 type LabKind =
   | "toolchain"
@@ -36,7 +38,8 @@ type LabKind =
   | "cutlass"
   | "inference"
   | "multigpu"
-  | "systems";
+  | "systems"
+  | "visual";
 
 type Module = {
   id: string;
@@ -54,8 +57,21 @@ type Module = {
 
 const trModules: Module[] = [
   {
-    id: "toolchain",
+    id: "visual",
     index: "01",
+    title: "Görsel & Kalıcı Öğrenme",
+    short: "GPU 101 · Mnemonics · Bilgi testi",
+    phase: "Giriş",
+    description: "Üniversite öğrencisi için GPU'nun ne olduğunu, içinde nelerin bulunduğunu ve bir kernel'in nasıl yaşadığını görsel olarak öğren. Kalıcı bilgi kartları, sık yapılan hatalar ve bilgi testi.",
+    concepts: ["CPU vs GPU farkı", "GPU anatomisi (SM, L2, HBM)", "Kernel yaşam döngüsü", "Kalıcı öğrenme teknikleri"],
+    outcome: "GPU kavramlarını görsel bir zihinsel modele oturt ve 1 yıl sonra bile hatırlayacağın mnemonics'ler kazan.",
+    tags: ["GPU 101", "görsel", "mnemonic", "quiz"],
+    accent: "rose",
+    kind: "visual",
+  },
+  {
+    id: "toolchain",
+    index: "02",
     title: "Mühendislik Temelleri",
     short: "C++ · Linux · Git · CMake",
     phase: "Zemin",
@@ -68,7 +84,7 @@ const trModules: Module[] = [
   },
   {
     id: "architecture",
-    index: "02",
+    index: "03",
     title: "Mimari → SIMT → CUDA",
     short: "Izgara · Blok · Warp · Şerit",
     phase: "Zihinsel model",
@@ -81,7 +97,7 @@ const trModules: Module[] = [
   },
   {
     id: "memory",
-    index: "03",
+    index: "04",
     title: "GPU Bellek Laboratuvarı",
     short: "Birleşik erişim · Bankalar · Doluluk",
     phase: "Veri hareketi",
@@ -94,7 +110,7 @@ const trModules: Module[] = [
   },
   {
     id: "triton",
-    index: "04",
+    index: "05",
     title: "PyTorch + Triton Kernel Laboratuvarı",
     short: "Özel operatör · Otomatik türev · Derleme",
     phase: "Uygulama",
@@ -107,7 +123,7 @@ const trModules: Module[] = [
   },
   {
     id: "operators",
-    index: "05",
+    index: "06",
     title: "LLM Kernel Desenleri",
     short: "GEMM · İndirgeme · Softmax · Dikkat",
     phase: "Operatörler",
@@ -120,7 +136,7 @@ const trModules: Module[] = [
   },
   {
     id: "correctness",
-    index: "06",
+    index: "07",
     title: "Kernel Doğruluğu ve Güvenliği",
     short: "Referans · Tolerans · Doğrulama",
     phase: "Kanıt",
@@ -133,7 +149,7 @@ const trModules: Module[] = [
   },
   {
     id: "profiling",
-    index: "07",
+    index: "08",
     title: "Nsight ve Kıyaslama Rehberi",
     short: "Nsight Systems · Nsight Compute · Deney tasarımı",
     phase: "Ölçüm",
@@ -146,7 +162,7 @@ const trModules: Module[] = [
   },
   {
     id: "cutlass",
-    index: "08",
+    index: "09",
     title: "CUTLASS · CuTe · Tensor Core · PTX",
     short: "Soyutlamadan silikona",
     phase: "Derin optimizasyon",
@@ -159,7 +175,7 @@ const trModules: Module[] = [
   },
   {
     id: "inference",
-    index: "09",
+    index: "10",
     title: "Çıkarım Sistemleri Laboratuvarı",
     short: "vLLM · CUDA Graphs · Nicemleme",
     phase: "Sunum",
@@ -172,7 +188,7 @@ const trModules: Module[] = [
   },
   {
     id: "multigpu",
-    index: "10",
+    index: "11",
     title: "NCCL ve Çoklu GPU Sistemleri",
     short: "Kolektifler · Paralellik · RDMA",
     phase: "Dağıtık sistem",
@@ -185,7 +201,7 @@ const trModules: Module[] = [
   },
   {
     id: "systems",
-    index: "11",
+    index: "12",
     title: "GPU Yazılım Yığını",
     short: "ROCm/HIP · MLIR · TensorRT",
     phase: "Ekosistem",
@@ -200,67 +216,74 @@ const trModules: Module[] = [
 
 const enModules: Module[] = [
   {
-    id: "toolchain", index: "01", title: "Engineering Foundations", short: "C++ · Linux · Git · CMake", phase: "Foundation",
+    id: "visual", index: "01", title: "Visual & Lasting Learning", short: "GPU 101 · Mnemonics · Self-check", phase: "Onboarding",
+    description: "Visually learn what a GPU is, what's inside it, and how a kernel lives — built for university students. Lasting knowledge cards, common pitfalls, and a self-check quiz.",
+    concepts: ["CPU vs GPU difference", "GPU anatomy (SM, L2, HBM)", "Kernel life cycle", "Lasting-learning techniques"],
+    outcome: "Place GPU concepts in a visual mental model and earn mnemonics you'll still remember a year from now.",
+    tags: ["GPU 101", "visual", "mnemonic", "quiz"], accent: "rose", kind: "visual",
+  },
+  {
+    id: "toolchain", index: "02", title: "Engineering Foundations", short: "C++ · Linux · Git · CMake", phase: "Foundation",
     description: "Strengthen your kernel development environment with modern C++, Python, Linux, Git, and target-based CMake.",
     concepts: ["RAII and object lifetime", "Processes, pipes, and automation", "Reproducible builds and tests"],
     outcome: "Build a kernel workspace that compiles, tests, and rolls back reliably.", tags: ["C++23", "Python", "Linux", "Git", "CMake"], accent: "gold", kind: "toolchain",
   },
   {
-    id: "architecture", index: "02", title: "Architecture → SIMT → CUDA", short: "Grid · Block · Warp · Lane", phase: "Mental model",
+    id: "architecture", index: "03", title: "Architecture → SIMT → CUDA", short: "Grid · Block · Warp · Lane", phase: "Mental model",
     description: "Connect CPU control flow to GPU execution through grids, blocks, warps, lanes, and divergence.",
     concepts: ["Heterogeneous execution", "SIMT and divergence", "Kernel launch sizing"],
     outcome: "Translate a problem size into a safe grid and explain its warp behavior.", tags: ["CUDA", "SIMT", "warp", "launch"], accent: "lime", kind: "architecture",
   },
   {
-    id: "memory", index: "03", title: "GPU Memory Lab", short: "Coalescing · Banks · Occupancy", phase: "Data movement",
+    id: "memory", index: "04", title: "GPU Memory Lab", short: "Coalescing · Banks · Occupancy", phase: "Data movement",
     description: "Explore the hierarchy from registers to HBM, alongside coalescing, bank conflicts, and resource pressure.",
     concepts: ["Memory hierarchy", "32 B sectors", "Shared-memory banks"],
     outcome: "Calculate wasted traffic in an access pattern and identify its occupancy limit.", tags: ["HBM", "shared", "coalescing", "occupancy"], accent: "cyan", kind: "memory",
   },
   {
-    id: "triton", index: "04", title: "PyTorch + Triton Kernel Lab", short: "Custom op · Autograd · Compile", phase: "Implementation",
+    id: "triton", index: "05", title: "PyTorch + Triton Kernel Lab", short: "Custom op · Autograd · Compile", phase: "Implementation",
     description: "Move from a PyTorch reference to a custom-operator contract, then to a masked Triton kernel.",
     concepts: ["torch.library contract", "Program ID and masking", "Autograd and torch.compile"],
     outcome: "Package an operator with a reference, Triton implementation, and integration tests.", tags: ["PyTorch", "Triton", "opcheck", "compile"], accent: "violet", kind: "triton",
   },
   {
-    id: "operators", index: "05", title: "LLM Kernel Patterns", short: "GEMM · Reduction · Softmax · Attention", phase: "Operators",
+    id: "operators", index: "06", title: "LLM Kernel Patterns", short: "GEMM · Reduction · Softmax · Attention", phase: "Operators",
     description: "Compare GEMM, reduction, softmax, RMSNorm, and attention through data movement, numerical stability, and fusion.",
     concepts: ["Tiling and reuse", "Stable reduction", "Online softmax and fusion"],
     outcome: "Design an operator pack for RMSNorm, RoPE, SwiGLU, masked softmax, and KV-cache.", tags: ["GEMM", "RMSNorm", "softmax", "attention"], accent: "coral", kind: "operators",
   },
   {
-    id: "correctness", index: "06", title: "Kernel Correctness & Safety", short: "Reference · Tolerance · Sanitizer", phase: "Evidence",
+    id: "correctness", index: "07", title: "Kernel Correctness & Safety", short: "Reference · Tolerance · Sanitizer", phase: "Evidence",
     description: "Close the gap between ‘it ran’ and ‘it is correct’ with reference contracts, tolerance matrices, and Compute Sanitizer.",
     concepts: ["rtol + atol error budget", "Edge-case matrix", "Memory and race detectors"],
     outcome: "Create a reusable acceptance gate for numerical, memory, and synchronization correctness.", tags: ["pytest", "allclose", "memcheck", "racecheck"], accent: "green", kind: "correctness",
   },
   {
-    id: "profiling", index: "07", title: "Nsight & Benchmark Guide", short: "Systems · Compute · Experiment design", phase: "Measurement",
+    id: "profiling", index: "08", title: "Nsight & Benchmark Guide", short: "Systems · Compute · Experiment design", phase: "Measurement",
     description: "Inspect the timeline first, then the hot kernel, and finally compare variants under controlled noise.",
     concepts: ["Nsight Systems timeline", "Nsight Compute hypothesis", "Warm-up and quantiles"],
     outcome: "Produce a reproducible evidence chain and decision record for every optimization.", tags: ["Nsight", "roofline", "benchmark", "quantile"], accent: "blue", kind: "profiling",
   },
   {
-    id: "cutlass", index: "08", title: "CUTLASS · CuTe · Tensor Core · PTX", short: "From abstraction to silicon", phase: "Deep optimization",
+    id: "cutlass", index: "09", title: "CUTLASS · CuTe · Tensor Core · PTX", short: "From abstraction to silicon", phase: "Deep optimization",
     description: "Trace a GEMM from library policy through layout algebra and PTX instructions to Tensor Core execution.",
     concepts: ["CTA/warp/MMA tiling", "CuTe layout mapping", "PTX → SASS verification"],
     outcome: "Choose the right abstraction level from profiler evidence and calculate tile cost.", tags: ["CUTLASS", "CuTe", "PTX", "Tensor Core"], accent: "pink", kind: "cutlass",
   },
   {
-    id: "inference", index: "09", title: "Inference Systems Lab", short: "vLLM · CUDA Graphs · Quantization", phase: "Serving",
+    id: "inference", index: "10", title: "Inference Systems Lab", short: "vLLM · CUDA Graphs · Quantization", phase: "Serving",
     description: "Evaluate TTFT, ITL, throughput, and VRAM in one system view; choose levers based on the bottleneck.",
     concepts: ["Continuous batching", "CUDA Graph replay", "Weight and KV-cache budgets"],
     outcome: "Measure serving configurations on a fixed workload and compare them with a quality guardrail.", tags: ["vLLM", "TTFT", "ITL", "quantization"], accent: "lime", kind: "inference",
   },
   {
-    id: "multigpu", index: "10", title: "NCCL & Multi-GPU Systems", short: "Collectives · Parallelism · RDMA", phase: "Distributed system",
+    id: "multigpu", index: "11", title: "NCCL & Multi-GPU Systems", short: "Collectives · Parallelism · RDMA", phase: "Distributed system",
     description: "Combine ring and tree collectives with data, tensor, pipeline, and expert parallel strategies on real topologies.",
     concepts: ["AllReduce cost", "Choosing DP/TP/PP/EP", "GPUDirect RDMA data path"],
     outcome: "Choose a parallelism strategy that splits the actual bottleneck, not just the model.", tags: ["NCCL", "AllReduce", "NVLink", "RDMA"], accent: "cyan", kind: "multigpu",
   },
   {
-    id: "systems", index: "11", title: "GPU Software Stack", short: "ROCm/HIP · MLIR · TensorRT", phase: "Ecosystem",
+    id: "systems", index: "12", title: "GPU Software Stack", short: "ROCm/HIP · MLIR · TensorRT", phase: "Ecosystem",
     description: "Separate the stack from portable kernel languages through multi-level compiler IR to production inference engines.",
     concepts: ["HIP execution model", "MLIR lowering pipeline", "TensorRT tactics and engines"],
     outcome: "Place an optimization problem in the correct software layer and state portability boundaries explicitly.", tags: ["ROCm", "HIP", "MLIR", "TensorRT"], accent: "orange", kind: "systems",
@@ -301,13 +324,13 @@ const ui = {
   tr: {
     home: "GPU Kernel Atlas ana sayfa", mainNav: "Ana navigasyon", weeks: "12 hafta",
     progress: "İlerleme yüzde", menu: "Atlas menüsünü aç", collapse: "Paneli gizle", expand: "Paneli göster", search: "Atlas içinde ara", command: "Komuta merkezi",
-    unified: "11 BİRLEŞİK ATLAS", learningAtlases: "Öğrenme atlasları", localProgress: "YEREL İLERLEME", stored: "Bu cihazda saklanır.",
+    unified: "12 BİRLEŞİK ATLAS", learningAtlases: "Öğrenme atlasları", localProgress: "YEREL İLERLEME", stored: "Bu cihazda saklanır.",
     eyebrow: "BİRLEŞİK ÖĞRENME SİSTEMİ · 2026", headlineA: "Kernel’i yaz.", headlineB: "Sistemi anla.", headlineC: "Kanıtla.",
-    hero: "CUDA’nın ilk warp’ından vLLM serving ve multi-GPU topolojisine kadar 11 etkileşimli atlas, tek bir 12 haftalık GPU Kernel Engineering uygulamasında.",
+    hero: "CUDA’nın ilk warp’ından vLLM serving ve multi-GPU topolojisine kadar 12 etkileşimli atlas — görsel ve kalıcı öğrenme için özelleştirilmiş, tek bir 12 haftalık GPU Kernel Engineering uygulamasında.",
     start: "Öğrenmeye başla", viewWeeks: "12 haftayı gör", atlasStat: "birleşik atlas", weekStat: "yoğun hafta", operatorStat: "LLM operatörü", gateStat: "kanıt kapısı",
     graph: "ÖĞRENME GRAFİĞİ", online: "ÇEVRİM İÇİ", correctness: "DOĞRULUK", measurement: "ÖLÇÜM", integration: "ENTEGRASYON",
     principle1: "Referans, şekil/dtype matrisi ve sanitizer temizliği olmadan kernel tamamlanmış sayılmaz.", principle2: "Warm-up, quantile, profiler ve kontrollü baseline olmadan hız iddiası kurulmaz.", principle3: "Gerçek hedef; PyTorch, compile ve serving iş yükü içinde çalışan portföy kalitesinde operatördür.",
-    map: "ATLAS HARİTASI", mapA: "Tek uygulama.", mapB: "On bir uzmanlık alanı.", mapNote: "Temelden capstone’a ilerleyen rota. Her atlas kendi etkileşimli laboratuvarını, karar modelini ve kabul çıktısını içerir.", done: "TAMAMLANDI",
+    map: "ATLAS HARİTASI", mapA: "Tek uygulama.", mapB: "On iki uzmanlık alanı.", mapNote: "Temelden capstone’a ilerleyen rota. Her atlas kendi etkileşimli laboratuvarını, karar modelini ve kabul çıktısını içerir.", done: "TAMAMLANDI",
     route: "12 HAFTALIK YOĞUN ROTA", routeA: "Okuma listesi değil.", routeB: "Üretim sistemi.", routeNote: "Haftada 14–16 saat. Her hafta çalışan kod, doğruluk kanıtı veya ölçüm raporu üretir.",
     graduation: "MEZUNİYET KAPISI", dual: "CUDA/Triton\nçift uygulama", gain: "iki fused kernel\nmedyan kazanç", studies: "Nsight\nincelemesi", report: "vLLM TTFT/ITL/\nthroughput raporu", interview: "mülakat\nsavunması",
     interactive: "ETKİLEŞİMLİ ATLAS", evidence: "ÇIKIŞ KANITI", learned: "Öğrendin mi?", record: "Kanıtını kaydet.", complete: "Atlası tamamla", completed: "✓ Tamamlandı", next: "Sonraki atlas →",
@@ -315,13 +338,13 @@ const ui = {
   en: {
     home: "GPU Kernel Atlas home", mainNav: "Main navigation", weeks: "12 weeks",
     progress: "Progress percent", menu: "Open atlas menu", collapse: "Hide panel", expand: "Show panel", search: "Search the atlas", command: "Command center",
-    unified: "11 UNIFIED ATLASES", learningAtlases: "Learning atlases", localProgress: "LOCAL PROGRESS", stored: "Stored on this device.",
+    unified: "12 UNIFIED ATLASES", learningAtlases: "Learning atlases", localProgress: "LOCAL PROGRESS", stored: "Stored on this device.",
     eyebrow: "UNIFIED LEARNING SYSTEM · 2026", headlineA: "Write the kernel.", headlineB: "Understand the system.", headlineC: "Prove it.",
-    hero: "Eleven interactive atlases—from your first CUDA warp to vLLM serving and multi-GPU topologies—in one 12-week GPU Kernel Engineering application.",
+    hero: "Twelve interactive atlases—from your first CUDA warp to vLLM serving and multi-GPU topologies—tailored for visual and lasting learning, in one 12-week GPU Kernel Engineering application.",
     start: "Start learning", viewWeeks: "View the 12 weeks", atlasStat: "unified atlases", weekStat: "intensive weeks", operatorStat: "LLM operators", gateStat: "evidence gates",
     graph: "LEARNING GRAPH", online: "ONLINE", correctness: "CORRECTNESS", measurement: "MEASUREMENT", integration: "INTEGRATION",
     principle1: "A kernel is not complete without a reference, a shape/dtype matrix, and clean sanitizer results.", principle2: "No performance claim without warm-up, quantiles, profiler evidence, and a controlled baseline.", principle3: "The real goal is a portfolio-grade operator that works in PyTorch, compile, and serving workloads.",
-    map: "ATLAS MAP", mapA: "One application.", mapB: "Eleven domains.", mapNote: "A route from foundations to capstone. Every atlas includes an interactive lab, a decision model, and an acceptance artifact.", done: "COMPLETED",
+    map: "ATLAS MAP", mapA: "One application.", mapB: "Twelve domains.", mapNote: "A route from foundations to capstone. Every atlas includes an interactive lab, a decision model, and an acceptance artifact.", done: "COMPLETED",
     route: "12-WEEK INTENSIVE ROUTE", routeA: "Not a reading list.", routeB: "A production system.", routeNote: "14–16 hours per week. Every week produces working code, correctness evidence, or a measurement report.",
     graduation: "GRADUATION GATE", dual: "CUDA/Triton\ndual implementation", gain: "median gain across\ntwo fused kernels", studies: "Nsight\nstudies", report: "vLLM TTFT/ITL/\nthroughput report", interview: "interview\ndefense",
     interactive: "INTERACTIVE ATLAS", evidence: "EXIT EVIDENCE", learned: "Did you learn it?", record: "Record the evidence.", complete: "Complete atlas", completed: "✓ Completed", next: "Next atlas →",
@@ -412,7 +435,7 @@ export default function KernelAtlas({ initialLocale }: { initialLocale: Locale }
           <button className={locale === "en" ? "active" : ""} onClick={() => changeLocale("en")} aria-pressed={locale === "en"}>EN</button>
         </div>
         <div className="top-progress" aria-label={`${copy.progress} ${progress}`}>
-          <span>{completed.length}/11 {locale === "tr" ? "ATLAS" : "ATLASES"}</span><i><b style={{ width: pct(progress) }} /></i>
+          <span>{completed.length}/12 {locale === "tr" ? "ATLAS" : "ATLASES"}</span><i><b style={{ width: pct(progress) }} /></i>
         </div>
         <button className="collapse-toggle" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? copy.expand : copy.collapse} aria-expanded={!collapsed}>{collapsed ? "»" : "«"}</button>
         <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-label={copy.menu}>≡</button>
@@ -471,7 +494,7 @@ function Overview({ locale, modules, onOpen, completed }: { locale: Locale; modu
             <a className="secondary" href="#roadmap">{copy.viewWeeks}</a>
           </div>
           <div className="hero-stats">
-            <div><b>11</b><span>{copy.atlasStat}</span></div>
+            <div><b>12</b><span>{copy.atlasStat}</span></div>
             <div><b>12</b><span>{copy.weekStat}</span></div>
             <div><b>5</b><span>{copy.operatorStat}</span></div>
             <div><b>3</b><span>{copy.gateStat}</span></div>
@@ -547,7 +570,7 @@ function ModulePage({ module, locale, completed, onToggle, onNext }: { module: M
       </section>
       <Lab kind={module.kind} locale={locale} />
       <section className="module-finish">
-        <div><span>ATLAS {module.index} / 11</span><h2>{copy.learned}<br /><em>{copy.record}</em></h2></div>
+        <div><span>ATLAS {module.index} / 12</span><h2>{copy.learned}<br /><em>{copy.record}</em></h2></div>
         <div className="finish-actions">
           <button className={completed ? "complete done" : "complete"} onClick={onToggle}>{completed ? copy.completed : copy.complete}</button>
           <button className="next" onClick={onNext}>{copy.next}</button>
@@ -558,6 +581,7 @@ function ModulePage({ module, locale, completed, onToggle, onNext }: { module: M
 }
 
 function Lab({ kind, locale }: { kind: LabKind; locale: Locale }) {
+  if (kind === "visual") return <VisualLab locale={locale} />;
   if (kind === "toolchain") return <ToolchainLab locale={locale} />;
   if (kind === "architecture") return <ArchitectureLab locale={locale} />;
   if (kind === "memory") return <MemoryLab locale={locale} />;
@@ -569,6 +593,10 @@ function Lab({ kind, locale }: { kind: LabKind; locale: Locale }) {
   if (kind === "inference") return <InferenceLab locale={locale} />;
   if (kind === "multigpu") return <MultiGpuLab locale={locale} />;
   return <SystemsLab locale={locale} />;
+}
+
+function VisualLab({ locale }: { locale: Locale }) {
+  return locale === "tr" ? <VisualFoundationsEmbedded /> : <VisualFoundationsEmbeddedEn />;
 }
 
 function ToolchainLab({ locale }: { locale: Locale }) {

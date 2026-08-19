@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const embeddedLabs = [
+  "VisualFoundationsEmbedded",
   "KernelForgeEmbedded",
   "CudaSimtEmbedded",
   "GpuMemoryEmbedded",
@@ -45,7 +46,7 @@ test("server-renders the complete Turkish shell and metadata", async () => {
   assert.match(html, /name="twitter:title" content="GPU Kernel Atlas — GPU Kernel Mühendisliği"/);
   assert.match(html, /Kernel’i yaz\./);
   assert.match(html, /GPU KERNEL MÜHENDİSLİĞİ/);
-  assert.match(html, /11 atlas · 12 hafta · Tek öğrenme sistemi/);
+  assert.match(html, /12 atlas · 12 hafta · Tek öğrenme sistemi/);
   assert.match(html, /\/og\.png/);
   assert.doesNotMatch(html, /Write the kernel\.|GPU KERNEL ENGINEERING<\/small>/);
   assert.match(html, /TR/);
@@ -69,7 +70,7 @@ test("server-renders the complete English shell with static production metadata"
   assert.match(html, /name="twitter:title" content="GPU Kernel Atlas — GPU Kernel Mühendisliği"/);
   assert.match(html, /Write the kernel\./);
   assert.match(html, /GPU KERNEL ENGINEERING/);
-  assert.match(html, /11 atlas · 12 hafta · Tek öğrenme sistemi/);
+  assert.match(html, /12 atlas · 12 hafta · Tek öğrenme sistemi/);
   assert.match(html, /\/og\.png/);
   assert.doesNotMatch(html, /Kernel’i yaz\./);
 });

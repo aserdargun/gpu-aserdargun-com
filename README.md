@@ -6,7 +6,7 @@ A bilingual Turkish/English interactive learning atlas for a 12-week GPU kernel 
 
 - Turkish and English UI with a visible `TR / EN` switch
 - Browser-language detection, shareable `?lang=tr` and `?lang=en` URLs, and a saved local preference
-- 11 interactive learning atlases and a 12-week roadmap
+- 12 interactive learning atlases and a 12-week roadmap
 - Device-local completion tracking
 - Responsive, keyboard-accessible controls
 - Localized document language, page copy, search behavior, number formatting, accessibility labels, and social metadata
