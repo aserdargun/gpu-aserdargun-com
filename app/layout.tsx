@@ -12,6 +12,7 @@ import "./inference-systems.css";
 import "./nccl-multigpu.css";
 import "./gpu-software-stack.css";
 import "./visual-foundations.css";
+import "./concept-studio.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });

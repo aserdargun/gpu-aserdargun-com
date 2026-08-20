@@ -26,6 +26,7 @@ import GpuSoftwareStackEmbedded from "./GpuSoftwareStackEmbedded";
 import GpuSoftwareStackEmbeddedEn from "./GpuSoftwareStackEmbedded.en";
 import VisualFoundationsEmbedded from "./VisualFoundationsEmbedded";
 import VisualFoundationsEmbeddedEn from "./VisualFoundationsEmbedded.en";
+import ConceptStudio from "./concept-studio";
 
 type LabKind =
   | "toolchain"
@@ -568,6 +569,7 @@ function ModulePage({ module, locale, completed, onToggle, onNext }: { module: M
         </div>
         <aside><span>{copy.evidence}</span><p>{module.outcome}</p></aside>
       </section>
+      <ConceptStudio key={module.id} kind={module.kind} locale={locale} />
       <Lab kind={module.kind} locale={locale} />
       <section className="module-finish">
         <div><span>ATLAS {module.index} / 12</span><h2>{copy.learned}<br /><em>{copy.record}</em></h2></div>
