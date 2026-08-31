@@ -1,8 +1,35 @@
 "use client";
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- Labelled overflow regions must remain keyboard-scrollable. */
 
 import { useMemo, useState } from "react";
 
 type ModuleId = "hierarchy" | "coalescing" | "banks" | "occupancy";
+type MemoryArchitecture = "ada" | "hopper" | "blackwell";
+type MemoryFeatureId = "asyncBulk" | "tensorDescriptor" | "dsmem" | "tmem";
+
+export const MEMORY_ARCHITECTURES: ReadonlyArray<{ id: MemoryArchitecture; label: string; capability: string }> = [
+  { id: "ada", label: "Ada", capability: "SM89" },
+  { id: "hopper", label: "Hopper", capability: "SM90" },
+  { id: "blackwell", label: "Blackwell", capability: "SM100 family" },
+];
+
+const memoryArchitectureFeatures: ReadonlyArray<{ id: MemoryFeatureId; label: string; detail: string; introduced: MemoryArchitecture }> = [
+  { id: "asyncBulk", label: "Asynchronous bulk tensor copy", detail: "TMA moves large 1D or multidimensional regions; barriers and proxy rules track completion.", introduced: "hopper" },
+  { id: "tensorDescriptor", label: "Tensor descriptor", detail: "For multidimensional bulk tensor copies, a tensor map separates shape, stride, and layout metadata from address generation.", introduced: "hopper" },
+  { id: "dsmem", label: "DSMEM", detail: "Cluster-scoped access to shared-memory partitions owned by blocks in the same thread-block cluster.", introduced: "hopper" },
+  { id: "tmem", label: "TMEM · Tensor Memory", detail: "A specialized on-chip accumulator path for Blackwell fifth-generation Tensor Core operations.", introduced: "blackwell" },
+];
+
+export function getMemoryFeatureSupport(architecture: MemoryArchitecture) {
+  const rank: Record<MemoryArchitecture, number> = { ada: 0, hopper: 1, blackwell: 2 };
+  return memoryArchitectureFeatures.map((feature) => {
+    const enabled = rank[architecture] >= rank[feature.introduced];
+    const reason = enabled ? null : feature.introduced === "blackwell"
+      ? "TMEM is Blackwell-specific in this atlas; no hardware result can be produced for Ada or Hopper."
+      : "This feature requires Hopper / SM90 or a newer compute capability.";
+    return { ...feature, enabled, reason };
+  });
+}
 
 const modules: { id: ModuleId; number: string; label: string; short: string }[] = [
   { id: "hierarchy", number: "01", label: "Memory hierarchy", short: "Hierarchy" },
@@ -66,29 +93,21 @@ const hierarchyLayers = [
 
 function Header({ active, setActive, visited }: { active: ModuleId; setActive: (id: ModuleId) => void; visited: Set<ModuleId> }) {
   return (
-    <header className="topbar">
-      <button className="brand" onClick={() => setActive("hierarchy")} aria-label="GPU Memory Lab home page">
-        <span className="brand-mark" aria-hidden="true"><i /><i /><i /></span>
-        <span><strong>GPU MEMORY</strong><small>INTERACTIVE LAB</small></span>
-      </button>
-      <nav className="module-nav" aria-label="Course modules">
+    <div className="topbar">
+      <div className="module-nav" role="group" aria-label="Course modules" tabIndex={0}>
         {modules.map((module) => (
           <button
             key={module.id}
             className={active === module.id ? "active" : ""}
             onClick={() => setActive(module.id)}
-            aria-current={active === module.id ? "page" : undefined}
+            aria-pressed={active === module.id}
           >
             <span>{module.number}</span>{module.short}
             {visited.has(module.id) && <b aria-label="visited">•</b>}
           </button>
         ))}
-      </nav>
-      <div className="course-meta">
-        <span>{visited.size}/4 MODULES</span>
-        <div className="progress-track" aria-label={`Progress: ${visited.size} / 4`}><i style={{ width: `${visited.size * 25}%` }} /></div>
       </div>
-    </header>
+    </div>
   );
 }
 
@@ -97,7 +116,7 @@ function ModuleIntro({ eyebrow, title, lead, children }: { eyebrow: string; titl
     <aside className="lesson-copy">
       <div>
         <p className="eyebrow">{eyebrow}</p>
-        <h1>{title}</h1>
+        <h2>{title}</h2>
         <p className="lead">{lead}</p>
       </div>
       {children}
@@ -107,6 +126,45 @@ function ModuleIntro({ eyebrow, title, lead, children }: { eyebrow: string; titl
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return <div className="fact"><span>{label}</span><p>{children}</p></div>;
+}
+
+function ArchitectureMemoryGate() {
+  const [architecture, setArchitecture] = useState<MemoryArchitecture>("ada");
+  const [selectedFeature, setSelectedFeature] = useState<MemoryFeatureId | null>(null);
+  const features = getMemoryFeatureSupport(architecture);
+  const selected = features.find((feature) => feature.id === selectedFeature && feature.enabled);
+  return (
+    <section className="architecture-memory-gate" aria-labelledby="memory-architecture-title">
+      <div className="architecture-memory-heading">
+        <div><span>ARCHITECTURE APPLICABILITY</span><h2 id="memory-architecture-title">Ada → Hopper → Blackwell memory paths</h2><p>Capacity, bandwidth, and data-movement orchestration answer different questions. Do not infer support from a GPU name; verify compute capability and the compilation target.</p></div>
+        <div className="architecture-selector" role="group" aria-label="GPU memory architecture">
+          {MEMORY_ARCHITECTURES.map((item) => <button key={item.id} type="button" aria-pressed={architecture === item.id} onClick={() => { setArchitecture(item.id); setSelectedFeature(null); }}><strong>{item.label}</strong><span>{item.capability}</span></button>)}
+        </div>
+      </div>
+      <div className="memory-feature-grid">
+        {features.map((feature) => (
+          <div className={feature.enabled ? "available" : "unavailable"} key={feature.id}>
+            <button
+              type="button"
+              disabled={!feature.enabled}
+              aria-disabled={!feature.enabled}
+              aria-describedby={`memory-feature-${feature.id}-reason`}
+              aria-pressed={selectedFeature === feature.id}
+              onClick={() => setSelectedFeature(feature.id)}
+            >
+              <span>{feature.enabled ? "AVAILABLE" : "UNSUPPORTED"}</span><strong>{feature.label}</strong>
+            </button>
+            <small id={`memory-feature-${feature.id}-reason`}>{feature.reason ?? feature.detail}</small>
+          </div>
+        ))}
+      </div>
+      <div className="memory-feature-detail" aria-live="polite">
+        <strong>{selected ? selected.label : `${MEMORY_ARCHITECTURES.find((item) => item.id === architecture)?.label} path`}</strong>
+        <p>{selected ? selected.detail : "Select a supported feature to inspect its programming responsibility. This choice does not produce a measured or simulated hardware result."}</p>
+      </div>
+      <p className="tmem-boundary"><strong>TMEM boundary:</strong> Tensor Memory is specialized for the Blackwell Tensor Core accumulator path; it is not a general replacement for registers or shared memory.</p>
+    </section>
+  );
 }
 
 function HierarchyLab() {
@@ -195,7 +253,7 @@ function CoalescingLab() {
           {result.addresses.map((address, lane) => <div key={lane} className="lane" title={`Thread ${lane}: byte ${address}`}><span>T{String(lane).padStart(2, "0")}</span><strong>{address}</strong></div>)}
         </div>
         <div className="transaction-map">
-          <div className="transaction-summary"><span>MEMORY SECTORS</span><strong>{result.sectors.length} ×32B</strong><small>{result.sectors.length * 32} bytes moved · 128 bytes requested</small></div>
+          <div className="transaction-summary" aria-live="polite"><span>MEMORY SECTORS</span><strong>{result.sectors.length} ×32B</strong><small>{result.sectors.length * 32} bytes moved · 128 bytes requested</small></div>
           <div className="sector-strip" aria-label={`${result.sectors.length} memory sectors in use`}>
             {Array.from({ length: Math.min(32, Math.max(...result.sectors) + 1) }, (_, sector) => (
               <div key={sector} className={result.sectors.includes(sector) ? "used" : ""}><span>{sector}</span></div>
@@ -231,7 +289,7 @@ function BankConflictLab() {
           <div><span>BANK-MAPPING EXPERIMENT</span><h2>How do banks fill as stride changes?</h2></div>
           <div className={`result-stamp ${result.degree === 1 ? "good" : result.degree <= 4 ? "mid" : "bad"}`}><strong>{result.degree}×</strong><span>{pattern === "broadcast" ? "Broadcast" : result.degree === 1 ? "conflict free" : "serialization"}</span></div>
         </div>
-        <div className="stride-control" role="group" aria-label="Shared memory access stride value">
+        <div className="stride-control" role="group" aria-label="Shared memory access stride value" tabIndex={0}>
           {(["1", "2", "4", "8", "16", "32", "broadcast"] as BankPattern[]).map((value) => <button key={value} onClick={() => setPattern(value)} className={pattern === value ? "active" : ""} aria-pressed={pattern === value}>{value === "broadcast" ? "same address" : `Stride ${value}`}</button>)}
         </div>
         <div className="mapping-equation"><span>THREAD <b>t</b></span><i>→</i><code>word[{pattern === "broadcast" ? "0" : `t × ${pattern}`}]</code><i>→</i><span>BENCH <b>{pattern === "broadcast" ? "0" : `(t × ${pattern}) % 32`}</b></span></div>
@@ -244,7 +302,7 @@ function BankConflictLab() {
             </div>
           ))}
         </div>
-        <div className="bank-explanation">
+        <div className="bank-explanation" aria-live="polite">
           <div><span>ACTIVE BANK</span><strong>{result.counts.filter(Boolean).length} / 32</strong></div>
           <p>{pattern === "broadcast" ? "All threads read the same word: hardware broadcasts the value across the warp, so no bank conflict occurs." : result.degree === 1 ? "Each thread maps to a separate bank. The warp request can be served in parallel." : `Each active bank receives ${result.degree} distinct address requests. Hardware splits the access into roughly ${result.degree} conflict-free steps.`}</p>
         </div>
@@ -325,19 +383,19 @@ export default function GpuMemoryEmbedded() {
   const [visited, setVisited] = useState<Set<ModuleId>>(new Set(["hierarchy"]));
   const setActive = (id: ModuleId) => { setActiveState(id); setVisited((previous) => new Set(previous).add(id)); };
   return (
-    <main className="gpu-memory-embed">
+    <section className="gpu-memory-surface" aria-label="GPU memory laboratory">
       <Header active={active} setActive={setActive} visited={visited} />
       <div className="page-shell">
+        <ArchitectureMemoryGate />
         {active === "hierarchy" && <HierarchyLab />}
         {active === "coalescing" && <CoalescingLab />}
         {active === "banks" && <BankConflictLab />}
         {active === "occupancy" && <OccupancyLab />}
+        <aside className="resource-links" aria-label="GPU memory resources">
+          <p>These simulations support conceptual learning; measure the real kernel on actual hardware.</p>
+          <div><a href="https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/writing-cuda-kernels.html#memory-performance" target="_blank" rel="noreferrer">CUDA Programming Guide ↗</a><a href="https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/" target="_blank" rel="noreferrer">Best Practices ↗</a></div>
+        </aside>
       </div>
-      <footer>
-        <span>GPU Memory Interactive Lab</span>
-        <p>These simulations support conceptual learning; measure the real kernel on actual hardware.</p>
-        <div><a href="https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/writing-cuda-kernels.html#memory-performance" target="_blank" rel="noreferrer">CUDA Programming Guide ↗</a><a href="https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/" target="_blank" rel="noreferrer">Best Practices ↗</a></div>
-      </footer>
-    </main>
+    </section>
   );
 }

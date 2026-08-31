@@ -1,10 +1,28 @@
 "use client";
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- Labelled overflow regions must remain keyboard-scrollable. */
 
 import { useEffect, useMemo, useState } from "react";
+import { acquireStorage, readStringArray, writeJson } from "./atlas/lab-storage.mjs";
 
 type TrackKey = "cpp" | "python" | "linux" | "git" | "cmake";
 type ViewKey = "learn" | "lab" | "questions";
 type LabKey = "cpp" | "python" | "bash";
+type CapabilityFieldKey = "gpuModel" | "computeCapability" | "driver" | "toolkit" | "framework" | "compilerFlags" | "benchmarkCommand";
+
+export const CAPABILITY_FIELDS: ReadonlyArray<{ key: CapabilityFieldKey; label: string; hint: string }> = [
+  { key: "gpuModel", label: "GPU model", hint: "e.g. NVIDIA H100" },
+  { key: "computeCapability", label: "Compute capability", hint: "e.g. 9.0 / sm_90" },
+  { key: "driver", label: "Driver", hint: "e.g. 580.xx" },
+  { key: "toolkit", label: "CUDA or ROCm version", hint: "e.g. CUDA 13.3" },
+  { key: "framework", label: "Framework version", hint: "e.g. PyTorch 2.x" },
+  { key: "compilerFlags", label: "Compiler flags", hint: "e.g. -O3 -arch=sm_90" },
+  { key: "benchmarkCommand", label: "Benchmark command", hint: "e.g. ncu -o baseline …" },
+];
+
+export function getCapabilityRecordStatus(record: Partial<Record<CapabilityFieldKey, string>>) {
+  const completed = CAPABILITY_FIELDS.filter(({ key }) => record[key]?.trim()).length;
+  return { completed, total: CAPABILITY_FIELDS.length, ready: completed === CAPABILITY_FIELDS.length };
+}
 
 const tracks: Array<{
   key: TrackKey;
@@ -170,13 +188,16 @@ export default function KernelForgeEmbedded() {
   const [running, setRunning] = useState(false);
   const [query, setQuery] = useState("");
   const [revealed, setRevealed] = useState<number[]>([]);
+  const [capabilityRecord, setCapabilityRecord] = useState<Partial<Record<CapabilityFieldKey, string>>>({});
 
   useEffect(() => {
-    const saved = localStorage.getItem("kernel-forge-progress");
-    if (saved) window.queueMicrotask(() => setCompleted(JSON.parse(saved)));
+    const valid = new Set([...Object.keys(curriculum).flatMap((track) => [0, 1, 2].map((index) => `${track}-${index}`)), ...questions.map((_, index) => `q-${index}`)]);
+    const saved = readStringArray(acquireStorage(window), "kernel-forge-progress", valid);
+    window.queueMicrotask(() => setCompleted(saved));
   }, []);
 
   const progress = Math.round((completed.length / 15) * 100);
+  const capabilityStatus = getCapabilityRecordStatus(capabilityRecord);
   const filteredQuestions = useMemo(() => questions.filter((item) =>
     (activeTrack === item.track || query.length > 0) && `${item.q} ${item.a}`.toLocaleLowerCase("tr").includes(query.toLocaleLowerCase("tr"))
   ), [activeTrack, query]);
@@ -184,7 +205,7 @@ export default function KernelForgeEmbedded() {
   const toggleComplete = (id: string) => {
     const next = completed.includes(id) ? completed.filter((item) => item !== id) : [...completed, id];
     setCompleted(next);
-    localStorage.setItem("kernel-forge-progress", JSON.stringify(next));
+    writeJson(acquireStorage(window), "kernel-forge-progress", next);
   };
 
   const changeLab = (next: LabKey) => { setLab(next); setCode(codeSamples[next]); setOutput("Press Run; the result will appear here."); };
@@ -216,30 +237,23 @@ export default function KernelForgeEmbedded() {
   };
 
   return (
-    <main className="kernel-forge-embed">
-      <header className="topbar">
-        <button className="brand" onClick={() => setView("learn")} aria-label="Kernel Forge home page">
-          <span className="brand-mark">KF</span><span>KERNEL<span>FORGE</span></span>
-        </button>
-        <nav aria-label="Main navigation">
-          <button className={view === "learn" ? "active" : ""} onClick={() => setView("learn")}>learn</button>
-          <button className={view === "lab" ? "active" : ""} onClick={() => setView("lab")}>Web IDE <i>3</i></button>
-          <button className={view === "questions" ? "active" : ""} onClick={() => setView("questions")}>Question bank</button>
-        </nav>
-        <div className="header-actions">
-          <div className="streak"><span>◆</span><b>1</b><small>day streak</small></div>
-          <div className="avatar">A.S.</div>
+    <section className="kernel-forge-surface" aria-label="Kernel Forge laboratory">
+      <div className="topbar">
+        <div aria-label="Laboratory views" role="group">
+          <button aria-pressed={view === "learn"} className={view === "learn" ? "active" : ""} onClick={() => setView("learn")}>Learn</button>
+          <button aria-pressed={view === "lab"} className={view === "lab" ? "active" : ""} onClick={() => setView("lab")}>Web IDE <i>3</i></button>
+          <button aria-pressed={view === "questions"} className={view === "questions" ? "active" : ""} onClick={() => setView("questions")}>Question bank</button>
         </div>
-      </header>
+      </div>
 
       <div className="app-shell">
-        <aside className="sidebar">
+        <aside className="sidebar" tabIndex={0} aria-label="Learning tracks">
           <div className="progress-head"><span>GENERAL PROGRESS</span><strong>{progress}%</strong></div>
           <div className="progress-track"><span style={{ width: `${progress}%` }} /></div>
           <p>{completed.length} / 15 core modules</p>
           <div className="track-label">LEARNING WAYS</div>
           {tracks.map((track) => (
-            <button key={track.key} className={`track-item ${activeTrack === track.key ? "selected" : ""}`} onClick={() => { setActiveTrack(track.key); setView("learn"); }} style={{ "--track-color": track.color } as React.CSSProperties}>
+            <button key={track.key} aria-pressed={activeTrack === track.key} className={`track-item ${activeTrack === track.key ? "selected" : ""}`} onClick={() => { setActiveTrack(track.key); setView("learn"); }} style={{ "--track-color": track.color } as React.CSSProperties}>
               <span className="track-mark">{track.mark}</span>
               <span><b>{track.label}</b><small>{track.version}</small></span>
               <em>{curriculum[track.key].filter((_, i) => completed.includes(`${track.key}-${i}`)).length}/3</em>
@@ -257,7 +271,7 @@ export default function KernelForgeEmbedded() {
               <div className="eyebrow">INTENSIVE FOUNDATION PROGRAM · 5 DISCIPLINES</div>
               <div className="hero">
                 <div>
-                  <h1>Learn the system.<br/><span>Don't memorize the code.</span></h1>
+                  <h2>Learn the system.<br/><span>Don't memorize the code.</span></h2>
                   <p>From C++'s memory model to Linux processes; A hands-on engineering path from Git graph to modern CMake targets.</p>
                   <div className="hero-actions">
                     <button className="primary" onClick={() => setView("lab")}>today's laboratory <span>→</span></button>
@@ -269,6 +283,32 @@ export default function KernelForgeEmbedded() {
                   <pre><span>$</span> forge status --today{"\n\n"}<b>AIM</b>  Ownership → Build graph{"\n"}<b>LAB</b>    3 hands-on missions{"\n"}<b>AGAIN</b> 8 key questions{"\n\n"}<i>▰▰▰▰▰▰▱▱▱▱  60%</i>{"\n\n"}<span className="cursor">▋</span></pre>
                 </div>
               </div>
+
+              <section className="capability-artifact" aria-labelledby="capability-artifact-title">
+                <div className="capability-intro">
+                  <span>ENVIRONMENT MANIFEST · CAPABILITY RECORD</span>
+                  <h2 id="capability-artifact-title">Record the context of the measurement.</h2>
+                  <p>This form is a reproducibility checklist. Values live only in component state; machine details are not written to browser storage.</p>
+                  <output aria-live="polite">{capabilityStatus.completed} / {capabilityStatus.total} fields ready</output>
+                </div>
+                <div className="capability-fields">
+                  {CAPABILITY_FIELDS.map((field) => {
+                    const complete = Boolean(capabilityRecord[field.key]?.trim());
+                    return (
+                      <label key={field.key} className={complete ? "complete" : ""}>
+                        <span>{complete ? "✓" : "○"} {field.label}</span>
+                        <input
+                          value={capabilityRecord[field.key] ?? ""}
+                          onChange={(event) => setCapabilityRecord((previous) => ({ ...previous, [field.key]: event.target.value }))}
+                          placeholder={field.hint}
+                          autoComplete="off"
+                        />
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="capability-verdict"><strong>{capabilityStatus.ready ? "Capability record complete." : "Missing context makes a measurement non-portable."}</strong> A GPU model alone is not support evidence; preserve compute capability, software versions, flags, and the command together.</p>
+              </section>
 
               <div className="section-heading">
                 <div><span style={{ color: tracks.find(t => t.key === activeTrack)?.color }}>●</span><h2>{tracks.find(t => t.key === activeTrack)?.label}</h2><p>{tracks.find(t => t.key === activeTrack)?.note}</p></div>
@@ -295,11 +335,11 @@ export default function KernelForgeEmbedded() {
 
           {view === "lab" && (
             <div className="lab-page">
-              <div className="page-title"><div><span>WEB IDE</span><h1>Learn by trying.</h1><p>A sandboxed browser lab that does not modify your files or run system commands.</p></div><div className="runtime-pill"><span/> SANDBOX READY</div></div>
-              <div className="lab-tabs">
-                <button className={lab === "cpp" ? "active" : ""} onClick={() => changeLab("cpp")}><b>C++</b><span>C++23 syntax</span></button>
-                <button className={lab === "python" ? "active" : ""} onClick={() => changeLab("python")}><b>Python</b><span>Pyodide runtime</span></button>
-                <button className={lab === "bash" ? "active" : ""} onClick={() => changeLab("bash")}><b>bash</b><span>Secure mini-shell</span></button>
+              <div className="page-title"><div><span>WEB IDE</span><h2>Learn by trying.</h2><p>A sandboxed browser lab that does not modify your files or run system commands.</p></div><div className="runtime-pill"><span/> SANDBOX READY</div></div>
+              <div className="lab-tabs" role="group" aria-label="Laboratory language">
+                <button aria-pressed={lab === "cpp"} className={lab === "cpp" ? "active" : ""} onClick={() => changeLab("cpp")}><b>C++</b><span>C++23 syntax</span></button>
+                <button aria-pressed={lab === "python"} className={lab === "python" ? "active" : ""} onClick={() => changeLab("python")}><b>Python</b><span>Pyodide runtime</span></button>
+                <button aria-pressed={lab === "bash"} className={lab === "bash" ? "active" : ""} onClick={() => changeLab("bash")}><b>bash</b><span>Secure mini-shell</span></button>
               </div>
               <div className="ide">
                 <div className="editor-pane">
@@ -307,7 +347,7 @@ export default function KernelForgeEmbedded() {
                   <textarea value={code} onChange={(e) => setCode(e.target.value)} spellCheck={false} aria-label="Code editor" />
                   <div className="editor-actions"><button onClick={() => setCode(codeSamples[lab])}>reset</button><button className="run" disabled={running} onClick={runCode}>{running ? "It works…" : "▶ Run"}</button></div>
                 </div>
-                <div className="output-pane"><div className="pane-head">OUTPUT <button onClick={() => setOutput("")}>clear</button></div><pre>{output}<span className="cursor">▋</span></pre></div>
+                <div className="output-pane" aria-live="polite"><div className="pane-head">OUTPUT <button onClick={() => setOutput("")}>clear</button></div><pre>{output}<span className="cursor">▋</span></pre></div>
               </div>
               <div className="lab-notes"><div><b>01</b><span><strong>Change</strong>Break the code, make your assumption visible.</span></div><div><b>02</b><span><strong>run</strong>Compare the output with your mental model.</span></div><div><b>03</b><span><strong>explain</strong>Write down the result in your own words.</span></div></div>
             </div>
@@ -315,9 +355,9 @@ export default function KernelForgeEmbedded() {
 
           {view === "questions" && (
             <div className="questions-page">
-              <div className="page-title"><div><span>KEY QUESTION BANK</span><h1>Find the gaps,<br/>not just what you know.</h1><p>{questions.length} short questions for interviews, debugging, and everyday engineering decisions.</p></div><div className="score-ring"><b>{revealed.length}</b><span>answers<br/>opened</span></div></div>
+              <div className="page-title"><div><span>KEY QUESTION BANK</span><h2>Find the gaps,<br/>not just what you know.</h2><p>{questions.length} short questions for interviews, debugging, and everyday engineering decisions.</p></div><div className="score-ring"><b>{revealed.length}</b><span>answers<br/>opened</span></div></div>
               <div className="question-tools">
-                <div className="filter-row">{tracks.map(track => <button key={track.key} className={activeTrack === track.key && !query ? "active" : ""} onClick={() => { setActiveTrack(track.key); setQuery(""); }}>{track.label}</button>)}</div>
+                <div className="filter-row">{tracks.map(track => <button key={track.key} aria-pressed={activeTrack === track.key && !query} className={activeTrack === track.key && !query ? "active" : ""} onClick={() => { setActiveTrack(track.key); setQuery(""); }}>{track.label}</button>)}</div>
                 <label><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search all questions…" /></label>
               </div>
               <div className="question-list">
@@ -325,14 +365,13 @@ export default function KernelForgeEmbedded() {
                   <button onClick={() => setRevealed(open ? revealed.filter(i => i !== index) : [...revealed, index])} aria-expanded={open}>
                     <span className="q-number">{String(index + 1).padStart(2, "0")}</span><span className="q-main"><small>{tracks.find(t => t.key === item.track)?.label} · {item.level}</small><b>{item.q}</b></span><i>{open ? "−" : "+"}</i>
                   </button>
-                  {open && <div className="answer"><span>REPLY</span><p>{item.a}</p><button onClick={() => toggleComplete(`q-${index}`)}>☆ Add to my list again</button></div>}
+                  <div className="answer" aria-live="polite" hidden={!open}>{open ? <><span>REPLY</span><p>{item.a}</p><button onClick={() => toggleComplete(`q-${index}`)}>☆ Add to my list again</button></> : null}</div>
                 </article>; })}
               </div>
             </div>
           )}
         </section>
       </div>
-      <footer><span>KERNELFORGE / 2026</span><p>The foundations never wear out. Release notes vary.</p><a href="https://en.cppreference.com/w/cpp/current_status.html" target="_blank" rel="noreferrer">Source policy ↗</a></footer>
-    </main>
+    </section>
   );
 }

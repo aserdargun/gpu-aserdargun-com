@@ -1,17 +1,38 @@
 "use client";
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- Labelled overflow regions must remain keyboard-scrollable. */
 
 import { useMemo, useState } from "react";
 
 type Lens = "systems" | "compute" | "benchmark";
 type Scenario = "launch" | "memory" | "noise";
+type NsightWorkflowId = "report-merge" | "clustering" | "instruction-mix" | "scoreboard" | "graph-node";
 
-const navItems = [
-  ["00", "mental model", "#model"],
-  ["01", "Nsight Systems", "#systems"],
-  ["02", "Nsight Compute", "#compute"],
-  ["03", "Benchmark", "#benchmark"],
-  ["04", "Practice", "#practice"],
-] as const;
+export const NSIGHT_WORKFLOW_IDS = ["report-merge", "clustering", "instruction-mix", "scoreboard", "graph-node"] as const;
+export const NSIGHT_REPORT_ARTIFACT_FIELDS = ["gpu", "driver", "cuda", "nsysVersion", "ncuVersion"] as const;
+
+const nsightReportArtifactRecord = {
+  gpu: "GPU model + compute capability",
+  driver: "NVIDIA driver version",
+  cuda: "CUDA Toolkit/runtime version",
+  nsysVersion: "nsys --version",
+  ncuVersion: "ncu --version",
+} as const;
+
+export function getNsightReportArtifactRecord() {
+  return nsightReportArtifactRecord;
+}
+
+const nsightWorkflowEvidence: Record<NsightWorkflowId, { label: string; title: string; evidence: string; next: string }> = {
+  "report-merge": { label: "Report merge", title: "Merged report, comparable scope", evidence: "A merged report keeps the .ncu-rep evidence from multi-GPU or separate runs in one comparable view.", next: "Record the same workload and profiler version first; then compare the merged results." },
+  clustering: { label: "Clustering", title: "Similar runs, visible patterns", evidence: "Similar runs are clustered so an outlier run or shared performance pattern becomes visible.", next: "Reinspect an outlier with its version, clocks, input, and architecture context." },
+  "instruction-mix": { label: "Instruction mix", title: "Instruction classes, bottleneck hypothesis", evidence: "Instruction mix associates an FP/INT/memory imbalance with source and SASS evidence.", next: "Select the source line, then collect only the metric that tests that hypothesis." },
+  scoreboard: { label: "Scoreboard dependencies", title: "Make dependency waiting visible", evidence: "Scoreboard dependencies expose instructions that cannot issue because their data is not ready.", next: "Check register dependency, memory latency, and enough eligible warps together." },
+  "graph-node": { label: "CUDA Graph node", title: "Selected kernel node, graph context", evidence: "CUDA Graph Viewer highlights the selected kernel node in the instantiated graph; node profiling depends on profiler version and driver context.", next: "Record source versus instantiated graph differences with the node name." },
+};
+
+export function getNsightWorkflowEvidence(id: NsightWorkflowId) {
+  return { id, sourceId: "nsight-compute-2026-release", maturity: "current" as const, ...nsightWorkflowEvidence[id] };
+}
 
 const lensData: Record<Lens, { kicker: string; title: string; question: string; output: string; color: string }> = {
   systems: {
@@ -132,13 +153,14 @@ function CodeBlock({ children, label }: { children: string; label: string }) {
   return (
     <div className="code-block">
       <div className="code-head"><span>{label}</span><button onClick={copy} aria-label={`Copy ${label} command`}>{copied ? "Copied" : "Copy"}</button></div>
-      <pre><code>{children}</code></pre>
+      <pre tabIndex={0} aria-label={`${label} command`}><code>{children}</code></pre>
     </div>
   );
 }
 
 export default function NsightBenchmarkEmbedded() {
   const [lens, setLens] = useState<Lens>("systems");
+  const [workflow, setWorkflow] = useState<NsightWorkflowId>("report-merge");
   const [scenario, setScenario] = useState<Scenario>("launch");
   const [computeMode, setComputeMode] = useState<keyof typeof computeModes>("memory");
   const [baseline, setBaseline] = useState(42.8);
@@ -161,37 +183,16 @@ export default function NsightBenchmarkEmbedded() {
   const quizScore = answers.reduce((sum, answer, i) => sum + (answer === quiz[i].answer ? 1 : 0), 0);
   const activeScenario = scenarioData[scenario];
   const activeCompute = computeModes[computeMode];
+  const activeWorkflow = getNsightWorkflowEvidence(workflow);
 
   return (
-    <main className="nsight-benchmark-embed">
-      <header className="topbar">
-        <a className="brand" href="#top" aria-label="Kernel Measurement Laboratory home page">
-          <span className="brand-mark">K</span>
-          <span>KERNEL / LAB</span>
-        </a>
-        <div className="top-status"><span className="pulse" /> INTERACTIVE GUIDE <span className="version">EN · 01</span></div>
-      </header>
-
-      <div className="shell" id="top">
-        <aside className="rail" aria-label="Sections">
-          <div className="rail-label">LAB NOTES</div>
-          <nav>
-            {navItems.map(([n, title, href]) => (
-              <a href={href} key={href}><span>{n}</span>{title}</a>
-            ))}
-          </nav>
-          <div className="rail-card">
-            <div className="mini-label">GOLDEN RULE</div>
-            <p>Profiler diagnoses.<br />Benchmark decides.</p>
-          </div>
-        </aside>
-
+    <section className="nsight-benchmark-surface" id="top" aria-labelledby="nsight-benchmark-title">
         <div className="content">
           <section className="hero" id="model">
             <div className="eyebrow"><span>GPU PERFORMANCE FIELD GUIDE</span><i /></div>
             <div className="hero-grid">
               <div>
-                <h1>Speed is not guessed.<br /><em>It is proven.</em></h1>
+                <h2 id="nsight-benchmark-title">Speed is not guessed.<br /><em>It is proven.</em></h2>
                 <p className="hero-copy">Find the critical path with Nsight Systems. Open the kernel with Nsight Compute. Prove whether the change really works with a controlled benchmark.</p>
                 <div className="hero-actions">
                   <a className="primary-button" href="#systems">Enter the laboratory <span>↓</span></a>
@@ -212,6 +213,7 @@ export default function NsightBenchmarkEmbedded() {
             <div className="principle-strip">
               <span>MEASUREMENT QUESTION</span><b>→</b><span>THE RIGHT TOOL</span><b>→</b><span>NARROW SCOPE</span><b>→</b><span>REPEATABLE EVIDENCE</span>
             </div>
+            <aside className="golden-rule"><span className="mini-label">GOLDEN RULE</span><p>Profiler diagnoses.<br />Benchmark decides.</p></aside>
           </section>
 
           <section className="section lens-section" aria-labelledby="lens-title">
@@ -220,9 +222,9 @@ export default function NsightBenchmarkEmbedded() {
               <div><h2 id="lens-title">Three tools, three different questions</h2><p>Instead of measuring the same run with three instruments, reduce uncertainty sequentially.</p></div>
               <div className="corner-note">WIDE ANGLE → MICROSCOPE → REFEREE</div>
             </div>
-            <div className="lens-switch" role="tablist" aria-label="Measuring tool selection">
+            <div className="lens-switch" role="group" aria-label="Measuring tool selection">
               {(Object.keys(lensData) as Lens[]).map((key, i) => (
-                <button key={key} role="tab" aria-selected={lens === key} onClick={() => setLens(key)} className={lens === key ? "active" : ""}>
+                <button key={key} aria-pressed={lens === key} onClick={() => setLens(key)} className={lens === key ? "active" : ""}>
                   <span>0{i + 1}</span>{lensData[key].title}
                 </button>
               ))}
@@ -237,6 +239,21 @@ export default function NsightBenchmarkEmbedded() {
             </div>
           </section>
 
+          <section className="section nsight-evidence-workflow" aria-labelledby="nsight-evidence-title">
+            <div className="section-number lime-text">00.5 / REPORT EVIDENCE</div>
+            <div className="section-title-row"><div><h2 id="nsight-evidence-title">A lens selection changes the report.</h2><p>These are not decorative tabs: every choice changes which Nsight evidence to read and what to verify next.</p></div><span className="tool-pill lime-pill">NSIGHT COMPUTE · 2026</span></div>
+            <div className="workflow-controls" role="group" aria-label="Nsight evidence workflow">
+              {NSIGHT_WORKFLOW_IDS.map((id) => <button key={id} aria-pressed={workflow === id} className={workflow === id ? "active" : ""} onClick={() => setWorkflow(id)}>{getNsightWorkflowEvidence(id).label}</button>)}
+            </div>
+            <article className="nsight-workflow-evidence" aria-live="polite" data-workflow={workflow} data-source-id={activeWorkflow.sourceId} data-maturity={activeWorkflow.maturity}>
+              <span>CURRENT EVIDENCE · Nsight Compute Release Notes · version metadata required</span><h3>{activeWorkflow.title}</h3><p>{activeWorkflow.evidence}</p><b>NEXT READING</b><p>{activeWorkflow.next}</p>
+            </article>
+            <aside className="nsight-report-artifact" aria-label="Reproducible Nsight report record">
+              <b>REPORT ARTIFACT · RECORD ON EVERY RUN</b>
+              <div>{NSIGHT_REPORT_ARTIFACT_FIELDS.map((field) => <span key={field} data-artifact-field={field}>{nsightReportArtifactRecord[field]}</span>)}</div>
+            </aside>
+          </section>
+
           <section className="section" id="systems" aria-labelledby="systems-title">
             <div className="section-number cyan-text">01 / NSIGHT SYSTEMS</div>
             <div className="section-title-row">
@@ -244,9 +261,9 @@ export default function NsightBenchmarkEmbedded() {
               <span className="tool-pill cyan-pill">NSYS · SYSTEM-WIDE</span>
             </div>
 
-            <div className="scenario-tabs" role="tablist" aria-label="Timeline scenarios">
+            <div className="scenario-tabs" role="group" aria-label="Timeline scenarios">
               {(Object.keys(scenarioData) as Scenario[]).map((key) => (
-                <button key={key} onClick={() => setScenario(key)} className={scenario === key ? "active" : ""}>
+                <button key={key} aria-pressed={scenario === key} onClick={() => setScenario(key)} className={scenario === key ? "active" : ""}>
                   <span>{scenarioData[key].title}</span><small>{scenarioData[key].subtitle}</small>
                 </button>
               ))}
@@ -313,10 +330,10 @@ export default function NsightBenchmarkEmbedded() {
               </div>
 
               <div className="diagnosis-panel">
-                <div className="mode-buttons">
-                  {(Object.keys(computeModes) as (keyof typeof computeModes)[]).map(key => <button key={key} className={computeMode === key ? "active" : ""} onClick={() => setComputeMode(key)}>{key === "memory" ? "Memory" : key === "compute" ? "Compute" : "Latency"}</button>)}
+                <div className="mode-buttons" role="group" aria-label="Kernel diagnosis mode">
+                  {(Object.keys(computeModes) as (keyof typeof computeModes)[]).map(key => <button key={key} aria-pressed={computeMode === key} className={computeMode === key ? "active" : ""} onClick={() => setComputeMode(key)}>{key === "memory" ? "Memory" : key === "compute" ? "Compute" : "Latency"}</button>)}
                 </div>
-                <div className="diagnosis-content">
+                <div className="diagnosis-content" aria-live="polite">
                   <span className="signal-tag">{activeCompute.tag}</span>
                   <h3>{activeCompute.title}</h3>
                   <div className="hero-metric">{activeCompute.metric}</div>
@@ -413,12 +430,12 @@ export default function NsightBenchmarkEmbedded() {
             </div>
 
             <div className="command-center">
-              <div className="command-tabs">
-                {(["systems", "compute", "pytorch"] as const).map(key => <button key={key} className={commandTab === key ? "active" : ""} onClick={() => setCommandTab(key)}>{key === "systems" ? "NSYS" : key === "compute" ? "NCU" : "PYTORCH"}</button>)}
+              <div className="command-tabs" role="group" aria-label="Command type">
+                {(["systems", "compute", "pytorch"] as const).map(key => <button key={key} aria-pressed={commandTab === key} className={commandTab === key ? "active" : ""} onClick={() => setCommandTab(key)}>{key === "systems" ? "NSYS" : key === "compute" ? "NCU" : "PYTORCH"}</button>)}
               </div>
               <div className="command-body">
                 <div><span className="mini-label">COMMAND MAP</span><h3>{commandTab === "systems" ? "Find critical path" : commandTab === "compute" ? "Explain the hot kernel" : "Measure the claim"}</h3></div>
-                <pre>{commandTab === "systems" ? `# short and named capture\nnsys profile --trace=cuda,nvtx -o run ./app\n\n# kernel + API abstracts\nnsys stats --report cuda_gpu_sum --report cuda_api_sum run.nsys-rep` : commandTab === "compute" ? `# see available sets first\nncu --list-sets\n\n# narrow collection\nncu --set basic -k regex:".*kernel.*" -c 3 -o kernel ./app` : `# warmup and accelerator sync built in\nTimer(stmt="kernel(x)", globals=globals()) \\\n  .blocked_autorange(min_run_time=1.0)`}</pre>
+                <pre tabIndex={0} aria-label="Profiling command">{commandTab === "systems" ? `# short and named capture\nnsys profile --trace=cuda,nvtx -o run ./app\n\n# kernel + API abstracts\nnsys stats --report cuda_gpu_sum --report cuda_api_sum run.nsys-rep` : commandTab === "compute" ? `# see available sets first\nncu --list-sets\n\n# narrow collection\nncu --set basic -k regex:".*kernel.*" -c 3 -o kernel ./app` : `# warmup and accelerator sync built in\nTimer(stmt="kernel(x)", globals=globals()) \\\n  .blocked_autorange(min_run_time=1.0)`}</pre>
               </div>
             </div>
 
@@ -427,8 +444,8 @@ export default function NsightBenchmarkEmbedded() {
               {quiz.map((item, qi) => (
                 <div className="question" key={item.q}>
                   <p><b>0{qi + 1}</b>{item.q}</p>
-                  <div>{item.options.map((option, oi) => <button key={option} onClick={() => setAnswers(a => a.map((x, i) => i === qi ? oi : x))} className={answers[qi] === oi ? (oi === item.answer ? "correct" : "wrong") : ""}>{option}</button>)}</div>
-                  {answers[qi] >= 0 && <small className={answers[qi] === item.answer ? "ok" : "no"}>{answers[qi] === item.answer ? "CORRECT — " : "Think again — "}{item.why}</small>}
+                  <div role="group" aria-label={`Question ${qi + 1} answers`}>{item.options.map((option, oi) => <button key={option} aria-pressed={answers[qi] === oi} onClick={() => setAnswers(a => a.map((x, i) => i === qi ? oi : x))} className={answers[qi] === oi ? (oi === item.answer ? "correct" : "wrong") : ""}>{option}</button>)}</div>
+                  <small className={`question-feedback ${answers[qi] === item.answer ? "ok" : "no"}`} aria-live="polite" hidden={answers[qi] < 0}>{answers[qi] < 0 ? "" : answers[qi] === item.answer ? `CORRECT — ${item.why}` : `Think again — ${item.why}`}</small>
                 </div>
               ))}
             </div>
@@ -444,10 +461,7 @@ export default function NsightBenchmarkEmbedded() {
               <a href="https://docs.pytorch.org/docs/stable/benchmark_utils.html" target="_blank" rel="noreferrer"><b>04</b><span>PyTorch Benchmark Utilities<small>Timer and blocked_autorange</small></span><i>↗</i></a>
             </div>
           </section>
-        </div>
       </div>
-
-      <footer><div className="brand"><span className="brand-mark">K</span><span>KERNEL / LAB</span></div><p>Measure. Explain. Prove.</p><a href="#top">RETURN TO TOP ↑</a></footer>
-    </main>
+    </section>
   );
 }

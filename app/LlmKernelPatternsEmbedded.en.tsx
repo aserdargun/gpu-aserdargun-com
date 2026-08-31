@@ -1,8 +1,25 @@
 "use client";
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- Labelled overflow regions must remain keyboard-scrollable. */
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { getSourcesForModule } from "./atlas/curriculum-sources";
 
-type TopicId = "gemm" | "reduction" | "softmax" | "normalization" | "attention";
+export const LLM_TOPIC_IDS = ["gemm", "reduction", "softmax", "normalization", "attention", "grouped", "precision"] as const;
+type TopicId = (typeof LLM_TOPIC_IDS)[number];
+type OperatorArchitecture = "ada" | "hopper" | "blackwell";
+
+export const OPERATOR_TUTORIALS_CURRENT = { sourceId: "triton-operator-tutorials", maturity: "current" as const };
+export const BLOCK_SCALED_TUTORIAL = { sourceId: "triton-block-scaled", maturity: "current" as const };
+export const PAGED_ATTENTION_SOURCE = { sourceId: "vllm-paged-attention-design", maturity: "current" as const };
+export const GQA_SOURCE = { sourceId: "pytorch-sdpa-gqa", maturity: "preview" as const };
+
+export function getOperatorArchitectureSupport(architecture: OperatorArchitecture) {
+  return [
+    { id: "grouped", label: "Grouped GEMM / MoE", maturity: "current", enabled: true, reason: null },
+    { id: "persistent", label: "Persistent matmul", maturity: "current", enabled: true, reason: null },
+    { id: "block-scaled", label: "Block-scaled FP4 / FP8", maturity: "current", enabled: architecture === "blackwell", reason: architecture === "blackwell" ? null : "The official tutorial is current; its accelerated FP4/FP8 path requires a supported target such as the Blackwell · SM100 family in this atlas." },
+  ] as const;
+}
 
 const topics: { id: TopicId; index: string; name: string; eyebrow: string; color: string }[] = [
   { id: "gemm", index: "01", name: "GEMM", eyebrow: "MATMUL", color: "cyan" },
@@ -10,6 +27,8 @@ const topics: { id: TopicId; index: string; name: string; eyebrow: string; color
   { id: "softmax", index: "03", name: "Softmax", eyebrow: "PROBABILITY", color: "orange" },
   { id: "normalization", index: "04", name: "Normalization", eyebrow: "STABILITY", color: "pink" },
   { id: "attention", index: "05", name: "Attention", eyebrow: "SEQUENCE", color: "lime" },
+  { id: "grouped", index: "06", name: "Grouped GEMM / MoE", eyebrow: "ROUTING", color: "amber" },
+  { id: "precision", index: "07", name: "Block-scaled FP4 / FP8", eyebrow: "PRECISION", color: "blue" },
 ];
 
 const topicCopy: Record<TopicId, { kicker: string; title: string; lead: string; formula: string }> = {
@@ -43,6 +62,8 @@ const topicCopy: Record<TopicId, { kicker: string; title: string; lead: string; 
     lead: "Attention; QKᵀ scores consist of scaling, masking, softmax, and V and weighted sum. Flash-style kernels execute online softmax on tiles without writing the giant score matrix to memory.",
     formula: "O = softmax(QKᵀ / √d + mask) V",
   },
+  grouped: { kicker: "CHAPTER 06 · EXPERT ROUTING", title: "Grouped GEMM / MoE: collect irregular work in one launch", lead: "Grouped GEMM batches variable expert matrices; persistent matmul keeps the scheduling loop on the GPU to reduce launch and planning overhead.", formula: "Yₑ = XₑWₑ · e ∈ selected experts" },
+  precision: { kicker: "CHAPTER 07 · SCALED LOW PRECISION", title: "Block-scaled FP4 / FP8: scale layout is part of the data", lead: "FP4 and FP8 block scale metadata must match operand layout; multiplication is low precision while accumulation remains at higher precision.", formula: "C = accumulate((A · sₐ) × (B · sᵦ))" },
 };
 
 const quiz: Record<TopicId, { q: string; options: string[]; answer: number; note: string }> = {
@@ -51,6 +72,8 @@ const quiz: Record<TopicId, { q: string; options: string[]; answer: number; note
   softmax: { q: "Why is max(x) subtracted before exponential operation?", options: ["To reset the total", "To change the order", "To prevent overflow"], answer: 2, note: "Subtracting a constant value from all scores does not change the distribution; makes the largest exponential value 1." },
   normalization: { q: "What statistic does RMSNorm subtract from LayerNorm?", options: ["Mean centering", "mean squares", "Learned γ"], answer: 0, note: "RMSNorm does not center the input; Calculates the RMS scale and multiplies it by the learned γ." },
   attention: { q: "What is the main memory advantage of Flash-style attention?", options: ["Delete Q, K, and V", "Avoid writing the S×S score matrix to HBM", "Skip softmax"], answer: 1, note: "Score tiles are processed with online softmax, so the intermediate score matrix is not materialized in global memory." },
+  grouped: { q: "What does Grouped GEMM preserve in a MoE workload?", options: ["Variable expert shapes in one plan", "The same token count for every expert", "Only one matrix"], answer: 0, note: "A grouped launch carries different expert matrices and token groups in one execution plan." },
+  precision: { q: "Which contract is required for block-scaled FP4 / FP8?", options: ["Scale metadata layout", "Only output color", "A fixed GQA group count"], answer: 0, note: "Scale metadata, operand blocks, and higher-precision accumulation are validated together." },
 };
 
 function fmt(n: number) {
@@ -124,7 +147,7 @@ function ReductionLab() {
       </section>
       <section className="panel controls-panel">
         <div className="panel-label"><span>Operator</span><b>ASSOCIATIVE</b></div>
-        <div className="segmented"><button className={op === "SUM" ? "active" : ""} onClick={() => setOp("SUM")}>sum</button><button className={op === "MAX" ? "active" : ""} onClick={() => setOp("MAX")}>MAX</button></div>
+        <div className="segmented" role="group" aria-label="Reduction operator"><button aria-pressed={op === "SUM"} className={op === "SUM" ? "active" : ""} onClick={() => setOp("SUM")}>sum</button><button aria-pressed={op === "MAX"} className={op === "MAX" ? "active" : ""} onClick={() => setOp("MAX")}>MAX</button></div>
         <div className="callout"><b>Warp → Block → Grid</b><p>First warp shuffle, then a small shared-memory reduction per block. In multi-block case, second kernel or atomic termination is required.</p></div>
         <div className="metric-strip"><div><span>Entry</span><b>8 values</b></div><div><span>Combination</span><b>7 transactions</b></div><div><span>Conclusion</span><b>{stages.at(-1)?.[0]}</b></div></div>
       </section>
@@ -173,7 +196,7 @@ function NormalizationLab() {
         <div className="legend"><span><i className="raw-dot" />entry</span><span><i className="norm-dot" />normalized</span></div>
       </section>
       <section className="panel controls-panel">
-        <div className="segmented"><button className={kind === "RMS" ? "active" : ""} onClick={() => setKind("RMS")}>RMSNorm</button><button className={kind === "LAYER" ? "active" : ""} onClick={() => setKind("LAYER")}>LayerNorm</button></div>
+        <div className="segmented" role="group" aria-label="Normalization type"><button aria-pressed={kind === "RMS"} className={kind === "RMS" ? "active" : ""} onClick={() => setKind("RMS")}>RMSNorm</button><button aria-pressed={kind === "LAYER"} className={kind === "LAYER" ? "active" : ""} onClick={() => setKind("LAYER")}>LayerNorm</button></div>
         <div className="compare-grid"><div><span>centering</span><b>{kind === "LAYER" ? "Yes, subtract μ" : "No"}</b></div><div><span>reduction</span><b>{kind === "LAYER" ? "Σx + Σx²" : "Σx²"}</b></div><div><span>Scale</span><b>{scale.toFixed(3)}</b></div><div><span>Fusion</span><b>γ + residual</b></div></div>
         <div className="callout compact"><b>kernel pattern</b><p>Load row → reduce statistic → normalize value from register → multiply by γ → write in one pass.</p></div>
       </section>
@@ -196,13 +219,42 @@ function AttentionLab() {
         <div className="panel-label"><span>Memory cost</span><b>FP16 1 HEAD</b></div>
         <label className="range-row"><span>S.</span><input type="range" min="256" max="8192" step="256" value={seq} onChange={e => setSeq(+e.target.value)} /><output>{seq}</output></label>
         <div className="memory-compare"><div className="bad"><span>Naive score matrix</span><b>{naiveMB.toFixed(1)} MB</b><small>O(S²) buffer</small></div><div className="good"><span>tiled / online</span><b>Tile scale</b><small>Scores are not written to HBM</small></div></div>
-        <div className="pipeline"><span>QKᵀ</span><i>→</i><span>÷√d</span><i>→</i><span>mask</span><i>→</i><span>softmax</span><i>→</i><span>×V</span></div>
+        <div className="pipeline" tabIndex={0} aria-label="Attention pipeline"><span>QKᵀ</span><i>→</i><span>÷√d</span><i>→</i><span>mask</span><i>→</i><span>softmax</span><i>→</i><span>×V</span></div>
       </section>
     </div>
   );
 }
 
-const labs: Record<TopicId, () => React.ReactNode> = { gemm: GemmLab, reduction: ReductionLab, softmax: SoftmaxLab, normalization: NormalizationLab, attention: AttentionLab };
+function GroupedGemmLab() {
+  return <div className="lab-grid"><section className="panel visual-panel"><div className="panel-label"><span>MoE routing</span><b>GROUPED GEMM</b></div><div className="operator-static"><strong>token groups → expert matrices</strong><p>Schedule variable M dimensions in one launch and skip empty experts safely.</p></div></section><section className="panel controls-panel"><div className="panel-label"><span>Execution model</span><b>PERSISTENT MATMUL</b></div><div className="callout"><b>Persistent scheduler</b><p>Programs pull multiple tiles from a work queue; fairness, queue tail, and branch sizes belong in acceptance tests.</p></div></section></div>;
+}
+
+function BlockScaledLab() {
+  const [architecture, setArchitecture] = useState<OperatorArchitecture>("ada");
+  const [feature, setFeature] = useState("grouped");
+  const support = getOperatorArchitectureSupport(architecture);
+  const selected = support.find((item) => item.id === feature) ?? support[0];
+  const source = getSourcesForModule("operators").find((item) => item.id === BLOCK_SCALED_TUTORIAL.sourceId);
+  return <div className="operator-architecture-gate">
+    <div className="architecture-selector" role="group" aria-label="Operator architecture">{([['ada','Ada · SM89'],['hopper','Hopper · SM90'],['blackwell','Blackwell · SM100 family']] as const).map(([id,label]) => <button key={id} aria-pressed={architecture === id} onClick={() => { setArchitecture(id); setFeature("grouped"); }}>{label}</button>)}</div>
+    <div className="operator-feature-grid">{support.map((item) => <button key={item.id} disabled={!item.enabled} aria-disabled={!item.enabled} aria-pressed={feature === item.id} aria-describedby={!item.enabled ? `operator-${item.id}-reason` : undefined} onClick={() => setFeature(item.id)}>{item.label}</button>)}</div>
+    {support.filter((item) => !item.enabled).map((item) => <p className="operator-feature-reason" id={`operator-${item.id}-reason`} key={item.id}>{item.reason}</p>)}
+    <p className="operator-feature-detail" aria-live="polite"><strong>{selected.label}</strong>{selected.id === "block-scaled" ? "Validate FP4 / FP8 scale metadata layout together with the higher-precision accumulation path." : "This path is conceptually applicable to all three architectures; no hardware result is produced."}</p>
+    <aside className="maturity-panel" data-source-id={BLOCK_SCALED_TUTORIAL.sourceId}><span>Current</span><p><strong>Hardware applicability:</strong> the official tutorial is supported and current; accelerated FP4/FP8 execution remains target-specific and is enabled here only for the Blackwell · SM100-family path. {source && <a href={source.url} target="_blank" rel="noreferrer">Official tutorial ↗</a>}</p></aside>
+  </div>;
+}
+
+function DecodeSourceEvidence() {
+  const sources = getSourcesForModule("operators");
+  const paged = sources.find((source) => source.id === PAGED_ATTENTION_SOURCE.sourceId);
+  const gqa = sources.find((source) => source.id === GQA_SOURCE.sourceId);
+  return <section className="decode-source-evidence" aria-label="Paged KV-cache and GQA evidence">
+    {paged && <article data-source-id={paged.id} data-maturity={paged.maturity}><span>Current</span><h3><a href={paged.url} target="_blank" rel="noreferrer">{paged.title} ↗</a></h3><p><strong>Historical design overview.</strong> vLLM warns that this page does not describe current code; use it to learn paged KV-cache block layout and physical block addressing, then verify the active implementation.</p></article>}
+    {gqa && <article data-source-id={gqa.id} data-maturity={gqa.maturity}><span>Preview</span><h3><a href={gqa.url} target="_blank" rel="noreferrer">{gqa.title} ↗</a></h3><p><strong>Feature maturity.</strong> The linked API page is current, but PyTorch documents <code>enable_gqa=True</code> as an experimental feature with backend constraints and <code>Hq % Hkv == 0</code>. This Preview path is not a core completion requirement.</p></article>}
+  </section>;
+}
+
+const labs: Record<TopicId, () => React.ReactNode> = { gemm: GemmLab, reduction: ReductionLab, softmax: SoftmaxLab, normalization: NormalizationLab, attention: AttentionLab, grouped: GroupedGemmLab, precision: BlockScaledLab };
 
 function KernelPattern({ topic }: { topic: TopicId }) {
   const content: Record<TopicId, { title: string; items: { n: string; h: string; p: string }[]; code: string[] }> = {
@@ -211,6 +263,8 @@ function KernelPattern({ topic }: { topic: TopicId }) {
     softmax: { title: "From three passes to one kernel", items: [{ n: "01", h: "rowmax", p: "The maximum of the line is found by parallel reduction." }, { n: "02", h: "Exp + sum", p: "Shifted exponents and sum are generated in the same tile." }, { n: "03", h: "Normalize + store", p: "The values ​​in the register are divided by the denominator and written." }], code: ["x = load(row, mask=cols < N)", "m = max(x, axis=0)", "z = exp(x - m)", "l = sum(z, axis=0)", "store(out, z / l)"] },
     normalization: { title: "Reduction + pointwise fusion", items: [{ n: "01", h: "Load before", p: "The activation line is loaded once as coalesced." }, { n: "02", h: "Compute stats", p: "The μ/σ² or RMS scale is calculated within the block." }, { n: "03", h: "Affine + residual", p: "γ, β and residual are combined in the same spelling if possible." }], code: ["x = load(row)", "rms = sqrt(mean(x * x) + eps)", "y = x * rsqrt(rms * rms)", "y = y * gamma", "store(out, y)"] },
     attention: { title: "IO-aware attention", items: [{ n: "01", h: "Q tile fixed", p: "The Q part is kept in register/shared memory." }, { n: "02", h: "K/V flow", p: "Blocks K and V are passed through fast memory sequentially." }, { n: "03", h: "online softmax", p: "Running max and total are rescaled as new tiles arrive." }], code: ["for kv_tile in sequence:", "scores = dot(q, k.T) * scale", "m_new = max(m, max(scores))", "l = l * exp(m-m_new) + sum(exp(scores-m_new))", "out = rescale(out) + exp(scores-m_new) @ v"] },
+    grouped: { title: "Grouped GEMM and persistent matmul", items: [{ n: "01", h: "Token groups", p: "Compact the MoE router output per expert." }, { n: "02", h: "Irregular matrices", p: "Carry independent M/N/K and stride contracts for every expert." }, { n: "03", h: "Persistent queue", p: "Keep programs on the GPU across multiple tiles." }], code: ["for tile in persistent_queue:", "expert = routing[tile]", "x = load(grouped_x[expert])", "w = load(grouped_w[expert])", "store(y, dot(x, w))"] },
+    precision: { title: "Block-scaled precision contract", items: [{ n: "01", h: "FP4 / FP8 blocks", p: "Define operand and scale blocking together." }, { n: "02", h: "Scale metadata", p: "Transform scale metadata to the layout expected by the hardware path." }, { n: "03", h: "Accumulation", p: "Accumulate low-precision products at higher precision." }], code: ["a = load_fp4(a_blocks)", "sa = load(scale_metadata_a)", "b = load_fp8(b_blocks)", "sb = load(scale_metadata_b)", "acc_fp32 += dot(a * sa, b * sb)"] },
   };
   const c = content[topic];
   return (
@@ -230,49 +284,60 @@ function Quiz({ topic, onComplete }: { topic: TopicId; onComplete: () => void })
   return (
     <section className="quiz-card" key={topic}>
       <div><span>INFORMATION CHECK</span><h2>{q.q}</h2></div>
-      <div className="quiz-options">{q.options.map((o, i) => <button key={o} className={selected === i ? (i === q.answer ? "correct" : "wrong") : ""} onClick={() => { setSelected(i); if (i === q.answer) onComplete(); }}><i>{String.fromCharCode(65 + i)}</i>{o}<b>{selected === i ? (i === q.answer ? "✓" : "×") : ""}</b></button>)}</div>
-      {selected !== null && <p className="quiz-note"><b>{selected === q.answer ? "CORRECT." : "Think again."}</b> {q.note}</p>}
+      <div className="quiz-options" role="group" aria-label="Answer choices">{q.options.map((o, i) => <button key={o} aria-pressed={selected === i} className={selected === i ? (i === q.answer ? "correct" : "wrong") : ""} onClick={() => { setSelected(i); if (i === q.answer) onComplete(); }}><i>{String.fromCharCode(65 + i)}</i>{o}<b>{selected === i ? (i === q.answer ? "✓" : "×") : ""}</b></button>)}</div>
+      <p className="quiz-note" aria-live="polite" hidden={selected === null}>{selected === null ? null : <><b>{selected === q.answer ? "CORRECT." : "Think again."}</b> {q.note}</>}</p>
     </section>
   );
 }
 
 export default function LlmKernelPatternsEmbedded() {
+  const surfaceRef = useRef<HTMLElement>(null);
   const [topic, setTopic] = useState<TopicId>("gemm");
   const [completed, setCompleted] = useState<TopicId[]>([]);
   const current = topicCopy[topic];
   const Lab = labs[topic];
-  const selectTopic = (id: TopicId) => { setTopic(id); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const selectTopic = (id: TopicId) => {
+    setTopic(id);
+
+    const surface = surfaceRef.current;
+    if (!surface || typeof surface.scrollIntoView !== "function") return;
+
+    let behavior: ScrollBehavior = "smooth";
+    if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
+      try {
+        behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+      } catch {
+        behavior = "smooth";
+      }
+    }
+
+    surface.scrollIntoView({ behavior, block: "start" });
+  };
 
   return (
-    <main className="llm-kernel-patterns-embed">
-      <header className="topbar">
-        <button className="brand" onClick={() => selectTopic("gemm")} aria-label="Kernel Atlas home page"><span className="brand-mark"><i /><i /><i /><i /></span><b>KERNEL<span>ATLAS</span></b></button>
-        <nav aria-label="Main sections">{topics.map(t => <button key={t.id} className={topic === t.id ? "active" : ""} onClick={() => selectTopic(t.id)}>{t.name}</button>)}</nav>
-        <div className="status"><i /> GPU LAB <span>{completed.length}/5</span></div>
-      </header>
-
+    <section ref={surfaceRef} className="llm-kernel-patterns-surface" aria-label="LLM kernel patterns laboratory">
       <section className={`hero theme-${topic}`}>
         <div className="hero-grid" />
         <div className="hero-content">
-          <div className="hero-copy"><span className="kicker">{current.kicker}</span><h1>{current.title}</h1><p>{current.lead}</p><div className="formula"><span>Core expression</span><code>{current.formula}</code></div></div>
-          <aside className="topic-rail"><span>LEARNING ROUTE</span>{topics.map(t => <button key={t.id} className={`${topic === t.id ? "active" : ""} ${completed.includes(t.id) ? "done" : ""}`} onClick={() => selectTopic(t.id)}><i>{t.index}</i><span><small>{t.eyebrow}</small><b>{t.name}</b></span><em>{completed.includes(t.id) ? "✓" : "→"}</em></button>)}</aside>
+          <div className="hero-copy"><span className="kicker">{current.kicker}</span><h2>{current.title}</h2><p>{current.lead}</p><div className="formula"><span>Core expression</span><code>{current.formula}</code></div></div>
+          <aside className="topic-rail" role="group" aria-labelledby="llm-learning-route" tabIndex={0}><span id="llm-learning-route">LEARNING ROUTE</span>{topics.map(t => <button key={t.id} aria-pressed={topic === t.id} className={`${topic === t.id ? "active" : ""} ${completed.includes(t.id) ? "done" : ""}`} onClick={() => selectTopic(t.id)}><i>{t.index}</i><span><small>{t.eyebrow}</small><b>{t.name}</b></span><em>{completed.includes(t.id) ? "✓" : "→"}</em></button>)}</aside>
         </div>
       </section>
 
       <div className="content-wrap">
         <section className="lab-heading"><div><span>LIVE LAB</span><h2>Change the numbers. See the pattern.</h2></div><p>Adjust the controls and observe how work, memory traffic, and numerical behavior change.</p></section>
         <Lab />
+        <aside className="operator-current-scope" data-source-id={OPERATOR_TUTORIALS_CURRENT.sourceId}><strong>Current operator tutorials.</strong> Grouped GEMM / MoE and persistent matmul are current official tutorial families. <span data-source-id={BLOCK_SCALED_TUTORIAL.sourceId}>The current block-scaled tutorial covers FP4 / FP8 scale metadata and higher-precision accumulation under separate hardware applicability.</span></aside>
+        <DecodeSourceEvidence />
         <KernelPattern topic={topic} />
         <section className="principles">
           <article><span>01</span><h3>Correctness first</h3><p>Compare against a reference with tolerances; test boundary shapes, masks, and dtypes separately.</p></article>
           <article><span>02</span><h3>Measure before deciding</h3><p>Report median time, effective bandwidth, and FLOP/s after warm-up.</p></article>
           <article><span>03</span><h3>Name the bottleneck</h3><p>Is the kernel compute-bound or memory-bound? Prove it with occupancy, registration and access patterns.</p></article>
         </section>
-        <Quiz topic={topic} onComplete={() => setCompleted(c => c.includes(topic) ? c : [...c, topic])} />
+        <Quiz key={topic} topic={topic} onComplete={() => setCompleted(c => c.includes(topic) ? c : [...c, topic])} />
         <div className="next-row"><div><span>NEXT CHAPTER</span><b>{topics[(topics.findIndex(t => t.id === topic) + 1) % topics.length].name}</b></div><button onClick={() => selectTopic(topics[(topics.findIndex(t => t.id === topic) + 1) % topics.length].id)}>Follow the route <span>→</span></button></div>
       </div>
-
-      <footer><button className="brand" onClick={() => selectTopic("gemm")}><span className="brand-mark"><i /><i /><i /><i /></span><b>KERNEL<span>ATLAS</span></b></button><p>Interactive field guide to GPU kernel engineering.</p><span>CUDA · TRITON · PYTORCH</span></footer>
-    </main>
+    </section>
   );
 }

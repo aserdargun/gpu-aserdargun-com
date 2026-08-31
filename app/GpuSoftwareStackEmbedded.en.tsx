@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- Labelled overflow regions must remain keyboard-scrollable. */
 
 import { useMemo, useState } from "react";
 
@@ -187,6 +188,29 @@ const choiceMap = {
   },
 } as const;
 
+export const GPU_STACK_LAYER_IDS = ["graph-compiler", "kernel-dsl", "kernel-library", "runtime", "serving-system"] as const;
+export const GPU_STACK_PATH_IDS = ["rocm10", "cuda-tile", "triton-tileir", "rubin"] as const;
+export const GPU_STACK_TECHNOLOGIES = [
+  { name: "MLIR", layer: "graph-compiler", role: "Multi-level transformation infrastructure", sourceId: "mlir-dialect-conversion", maturity: "current" },
+  { name: "CUDA Tile IR", layer: "graph-compiler", role: "Compiler IR and CUDA backend target", sourceId: "cuda-tile-ir", maturity: "current" },
+  { name: "cuTile", layer: "kernel-dsl", role: "Python tile-level kernel DSL", sourceId: "cutile-tileir", maturity: "current" },
+  { name: "CuTe DSL", layer: "kernel-dsl", role: "Public-beta DSL for kernel authoring", sourceId: "cute-dsl-stack", maturity: "preview" },
+  { name: "CUTLASS", layer: "kernel-library", role: "Reusable CUDA kernel library", sourceId: "cutlass-kernel-library", maturity: "current" },
+  { name: "ROCm 10", layer: "runtime", role: "AMD compute runtime SDK", sourceId: "rocm-10-core", maturity: "current" },
+  { name: "ROCprofiler-SDK", layer: "runtime", role: "ROCm performance observability SDK", sourceId: "rocprofiler-sdk-rocm10", maturity: "current" },
+  { name: "HIP", layer: "runtime", role: "GPU programming runtime API", sourceId: "hip-programming-rocm10", maturity: "current" },
+  { name: "TensorRT", layer: "serving-system", role: "Engine builder and runtime", sourceId: "tensorrt-how-it-works", maturity: "current" },
+  { name: "vLLM", layer: "serving-system", role: "Continuous-batching serving system", sourceId: "vllm-stable", maturity: "current" },
+] as const;
+export function getGpuStackLayer(id: (typeof GPU_STACK_LAYER_IDS)[number]) { return { id, cards: GPU_STACK_TECHNOLOGIES.filter((item) => item.layer === id) }; }
+const gpuStackPaths = {
+  rocm10: { sourceIds: ["rocm-10-core", "rocprofiler-sdk-rocm10", "hip-programming-rocm10"], sourceId: "rocm-10-core", maturity: "current", coreCompletion: true, title: "ROCm 10", note: "ROCm 10, HIP, and ROCprofiler-SDK are distinct parts of one current AMD path." },
+  "cuda-tile": { sourceId: "cuda-tile-ir", maturity: "current", coreCompletion: true, title: "CUDA Tile IR", note: "CUDA Tile IR and cuTile provide a current tile-level programming path." },
+  "triton-tileir": { sourceId: "triton-tileir-incubator", maturity: "preview", coreCompletion: false, title: "Triton → Tile IR", note: "This is a PREVIEW incubator path; it is not a core completion requirement." },
+  rubin: { sourceId: "systems-rubin-sm107", maturity: "preview", coreCompletion: false, title: "Rubin / SM107", note: "This is a PREVIEW target; it is not a core completion requirement." },
+} as const;
+export function getGpuStackPath(id: (typeof GPU_STACK_PATH_IDS)[number]) { return { id, ...gpuStackPaths[id] }; }
+
 export default function GpuSoftwareStackEmbedded() {
   const [activeTrack, setActiveTrack] = useState<TrackKey>("rocm");
   const [activeStep, setActiveStep] = useState(0);
@@ -195,6 +219,9 @@ export default function GpuSoftwareStackEmbedded() {
   const [shapeMode, setShapeMode] = useState("Static");
   const [fusion, setFusion] = useState(true);
   const [query, setQuery] = useState("");
+  const [stackLayer, setStackLayer] = useState<(typeof GPU_STACK_LAYER_IDS)[number]>("graph-compiler");
+  const [stackPath, setStackPath] = useState<(typeof GPU_STACK_PATH_IDS)[number]>("rocm10");
+  const stackLayerPlan = getGpuStackLayer(stackLayer);
 
   const track = tracks[activeTrack];
   const decision = choiceMap[choice];
@@ -212,25 +239,11 @@ export default function GpuSoftwareStackEmbedded() {
   }
 
   return (
-    <main className="gpu-software-stack-embed">
-      <header className="site-header">
-        <a className="brand" href="#top" aria-label="Kernel Atlas home page">
-          <span className="brand-mark" aria-hidden="true">K</span>
-          <span>KERNEL ATLAS</span>
-        </a>
-        <nav aria-label="Main navigation">
-          <a href="#map">Map</a>
-          <a href="#workbench">Workbench</a>
-          <a href="#roadmap">Route</a>
-          <a href="#glossary">Glossary</a>
-        </nav>
-        <a className="header-cta" href="#workbench">Start exploring <span>↘</span></a>
-      </header>
-
+    <section className="gpu-software-stack-surface">
       <section className="hero" id="top">
         <div className="hero-copy">
           <div className="kicker"><span /> GPU SYSTEMS / FIELD GUIDE</div>
-          <h1>Look inside the<br /><em>GPU software stack.</em></h1>
+          <h2>Look inside the<br /><em>GPU software stack.</em></h2>
           <p className="hero-lead">
             Learn three critical layers, from the kernel code to the compiler IR to the optimized inference engine, in one interactive atlas.
           </p>
@@ -284,7 +297,7 @@ export default function GpuSoftwareStackEmbedded() {
               {([
                 ["kernel", "Kernel"], ["compiler", "Compiler"], ["inference", "Inference"],
               ] as const).map(([key, label]) => (
-                <button key={key} className={choice === key ? "active" : ""} onClick={() => setChoice(key)}>{label}</button>
+                <button type="button" key={key} aria-pressed={choice === key} className={choice === key ? "active" : ""} onClick={() => setChoice(key)}>{label}</button>
               ))}
             </div>
           </div>
@@ -298,6 +311,7 @@ export default function GpuSoftwareStackEmbedded() {
       </section>
 
       <section className="map-section" id="map">
+        <div className="stack-layer-lab" aria-labelledby="stack-layer-title-en"><div className="section-heading"><div><div className="section-label">01 / STACK DECISION LAB</div><h2 id="stack-layer-title-en">Keep the layers <em>distinct.</em></h2></div><p>graph compiler → kernel DSL → kernel library → runtime → serving system</p></div><div className="stack-controls"><div data-control="stack-layer" role="group" aria-label="Stack layer"><b>LAYER</b>{GPU_STACK_LAYER_IDS.map((id) => <button type="button" key={id} aria-pressed={stackLayer === id} onClick={() => setStackLayer(id)}>{({ "graph-compiler": "Graph compiler", "kernel-dsl": "Kernel DSL", "kernel-library": "Kernel library", runtime: "Runtime", "serving-system": "Serving system" } as const)[id]}</button>)}</div><div data-control="stack-path" role="group" aria-label="Stack path"><b>PATH</b>{GPU_STACK_PATH_IDS.map((id) => <button type="button" key={id} aria-pressed={stackPath === id} onClick={() => setStackPath(id)}>{gpuStackPaths[id].title}</button>)}</div></div><div className="stack-layer-evidence" aria-live="polite" data-layer={stackLayer} data-path={stackPath}><div data-claim="layer" data-layer={stackLayer}><b>{stackLayer}</b><div className="stack-technology-cards">{stackLayerPlan.cards.map((item) => <article className="stack-technology-card" key={item.name} data-technology={item.name} data-source-id={item.sourceId} data-maturity={item.maturity}><b>{item.name}</b><p>{item.role}</p><small>{item.maturity === "current" ? "CURRENT" : "PREVIEW / PUBLIC BETA"}</small></article>)}</div></div><article data-claim="path" data-source-id={gpuStackPaths[stackPath].sourceId} data-maturity={gpuStackPaths[stackPath].maturity}><b>{gpuStackPaths[stackPath].title} · {gpuStackPaths[stackPath].maturity.toUpperCase()}</b><p>{gpuStackPaths[stackPath].note}</p></article></div><div className="stack-preview-register"><span data-source-id="triton-tileir-incubator" data-maturity="preview">Triton → Tile IR · Preview · not a core completion requirement.</span><span data-source-id="systems-rubin-sm107" data-maturity="preview">Rubin / SM107 · Preview · not a core completion requirement.</span></div></div>
         <div className="section-heading">
           <div><div className="section-label">01 / AREA MAP</div><h2>Three layers.<br /><em>One system.</em></h2></div>
           <p>Each technology solves a different problem. Taken together, they form an end-to-end optimization chain from high-level model intent to actual GPU execution.</p>
@@ -324,9 +338,9 @@ export default function GpuSoftwareStackEmbedded() {
       <section className="workbench" id="workbench">
         <div className="workbench-header">
           <div><div className="section-label light">02 / INTERACTIVE WORKBENCH</div><h2>Take a pipeline<br />apart.</h2></div>
-          <div className="track-tabs" role="tablist" aria-label="Technology modules">
+          <div className="track-tabs" role="group" aria-label="Technology modules" tabIndex={0}>
             {(Object.keys(tracks) as TrackKey[]).map((key) => (
-              <button key={key} role="tab" aria-selected={activeTrack === key} onClick={() => selectTrack(key)}>
+              <button type="button" key={key} aria-pressed={activeTrack === key} onClick={() => selectTrack(key)}>
                 <span style={{ background: tracks[key].accent }} />{tracks[key].title}
               </button>
             ))}
@@ -339,9 +353,9 @@ export default function GpuSoftwareStackEmbedded() {
         </div>
 
         <div className="pipeline-panel" style={{ "--track-accent": track.accent } as React.CSSProperties}>
-          <div className="pipeline-steps" role="tablist" aria-label={`${track.title} pipeline steps`}>
+          <div className="pipeline-steps" role="group" aria-label={`${track.title} pipeline steps`}>
             {track.steps.map((step, index) => (
-              <button key={step.label} role="tab" aria-selected={activeStep === index} onClick={() => setActiveStep(index)}>
+              <button type="button" key={step.label} aria-pressed={activeStep === index} onClick={() => setActiveStep(index)}>
                 <span>0{index + 1}</span><strong>{step.label}</strong><code>{step.code}</code>
               </button>
             ))}
@@ -355,7 +369,7 @@ export default function GpuSoftwareStackEmbedded() {
         <div className="code-and-risks">
           <div className="code-window">
             <div className="code-titlebar"><span><i /><i /><i /></span><b>{activeTrack === "rocm" ? "saxpy.hip" : activeTrack === "mlir" ? "matmul.mlir" : "build_engine.py"}</b><span>READ ONLY</span></div>
-            <pre><code>{track.code}</code></pre>
+            <pre tabIndex={0} aria-label="Technology code example"><code>{track.code}</code></pre>
           </div>
           <aside className="risk-panel">
             <span>FIELD NOTES</span>
@@ -371,7 +385,7 @@ export default function GpuSoftwareStackEmbedded() {
           <div><div className="section-label">03 / DECISION MATRIX</div><h2>Use the right tool<br /><em>at the right layer.</em></h2></div>
           <p>These tools are not alternatives to each other. Locating the problem moves the optimization effort to the correct level of abstraction.</p>
         </div>
-        <div className="comparison-table" role="table" aria-label="Technology comparison">
+        <div className="comparison-table" role="table" aria-label="Technology comparison" tabIndex={0}>
           <div className="comparison-row comparison-head" role="row"><span>COMPARE</span><b>ROCm/HIP</b><b>MLIR</b><b>TensorRT</b></div>
           {[
             ["Main question", "How does the kernel execute?", "How does the code transform?", "How is the model served?"],
@@ -396,7 +410,7 @@ export default function GpuSoftwareStackEmbedded() {
               <select value={shapeMode} onChange={(e) => setShapeMode(e.target.value)}><option>Static</option><option>Dynamic</option></select>
             </label>
             <div className="toggle-label"><span>Fusion</span>
-              <button className={`toggle ${fusion ? "on" : ""}`} role="switch" aria-checked={fusion} onClick={() => setFusion(!fusion)}><span /></button>
+              <button type="button" className={`toggle ${fusion ? "on" : ""}`} role="switch" aria-label="Fusion" aria-checked={fusion} onClick={() => setFusion(!fusion)}><span /></button>
             </div>
           </div>
         </div>
@@ -447,16 +461,15 @@ export default function GpuSoftwareStackEmbedded() {
         </div>
       </section>
 
-      <footer>
-        <div className="footer-brand"><span className="brand-mark">K</span><div><b>KERNEL ATLAS</b><p>Learn GPU systems layer by layer.</p></div></div>
+      <section className="sources-section" aria-label="Primary sources and performance note">
         <div className="footer-sources">
           <span>PRIMARY SOURCES</span>
           <a href="https://rocm.docs.amd.com/projects/HIP/en/develop/index.html" target="_blank" rel="noreferrer">AMD HIP Docs ↗</a>
           <a href="https://mlir.llvm.org/docs/" target="_blank" rel="noreferrer">LLVM MLIR Docs ↗</a>
           <a href="https://docs.nvidia.com/deeplearning/tensorrt/latest/" target="_blank" rel="noreferrer">NVIDIA TensorRT Docs ↗</a>
         </div>
-        <div className="footer-note"><span>NOTES</span><p>Performance claims must be verified with hardware, data, and measurement method.</p></div>
-      </footer>
-    </main>
+        <div className="footer-note"><span>NOTES</span><p>Learn GPU systems layer by layer. Performance claims must be verified with hardware, data, and measurement method.</p></div>
+      </section>
+    </section>
   );
 }

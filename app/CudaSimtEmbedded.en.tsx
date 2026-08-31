@@ -1,12 +1,35 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { curriculumSources } from "./atlas/curriculum-sources";
 
 type Tab = "overview" | "architecture" | "simt" | "memory" | "lab";
 type ArchLevel = "grid" | "block" | "warp" | "thread" | "instruction";
 type MemoryLevel = "register" | "shared" | "l2" | "global";
 type Predicate = "cutoff" | "even" | "quarter" | "uniform";
 type Pattern = "contiguous" | "stride2" | "stride4" | "broadcast";
+type ArchitectureId = "ada" | "hopper" | "blackwell";
+
+export const CUDA_PROGRAMMING_BRIDGE = [
+  { id: "thread", title: "Thread / lane", body: "In a SIMT kernel, each lane carries its own index, control flow, and register state." },
+  { id: "warp", title: "Warp collaboration", body: "Thirty-two lanes collaborate through a shared instruction stream, active masks, coalescing, and warp-level primitives." },
+  { id: "tile", title: "Tile operation", body: "The programmer loads, transforms, and stores a multidimensional data tile without spelling out every thread mapping." },
+  { id: "mapping", title: "Compiler / runtime mapping", body: "CUDA Tile IR and the compiler map tile operations onto block threads and suitable hardware paths." },
+] as const;
+
+export const CUDA_TILE_MATURITY = { cudaTile: "current", cuTile: "current" } as const;
+
+const architectureSources = ["cuda-guide", "cuda-tile", "cuda-tile-nvcc-13-3", "cutile-python-1-5-release"].map((id) => {
+  const source = curriculumSources.find((candidate) => candidate.id === id);
+  if (!source) throw new Error(`Missing architecture source: ${id}`);
+  return source;
+});
+
+export function getCudaArchitectureSupport(architecture: ArchitectureId) {
+  return architecture === "ada"
+    ? { tma: false, reason: "TMA bulk tensor copies require Hopper / SM90 or a newer compute capability." }
+    : { tma: true, reason: null };
+}
 
 const tabs: { id: Tab; label: string }[] = [
   { id: "overview", label: "1 · Big picture" },
@@ -70,6 +93,7 @@ export default function CudaSimtEmbedded() {
   const [n, setN] = useState(1000);
   const [blockSize, setBlockSize] = useState(256);
   const [smCount, setSmCount] = useState(4);
+  const [selectedArchitecture, setSelectedArchitecture] = useState<ArchitectureId>("ada");
 
   const laneTakesA = (lane: number) => {
     if (predicate === "cutoff") return lane < cutoff;
@@ -95,28 +119,29 @@ export default function CudaSimtEmbedded() {
   const validThreadsInLastBlock = n - (blocks - 1) * blockSize;
   const lastWarpStart = (warpsPerBlock - 1) * 32;
   const lastWarpActive = Math.max(0, Math.min(32, validThreadsInLastBlock - lastWarpStart));
+  const architectureSupport = getCudaArchitectureSupport(selectedArchitecture);
 
   return (
-    <main className="cuda-simt-embed atlas-shell">
-      <header className="hero">
+    <section className="cuda-simt-surface atlas-shell" aria-label="CUDA SIMT laboratory">
+      <div className="hero">
         <div>
           <p className="eyebrow">INTERACTIVE GPU MENTAL MODEL</p>
-          <h1>Computer Architecture <span>→</span> SIMT <span>→</span> CUDA</h1>
+          <h2>Computer Architecture <span>→</span> SIMT <span>→</span> CUDA</h2>
           <p className="hero-copy">The journey of a kernel call from the CPU to warp, memory and the SM scheduler.</p>
         </div>
         <div className="hero-chip" aria-label="Learning route">
           <span>HOST</span><i>→</i><span>GRID</span><i>→</i><span>WARP</span><i>→</i><span>LANE</span>
         </div>
-      </header>
+      </div>
 
-      <div className="tabs" role="tablist" aria-label="CUDA learning sections">
+      <div className="tabs" role="group" aria-label="CUDA learning sections">
         {tabs.map((item) => (
-          <button key={item.id} type="button" role="tab" aria-selected={tab === item.id} onClick={() => setTab(item.id)}>{item.label}</button>
+          <button key={item.id} type="button" aria-pressed={tab === item.id} onClick={() => setTab(item.id)}>{item.label}</button>
         ))}
       </div>
 
       {tab === "overview" && (
-        <section className="panel-stack" role="tabpanel">
+        <section className="panel-stack">
           <SectionHead title="Heterogeneous system: CPU control, GPU parallelism" subtitle="Host code launches the kernel; device code runs across thousands of threads." badge="Host + Device" />
           <div className="flow" aria-label="Execution flow from CPU to GPU">
             <FlowNode tone="blue" title="CPU Host" copy="Serial control, I/O, kernel launch, memory orchestration" />
@@ -130,6 +155,41 @@ export default function CudaSimtEmbedded() {
               <div className="launch-step" key={title}><em>{index + 1}</em><div><strong>{title}</strong><span>{copy}</span></div></div>
             ))}
           </div>
+          <section className="tile-bridge" aria-labelledby="tile-bridge-title">
+            <div className="tile-bridge-heading">
+              <div><span>SIMT → TILE BRIDGE</span><h3 id="tile-bridge-title">The same hardware, two complementary programming models</h3></div>
+              <div className="architecture-picker" role="group" aria-label="Architecture for TMA applicability">
+                {(["ada", "hopper", "blackwell"] as ArchitectureId[]).map((architecture) => (
+                  <button key={architecture} type="button" aria-pressed={selectedArchitecture === architecture} onClick={() => setSelectedArchitecture(architecture)}>{architecture === "ada" ? "Ada · SM89" : architecture === "hopper" ? "Hopper · SM90" : "Blackwell"}</button>
+                ))}
+              </div>
+            </div>
+            <div className="tile-bridge-stages">
+              {CUDA_PROGRAMMING_BRIDGE.map((stage, index) => <article key={stage.id}><span>0{index + 1}</span><h4>{stage.title}</h4><p>{stage.body}</p></article>)}
+            </div>
+            <div className="tile-bridge-notes">
+              <p><strong>Model boundary:</strong> Tile programming does not replace SIMT; SIMT remains for kernels that need thread-level control, while the tile model complements it for block-level data-parallel work.</p>
+              <p className={architectureSupport.tma ? "supported" : "unsupported"} aria-live="polite"><strong>TMA · {architectureSupport.tma ? "applicable" : "unsupported"}</strong>{architectureSupport.tma ? "Bulk-asynchronous tensor copy and tensor-map descriptors are available on this architecture path." : architectureSupport.reason}</p>
+              <p data-version-claim="cuda-13.3" data-source-id="cuda-tile-nvcc-13-3"><strong>Current · CUDA 13.3:</strong> NVCC adds opt-in Tile compilation with <code>-enable-tile</code>; verify the installed toolkit, driver, and GPU prerequisites separately.</p>
+              <p data-version-claim="cutile-1.5" data-source-id="cutile-python-1-5-release"><strong>Current · cuTile Python 1.5:</strong> the versioned package is documented in its direct release notes; verify package and platform prerequisites separately.</p>
+            </div>
+            <div className="architecture-source-evidence">
+              <div className="architecture-source-heading">
+                <span>ARCHITECTURE SOURCE EVIDENCE</span>
+                <h3>Follow each model boundary to its direct, version-contextual source</h3>
+              </div>
+              <div className="architecture-source-cards">
+                {architectureSources.map((source) => (
+                  <article key={source.id} data-source-id={source.id} data-maturity={source.maturity}>
+                    <span>CURRENT</span>
+                    <h4><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a></h4>
+                    <p><strong>Applicability:</strong> {source.id === "cuda-guide" ? "A first-party reference for the Grid, block, warp, thread, and SIMT boundaries." : source.id === "cuda-tile" ? "Historical CUDA 13.1 context for the Tile programming direction; it does not evidence later version claims." : source.id === "cuda-tile-nvcc-13-3" ? "Direct NVCC evidence for CUDA 13.3 Tile compilation and -enable-tile." : "Direct release evidence for the cuTile Python 1.5 package."}</p>
+                    <p><strong>Status:</strong> Current source verified on {source.verifiedAt}; confirm target toolkit, driver, and GPU requirements against the applicable source version.</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
           <div className="compare-grid">
             <Compare title="CPU design priority" rows={[["Aim", "low latency"], ["Sunflower seed", "Few, complex"], ["Control", "Branch prediction + out-of-order"], ["ideal job", "Serial stream, irregular control, OS / I/O"]]} />
             <Compare title="GPU design priority" rows={[["Aim", "high throughput"], ["Sunflower seed", "Large number of parallel execution resources"], ["Control", "Latency hiding with warp multiplicity"], ["ideal job", "Regular, data-parallel, arithmetic intensive"]]} />
@@ -139,7 +199,7 @@ export default function CudaSimtEmbedded() {
       )}
 
       {tab === "architecture" && (
-        <section className="panel-stack" role="tabpanel">
+        <section className="panel-stack">
           <SectionHead title="How does the programming hierarchy map to hardware?" subtitle="Select a level to inspect its scope, work unit, and hardware counterpart." badge={`Selected: ${archData[arch].label}`} />
           <div className="arch-layout">
             <div className="choice-rail">
@@ -163,7 +223,7 @@ export default function CudaSimtEmbedded() {
       )}
 
       {tab === "simt" && (
-        <section className="panel-stack" role="tabpanel">
+        <section className="panel-stack">
           <SectionHead title="SIMT: single instruction, 32 independent thread states" subtitle="Each lane has different data and register status; warp issues the common instruction stream." badge="Warp = 32 threads" />
           <div className="controls">
             <label>Predicate<select value={predicate} onChange={(e) => { setPredicate(e.target.value as Predicate); setPhase(0); }}><option value="cutoff">lane &lt; threshold</option><option value="even">lane %2 == 0</option><option value="quarter">lane% 4 == 0</option><option value="uniform">all lanes true</option></select></label>
@@ -189,7 +249,7 @@ export default function CudaSimtEmbedded() {
       )}
 
       {tab === "memory" && (
-        <section className="panel-stack" role="tabpanel">
+        <section className="panel-stack">
           <SectionHead title="Memory hierarchy + coalescing" subtitle="Scope, capacity, access pattern and reuse are as important as speed." badge="Near → far" />
           <div className="memory-layout">
             <div className="memory-stack">
@@ -209,7 +269,7 @@ export default function CudaSimtEmbedded() {
       )}
 
       {tab === "lab" && (
-        <section className="panel-stack" role="tabpanel">
+        <section className="panel-stack">
           <SectionHead title="Kernel Lab: convert problem size to grid" subtitle="1D example: each thread processes one element; Boundary control keeps the last block safe." badge="i = blockIdx.x × blockDim.x + threadIdx.x" />
           <div className="lab-layout">
             <div className="lab-controls">
@@ -229,7 +289,7 @@ export default function CudaSimtEmbedded() {
           <Lesson title="Block size alone is not the answer" copy="128 or 256 threads are useful starting points. Choose by measuring profiler data, register usage, shared memory, latency hiding, and memory behavior." />
         </section>
       )}
-    </main>
+    </section>
   );
 }
 

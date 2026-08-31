@@ -7,13 +7,13 @@ function isLocale(value: string | undefined | null): value is Locale {
 }
 
 function resolveLocale(request: NextRequest): Locale {
+  if (request.nextUrl.pathname === "/en" || request.nextUrl.pathname.startsWith("/en/")) return "en";
+
+  // Query locales remain a dynamic-worker compatibility bridge. The path is the
+  // production/static locale contract, so an unqualified root is always Turkish.
   const requested = request.nextUrl.searchParams.get("lang");
   if (isLocale(requested)) return requested;
-
-  const stored = request.cookies.get("kernel-atlas-language")?.value;
-  if (isLocale(stored)) return stored;
-
-  return request.headers.get("accept-language")?.toLowerCase().startsWith("tr") ? "tr" : "en";
+  return "tr";
 }
 
 export function proxy(request: NextRequest) {
@@ -37,4 +37,4 @@ export function proxy(request: NextRequest) {
   return response;
 }
 
-export const config = { matcher: ["/"] };
+export const config = { matcher: ["/", "/en/:path*"] };

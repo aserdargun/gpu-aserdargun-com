@@ -1,4 +1,4 @@
-import { cp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -12,24 +12,29 @@ await cp(client, out, { recursive: true });
 const workerUrl = pathToFileURL(resolve(root, "dist/server/index.js"));
 workerUrl.searchParams.set("azure-static-build", `${process.pid}-${Date.now()}`);
 const { default: worker } = await import(workerUrl.href);
-const response = await worker.fetch(
-  new Request("https://gpu.aserdargun.com/?lang=tr", {
-    headers: { accept: "text/html", "accept-language": "tr-TR,tr;q=0.9" },
+async function render(path, acceptLanguage) {
+  const response = await worker.fetch(
+  new Request(`https://gpu.aserdargun.com${path}`, {
+    headers: { accept: "text/html", ...(acceptLanguage ? { "accept-language": acceptLanguage } : {}) },
   }),
   { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } },
   { waitUntil() {}, passThroughOnException() {} },
-);
+  );
 
-if (!response.ok) {
-  throw new Error(`Static render failed with HTTP ${response.status}`);
+  if (!response.ok) throw new Error(`Static render for ${path} failed with HTTP ${response.status}`);
+  const html = await response.text();
+  if (/localhost(?::\d+)?/i.test(html)) throw new Error(`Static render for ${path} contains a localhost production URL`);
+  return html;
 }
 
-const html = await response.text();
-if (/localhost(?::\d+)?/i.test(html)) {
-  throw new Error("Static render contains a localhost production URL");
-}
+const [html, englishHtml] = await Promise.all([
+  render("/"),
+  render("/en/", "en-US,en;q=0.9"),
+]);
 
 await writeFile(resolve(out, "index.html"), html, "utf8");
+await mkdir(resolve(out, "en"), { recursive: true });
+await writeFile(resolve(out, "en/index.html"), englishHtml, "utf8");
 await writeFile(
   resolve(out, "staticwebapp.config.json"),
   await readFile(resolve(root, "staticwebapp.config.json"), "utf8"),

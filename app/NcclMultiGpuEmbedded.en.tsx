@@ -1,9 +1,49 @@
 "use client";
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- Labelled overflow regions must remain keyboard-scrollable. */
 
 import { useMemo, useState } from "react";
 
 type Collective = "Ring" | "Tree" | "Hierarchical";
 type Parallelism = "DP" | "TP" | "PP" | "EP";
+
+export const NCCL_TOPOLOGY_IDS = ["pcie", "nvlink", "nvswitch", "rdma"] as const;
+export const NCCL_SYSTEM_PATH_IDS = ["topology", "symmetric", "fusion", "device-api"] as const;
+export const NCCL_PARALLELISM_IDS = ["DP", "TP", "PP", "EP"] as const;
+export const NCCL_DEVICE_FEATURE_IDS = ["lsa-multimem", "gin", "rust-bindings"] as const;
+
+const ncclDeviceFeatures = {
+  "lsa-multimem": { sourceId: "nccl-device-lsa-multimem", maturity: "current", coreCompletion: true, title: "LSA + Multimem", compatibility: "Backward-compatible from NCCL 2.29 onward." },
+  gin: { sourceId: "nccl-device-gin", maturity: "current", coreCompletion: true, title: "GIN", compatibility: "Not backward-compatible: recompile Device API kernels when NCCL is upgraded." },
+  "rust-bindings": { sourceId: "nccl-device-rust-bindings", maturity: "preview", coreCompletion: false, title: "nccl4rust bindings", compatibility: "Experimental host and Device API bindings delivered as LTO IR; optional Preview work." },
+} as const;
+
+export function getNcclDeviceFeature(id: (typeof NCCL_DEVICE_FEATURE_IDS)[number]) { return { id, ...ncclDeviceFeatures[id] }; }
+
+const ncclSystemPaths = {
+  topology: { sourceId: "nccl-topology-detection", maturity: "current", implementationSourceId: undefined, implementationMaturity: undefined, coreCompletion: true, title: "Topology evidence", caveat: "Verify PCIe, NVLink, NVSwitch, and GPUDirect RDMA paths first." },
+  symmetric: { sourceId: "nvshmem-symmetric-memory", maturity: "current", implementationSourceId: "nccl-device-lsa-multimem", implementationMaturity: "current", coreCompletion: true, title: "Symmetric kernels", caveat: "LSA and multimem are current NCCL Device API paths and retain backward compatibility from NCCL 2.29." },
+  fusion: { sourceId: "nccl-cuda-streams", maturity: "current", implementationSourceId: "nccl-device-api-fusion", implementationMaturity: "current", coreCompletion: true, title: "Communication/compute fusion", caveat: "Current Device API building blocks can fuse communication and compute while preserving feature-specific compatibility." },
+  "device-api": { sourceId: "nccl-device-gin", maturity: "current", implementationSourceId: undefined, implementationMaturity: undefined, coreCompletion: true, title: "Device API feature matrix", caveat: "GIN is current but not backward-compatible: recompile Device API kernels whenever NCCL is upgraded." },
+} as const;
+
+export function getNcclSystemPath(id: (typeof NCCL_SYSTEM_PATH_IDS)[number]) { return { id, ...ncclSystemPaths[id] }; }
+
+const ncclTopologyEvidence = {
+  pcie: { sourceId: "nccl-pcie-p2p", evidence: "Observe PCIe P2P with `nvidia-smi topo -p2p p` and inspect NIC proximity in the topology output." },
+  nvlink: { sourceId: "nccl-nvlink-p2p", evidence: "Verify NVLink P2P with `nvidia-smi topo -p2p n`; do not assume a single NVLink island." },
+  nvswitch: { sourceId: "nccl-nvswitch-topology", evidence: "Verify the NVSwitch domain together with GPU/NIC placement; do not conflate intra-domain bandwidth with the inter-node network." },
+  rdma: { sourceId: "nccl-gpudirect-rdma", evidence: "For GPUDirect RDMA, verify the GPU–NIC PCIe root complex and the remote-DMA path in the system topology." },
+} as const;
+const ncclParallelismRecommendation: Record<Parallelism, string> = {
+  DP: "For DP, match gradient collectives to the selected path's bandwidth and NIC proximity.",
+  TP: "For TP, prioritize the lowest GPU-to-GPU latency on the frequent AllReduce/AllGather path.",
+  PP: "For PP, make the adjacent-stage P2P path and node boundary visible.",
+  EP: "For EP, plan All-to-All traffic together with rail/NIC placement and network contention.",
+};
+export function getNcclTopologyRecommendation(parallelism: Parallelism, topology: (typeof NCCL_TOPOLOGY_IDS)[number]) {
+  const topologyPlan = ncclTopologyEvidence[topology];
+  return { parallelism, topology, parallelismSourceId: "vllm-parallelism-scaling", topologySourceId: topologyPlan.sourceId, recommendation: ncclParallelismRecommendation[parallelism], topologyEvidence: topologyPlan.evidence };
+}
 
 const collectiveCopy: Record<Collective, { path: string; note: string; formula: string }> = {
   Ring: {
@@ -77,6 +117,9 @@ export default function NcclMultiGpuEmbedded() {
   const [bandwidth, setBandwidth] = useState(200);
   const [latency, setLatency] = useState(3);
   const [quizOpen, setQuizOpen] = useState(false);
+  const [topology, setTopology] = useState<(typeof NCCL_TOPOLOGY_IDS)[number]>("pcie");
+  const [systemPath, setSystemPath] = useState<(typeof NCCL_SYSTEM_PATH_IDS)[number]>("topology");
+  const topologyRecommendation = getNcclTopologyRecommendation(parallel, topology);
 
   const metrics = useMemo(() => {
     const ringBytes = 2 * ((gpus - 1) / gpus) * payload;
@@ -88,26 +131,12 @@ export default function NcclMultiGpuEmbedded() {
   }, [gpus, payload, bandwidth, latency]);
 
   return (
-    <main className="nccl-multigpu-embed">
-      <nav className="topbar" aria-label="Main navigation">
-        <a className="brand" href="#top" aria-label="Kernel Atlas home page">
-          <span className="brand-mark">K/A</span>
-          <span>KERNEL ATLAS</span>
-        </a>
-        <div className="nav-links">
-          <a href="#fundamentals">Fundamentals</a>
-          <a href="#parallelism">Parallelism</a>
-          <a href="#rdma">RDMA</a>
-          <a href="#lab">Lab</a>
-        </div>
-        <span className="status-pill"><i /> INTERACTIVE PRIMER</span>
-      </nav>
-
+    <section className="nccl-multigpu-surface">
       <section className="hero" id="top">
         <div className="eyebrow">DISTRIBUTED GPU SYSTEMS · 01</div>
         <div className="hero-grid">
           <div>
-            <h1>How do<br /><em>GPUs work</em><br />together?</h1>
+            <h2>How do<br /><em>GPUs work</em><br />together?</h2>
             <p className="hero-lede">See, manipulate and measure the data path from NCCL collectives to multidimensional parallelism, from PCIe to GPUDirect RDMA.</p>
             <div className="hero-actions">
               <a className="button primary" href="#fundamentals">Start exploring <span>↓</span></a>
@@ -119,9 +148,9 @@ export default function NcclMultiGpuEmbedded() {
             <div className="node-row">
               {[0, 1, 2, 3].map((n) => <div className="gpu" key={n}><span>GPU</span><strong>{n}</strong></div>)}
             </div>
-            <div className="bus"><span>NVSWITCH · 900GB/s</span></div>
+            <div className="bus"><span>NVSWITCH · LOCAL FABRIC</span></div>
             <div className="data-stream"><i /><i /><i /><span>RDMA FABRIC</span></div>
-            <div className="bus lower"><span>NIC · 400Gb/s</span></div>
+            <div className="bus lower"><span>NIC · INTER-NODE FABRIC</span></div>
             <div className="node-row muted">
               {[4, 5, 6, 7].map((n) => <div className="gpu" key={n}><span>GPU</span><strong>{n}</strong></div>)}
             </div>
@@ -155,7 +184,7 @@ export default function NcclMultiGpuEmbedded() {
             </div>
             <div className="segmented" role="group" aria-label="Collective algorithm selection">
               {(["Ring", "Tree", "Hierarchical"] as Collective[]).map((item) => (
-                <button className={collective === item ? "active" : ""} onClick={() => setCollective(item)} key={item}>{item}</button>
+                <button type="button" aria-pressed={collective === item} className={collective === item ? "active" : ""} onClick={() => setCollective(item)} key={item}>{item}</button>
               ))}
             </div>
           </div>
@@ -186,14 +215,14 @@ export default function NcclMultiGpuEmbedded() {
         </div>
 
         <div className="strategy-layout">
-          <div className="strategy-tabs" role="tablist" aria-label="Parallelism strategies">
+          <div className="strategy-tabs" role="group" aria-label="Parallelism strategies">
             {(Object.keys(strategies) as Parallelism[]).map((key) => (
-              <button role="tab" aria-selected={parallel === key} className={parallel === key ? "active" : ""} onClick={() => setParallel(key)} key={key}>
+              <button type="button" aria-pressed={parallel === key} className={parallel === key ? "active" : ""} onClick={() => setParallel(key)} key={key}>
                 <span>{key}</span><strong>{strategies[key].title}</strong><i>↗</i>
               </button>
             ))}
           </div>
-          <div className="strategy-detail">
+          <div className="strategy-detail" aria-live="polite">
             <div className="strategy-visual" data-strategy={parallel}>
               <div className="model-stack">
                 {["EMBED", "ATTN", "MLP", "HEAD"].map((label, i) => <div key={label} style={{ "--i": i } as React.CSSProperties}>{label}<span>{parallel === "TP" ? "SHARD" : parallel === "PP" ? `STAGE ${i + 1}` : parallel === "EP" && label === "MLP" ? "EXPERTS" : "REPLICA"}</span></div>)}
@@ -221,6 +250,22 @@ export default function NcclMultiGpuEmbedded() {
       </section>
 
       <section className="section signal-section" id="rdma">
+        <div className="nccl-architecture-lab" aria-labelledby="nccl-architecture-title-en">
+          <div className="section-heading"><span className="section-index">03 / ARCHITECTURE DECISION LAB</span><div><h2 id="nccl-architecture-title-en">Bind topology to evidence.</h2><p>Treat collectives, DP · TP · PP · EP parallelism, and the system path as separate decisions.</p></div></div>
+          <div className="architecture-controls">
+            <div data-control="parallelism" role="group" aria-label="Parallelism"><b>PARALLELISM</b>{NCCL_PARALLELISM_IDS.map((id) => <button type="button" key={id} aria-pressed={parallel === id} onClick={() => setParallel(id)}>{id}</button>)}</div>
+            <div data-control="topology" role="group" aria-label="Topology"><b>TOPOLOGY</b>{NCCL_TOPOLOGY_IDS.map((id) => <button type="button" key={id} aria-pressed={topology === id} onClick={() => setTopology(id)}>{({ pcie: "PCIe", nvlink: "NVLink", nvswitch: "NVSwitch", rdma: "GPUDirect RDMA" } as const)[id]}</button>)}</div>
+            <div data-control="system-path" role="group" aria-label="System path"><b>SYSTEM PATH</b>{NCCL_SYSTEM_PATH_IDS.map((id) => <button type="button" key={id} aria-pressed={systemPath === id} onClick={() => setSystemPath(id)}>{ncclSystemPaths[id].title}</button>)}</div>
+          </div>
+          <div className="nccl-architecture-evidence" aria-live="polite" data-topology={topology} data-parallelism={parallel} data-system-path={systemPath}>
+            <article data-claim="parallelism-recommendation" data-parallel-source-id={topologyRecommendation.parallelismSourceId} data-maturity="current"><b>{parallel} · CURRENT</b><p>{topologyRecommendation.recommendation}</p></article>
+            <article data-claim="topology" data-topology-source-id={topologyRecommendation.topologySourceId} data-source-id={topologyRecommendation.topologySourceId} data-maturity="current"><b>{topology.toUpperCase()} · CURRENT</b><p>{topologyRecommendation.topologyEvidence}</p></article>
+            <article data-claim="system-path" data-source-id={ncclSystemPaths[systemPath].sourceId} data-maturity={ncclSystemPaths[systemPath].maturity}><b>{ncclSystemPaths[systemPath].title} · {ncclSystemPaths[systemPath].maturity.toUpperCase()}</b><p>{ncclSystemPaths[systemPath].caveat}</p>{ncclSystemPaths[systemPath].implementationSourceId && <p data-claim="implementation" data-source-id={ncclSystemPaths[systemPath].implementationSourceId} data-maturity={ncclSystemPaths[systemPath].implementationMaturity}><b>DEVICE IMPLEMENTATION · {ncclSystemPaths[systemPath].implementationMaturity?.toUpperCase()}</b></p>}</article>
+          </div>
+          <div className="nccl-device-features" aria-label="NCCL 2.31.2 Device API feature maturity">
+            {NCCL_DEVICE_FEATURE_IDS.map((id) => { const feature = ncclDeviceFeatures[id]; return <article key={id} data-feature={id} data-source-id={feature.sourceId} data-maturity={feature.maturity} data-core-optional={!feature.coreCompletion}><b>{feature.title} · {feature.maturity.toUpperCase()}</b><p>{feature.compatibility}</p></article>; })}
+          </div>
+        </div>
         <div className="section-heading">
           <span className="section-index">03/RDMA</span>
           <div>
@@ -232,14 +277,14 @@ export default function NcclMultiGpuEmbedded() {
         <div className="path-comparison">
           <div className="path-card slow">
             <div className="card-label">THE TRADITIONAL WAY · ADDITIONAL COPIES</div>
-            <div className="path-flow">
+            <div className="path-flow" tabIndex={0} aria-label="Traditional network path">
               <span>GPU</span><i>1</i><span>CPU<br />MEM</span><i>2</i><span>NIC</span><b>NETWORK</b><span>NIC</span><i>3</i><span>CPU<br />MEM</span><i>4</i><span>GPU</span>
             </div>
             <p>GPU memory → host memory → NIC; On the other side, the path reverses.</p>
           </div>
           <div className="path-card fast">
             <div className="card-label">GPUDIRECT RDMA · ZERO-COPY PATH</div>
-            <div className="path-flow">
+            <div className="path-flow" tabIndex={0} aria-label="GPU Direct RDMA path">
               <span>GPU</span><i>DMA</i><span>NIC</span><b>RDMA FABRIC</b><span>NIC</span><i>DMA</i><span>GPU</span>
             </div>
             <p>The NIC directly accesses registered GPU memory while the CPU remains in the control plane.</p>
@@ -298,16 +343,12 @@ export default function NcclMultiGpuEmbedded() {
         </div>
         <div className="decision-card">
           <div><span className="micro-label">TEST YOURSELF</span><h3>On two nodes with 8 GPUs, why is tensor parallel usually kept within the node?</h3></div>
-          <button onClick={() => setQuizOpen(!quizOpen)} aria-expanded={quizOpen}>{quizOpen ? "Hide reply" : "Show answer"} <span>→</span></button>
-          {quizOpen && <p className="answer">Tensor parallel communicates very frequently per layer. NVLink/NVSwitch generally offers higher bandwidth and lower latency than a node-to-node RDMA network. Therefore, it is more efficient in most topologies to keep the TP group local and scale DP or PP across nodes.</p>}
+          <button type="button" onClick={() => setQuizOpen(!quizOpen)} aria-expanded={quizOpen}>{quizOpen ? "Hide reply" : "Show answer"} <span>→</span></button>
+          <p className="answer" aria-live="polite" hidden={!quizOpen}>{quizOpen ? "Tensor parallel communicates very frequently per layer. NVLink/NVSwitch generally offers higher bandwidth and lower latency than a node-to-node RDMA network. Therefore, it is more efficient in most topologies to keep the TP group local and scale DP or PP across nodes." : ""}</p>
         </div>
       </section>
+      <p className="closing-note">NCCL · MULTI-GPU · RDMA<br />Interactive systems primer</p>
 
-      <footer>
-        <div className="brand"><span className="brand-mark">K/A</span><span>KERNEL ATLAS</span></div>
-        <p>NCCL MULTI-GPU RDMA<br />Interactive systems primer</p>
-        <a href="#top">Back to top ↑</a>
-      </footer>
-    </main>
+    </section>
   );
 }

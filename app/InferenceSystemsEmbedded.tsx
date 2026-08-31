@@ -1,9 +1,53 @@
 "use client";
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- Labelled overflow regions must remain keyboard-scrollable. */
 
 import { useMemo, useState } from "react";
 
 type QuantGoal = "memory" | "latency" | "quality";
 type Bottleneck = "ttft" | "itl" | "oom" | "gpu";
+
+export const INFERENCE_DIAGNOSIS_IDS = ["scheduler", "kv-cache", "kernel", "network"] as const;
+export const INFERENCE_GRAPH_IDS = ["cuda-piecewise", "cuda-full", "hip-piecewise", "hip-full"] as const;
+export const INFERENCE_PARALLELISM_IDS = ["expert", "context"] as const;
+export const INFERENCE_PRECISION_IDS = ["fp8", "mxfp8", "mxfp4", "nvfp4"] as const;
+type InferenceDiagnosisId = typeof INFERENCE_DIAGNOSIS_IDS[number];
+type InferenceGraphId = typeof INFERENCE_GRAPH_IDS[number];
+type InferenceParallelismId = typeof INFERENCE_PARALLELISM_IDS[number];
+type InferencePrecisionId = typeof INFERENCE_PRECISION_IDS[number];
+
+const inferenceDiagnosis = {
+  scheduler: { label: "Zamanlayıcı", bottleneck: "Zamanlayıcı kuyruğu", signals: ["queue time / bekleyen istek", "batch doluluğu / token bütçesi"], action: "İstek gelişini, token bütçesini ve preemption olaylarını birlikte incele." },
+  "kv-cache": { label: "KV cache", bottleneck: "KV-cache kapasitesi ve hareketi", signals: ["blok doluluğu / cache hit rate", "KV dtype / transfer süresi"], action: "Ağırlık belleğini KV blok kapasitesiyle karıştırma; prefix hit ve KV transferini ayrı ölç." },
+  kernel: { label: "Kernel", bottleneck: "Kernel ve launch yolu", signals: ["GPU kernel süresi / occupancy", "launch boşlukları / graph kapsamı"], action: "Attention, GEMM ve graph kapsamını backend ve shape dağılımıyla eşleştir." },
+  network: { label: "Ağ", bottleneck: "Ağ ve KV aktarım yolu", signals: ["KV connector gecikmesi", "NIC/rail kullanımı ve kuyruk"], action: "Ayrıştırılmış encode → prefill → decode sınırlarında aktarım süresini ayrıca kaydet." },
+} as const;
+
+const inferenceGraphs = {
+  "cuda-piecewise": { label: "CUDA parçalı", backend: "CUDA", capture: "piecewise", sourceId: "vllm-cuda-graph-modes", maturity: "current", mechanism: undefined, mechanismSourceId: undefined, note: "vLLM parça parça CUDA Graph yakalamayı destekler; uyumsuz attention parçaları eager kalabilir." },
+  "cuda-full": { label: "CUDA tam", backend: "CUDA", capture: "full", sourceId: "vllm-cuda-graph-modes", maturity: "current", mechanism: undefined, mechanismSourceId: undefined, note: "vLLM tam CUDA Graph yakalamayı destekler; batch/shape ve backend uyumluluğu seçimi belirler." },
+  "hip-piecewise": { label: "HIP parçalı", backend: "HIP", capture: "piecewise", sourceId: "vllm-stable", maturity: "current", mechanism: "stream-capture", mechanismSourceId: "amd-hip-graphs", note: "vLLM'nin kararlı yüzeyinde HIP parçalı graph modu seçilir; mekanizma katmanında AMD HIP stream capture API'si ayrıca gösterilir." },
+  "hip-full": { label: "HIP tam", backend: "HIP", capture: "full", sourceId: "vllm-stable", maturity: "current", mechanism: "explicit-graph", mechanismSourceId: "amd-hip-graphs", note: "vLLM'nin kararlı yüzeyinde HIP tam graph modu seçilir; mekanizma katmanında AMD HIP açık graph API'si ayrıca gösterilir." },
+} as const;
+
+const inferenceParallelism = {
+  expert: { label: "Uzman paralelliği", sourceId: "vllm-expert-parallel", maturity: "current", coreCompletion: true, note: "MoE uzmanlarını rank'lere dağıtır; all-to-all/backend ve topoloji maliyeti planın parçasıdır." },
+  context: { label: "Bağlam paralelliği", sourceId: "vllm-context-parallel", maturity: "preview", coreCompletion: false, note: "Uzun bağlamı prefill ve decode için farklı biçimde böler; resmi belgede bazı prefill yolları hâlâ etkin geliştirmededir." },
+} as const;
+
+const inferencePrecisions = {
+  fp8: { label: "FP8", hardware: "vLLM'nin desteklenen donanım/quantization matrisiyle doğrulanacak GPU yolu", backend: "vLLM FP8 W8A8 / seçilen linear-MoE kernel", scaleRepresentation: "E4M3 veri; statik veya dinamik ölçek", accumulation: "Backend'in belgelenen birikim dtype'ını seçilen kernel için ayrıca doğrula.", qualityGuardrail: "Eğitsel güvence: BF16 taban çizgisine karşı görev metriği ve duyarlı katman kontrolü.", sourceId: "vllm-online-quantization", sourceIds: ["vllm-online-quantization", "vllm-quantization-hardware"], maturity: "current" },
+  mxfp8: { label: "MXFP8", hardware: "W8A8 için SM100+; diğer GPU'larda W8A16 fallback olabilir", backend: "Platformun seçtiği MXFP8 linear/MoE backend'i", scaleRepresentation: "32 elemanlık blok başına E8M0 ölçek", accumulation: "Seçilen CUTLASS/vLLM backend'inin birikim yolunu doğrula.", qualityGuardrail: "Eğitsel güvence: fallback dtype ve kalibrasyon/çıktı sapmasını raporla.", sourceId: "vllm-online-quantization", sourceIds: ["vllm-online-quantization", "cutlass-inference-formats"], maturity: "current" },
+  mxfp4: { label: "MXFP4", hardware: "Backend bazında Blackwell hızlandırması; platform fallback'ini doğrula", backend: "Linear ve MoE backend'i aynı activation dtype'ını garanti etmez", scaleRepresentation: "OCP MX FP4 E2M1 + 32 elemanlık blok başına E8M0", accumulation: "Yüksek hassasiyetli birikim seçeneğini seçilen backend belgesiyle doğrula.", qualityGuardrail: "Eğitsel güvence: ignored layer ve kalite kaybı sınırını görev metriğiyle kontrol et.", sourceId: "cutlass-inference-formats", sourceIds: ["cutlass-inference-formats", "vllm-quantization-hardware"], maturity: "preview" },
+  nvfp4: { label: "NVFP4", hardware: "Blackwell SM100 özel hızlandırılmış yol", backend: "FlashInfer/TRTLLM veya uyumlu CUTLASS tabanlı kernel", scaleRepresentation: "NV FP4 E2M1 + 16 elemanlık blok ve UE4M3 ölçek", accumulation: "FP32 birikim desteğini yalnız seçilen backend belgeliyorsa kullan.", qualityGuardrail: "Eğitsel güvence: per-token activation ölçeği ve BF16 kalite karşılaştırması yap.", sourceId: "cutlass-inference-formats", sourceIds: ["cutlass-inference-formats", "vllm-quantization-hardware"], maturity: "preview" },
+} as const;
+
+export function getInferenceDiagnosis(id: InferenceDiagnosisId) { return { id, ...inferenceDiagnosis[id] }; }
+export function getInferenceGraphPlan(id: InferenceGraphId) { return { id, ...inferenceGraphs[id], measuredHardwareEvidence: false }; }
+export function getInferenceParallelismPlan(id: InferenceParallelismId) { return { id, ...inferenceParallelism[id] }; }
+export function getInferencePrecisionPlan(id: InferencePrecisionId) { return { id, ...inferencePrecisions[id], measuredHardwareEvidence: false }; }
+export function getInferenceSpeculativeBoundary() {
+  return { sourceId: "vllm-speculative-acceptance", acceptanceSourceId: "vllm-speculative-acceptance", maturity: "preview" as const, acceptanceRate: "Kabul oranı = kabul edilen taslak token / önerilen taslak token", draftCost: "Eğitsel karar girdisi: taslak model çalışması + doğrulama + reddedilen token işi.", draftCostEvidenceKind: "educational" as const, measuredHardwareEvidence: false };
+}
 
 const modules = [
   ["01", "vLLM Motoru", "#vllm"],
@@ -88,6 +132,10 @@ export default function InferenceSystemsEmbedded() {
   const [bits, setBits] = useState(4);
   const [goal, setGoal] = useState<QuantGoal>("memory");
   const [bottleneck, setBottleneck] = useState<Bottleneck>("ttft");
+  const [diagnosisId, setDiagnosisId] = useState<InferenceDiagnosisId>("scheduler");
+  const [graphId, setGraphId] = useState<InferenceGraphId>("cuda-piecewise");
+  const [parallelismId, setParallelismId] = useState<InferenceParallelismId>("expert");
+  const [precisionId, setPrecisionId] = useState<InferencePrecisionId>("fp8");
   const [answers, setAnswers] = useState<number[]>([-1, -1, -1]);
 
   const serving = useMemo(() => {
@@ -115,24 +163,11 @@ export default function InferenceSystemsEmbedded() {
   const quizScore = answers.reduce((total, answer, index) => total + (answer === quiz[index].answer ? 1 : 0), 0);
 
   return (
-    <main className="inference-systems-embed">
-      <header className="topbar">
-        <a className="brand" href="#top" aria-label="Inference Systems Lab ana sayfa">
-          <span className="brand-mark">IS</span>
-          <span>ÇIKARIM SİSTEMLERİ LABORATUVARI</span>
-        </a>
-        <nav className="desktop-nav" aria-label="Ana navigasyon">
-          <a href="#vllm">Konular</a>
-          <a href="#labs">Laboratuvar</a>
-          <a href="#measurement">Ölçüm</a>
-        </nav>
-        <a className="status-pill" href="#quiz"><span /> KENDİNİ TEST ET</a>
-      </header>
-
+    <section className="inference-systems-surface">
       <section className="hero" id="top">
         <div className="hero-copy">
           <div className="kicker"><span>GPU INFERENCE / 2026</span><span>ETKİLEŞİMLİ REHBER</span></div>
-          <h1>DAHA ÇOK<br />TOKEN.<br /><em>DAHA AZ</em><br />BEKLEME.</h1>
+          <h2>DAHA ÇOK<br />TOKEN.<br /><em>DAHA AZ</em><br />BEKLEME.</h2>
           <p className="hero-intro">vLLM'in scheduler'ından CUDA Graphs replay'e, 4-bit ağırlıklardan üretim benchmark'ına kadar modern LLM serving sistemini katman katman keşfet.</p>
           <div className="hero-actions">
             <a className="primary-cta" href="#vllm">SİSTEMİ AÇ <span>↓</span></a>
@@ -174,7 +209,7 @@ export default function InferenceSystemsEmbedded() {
               <p>vLLM, değişken uzunluktaki istekleri sürekli bir GPU iş akışına dönüştürür. Kazanç tek bir kernel'dan değil; scheduling, KV cache ve execution katmanlarının birlikte çalışmasından gelir.</p>
             </div>
 
-            <div className="pipeline">
+            <div className="pipeline" tabIndex={0} aria-label="İstek işleme hattı">
               <div className="pipe-node"><span>01</span><b>API SERVER</b><small>OpenAI uyumlu istek</small></div>
               <div className="pipe-arrow">→</div>
               <div className="pipe-node active"><span>02</span><b>SCHEDULER</b><small>Token bütçesi + sıra</small></div>
@@ -195,7 +230,7 @@ export default function InferenceSystemsEmbedded() {
           <section className="lab-panel" id="labs">
             <div className="lab-header"><div><span>LAB / 01</span><h2>Serving kaldıracı simülatörü</h2></div><p>Pedagojik model · gerçek benchmark değildir</p></div>
             <div className="lab-body">
-              <div className="controls">
+              <div className="controls" role="group" aria-label="Serving kaldıracı seçenekleri">
                 {[
                   ["Continuous batching", "Adım başına daha dolu GPU işi", batching, setBatching],
                   ["Prefix caching", "Tekrarlı prefix prefill'ini atla", prefix, setPrefix],
@@ -214,6 +249,27 @@ export default function InferenceSystemsEmbedded() {
               </div>
             </div>
           </section>
+
+          <section className="inference-decision-lab" aria-labelledby="inference-decision-title">
+            <div className="section-index">01.5 / KANITA BAĞLI KARAR LAB'I</div>
+            <div className="section-heading"><h2 id="inference-decision-title">Encode → prefill → decode hattında katmanı seç.</h2><p>Ayrıştırılmış sunum, graph, paralellik ve düşük hassasiyet kararları aynı şey değildir. Her seçim kaynak olgunluğunu, backend'i ve donanım uygulanabilirliğini ayrı gösterir.</p></div>
+            <div className="inference-decision-controls">
+              <div data-control="diagnosis" role="group" aria-label="Darboğaz tanısı"><b>DARBOĞAZ</b>{INFERENCE_DIAGNOSIS_IDS.map((id) => <button type="button" aria-pressed={diagnosisId === id} onClick={() => setDiagnosisId(id)} key={id}>{inferenceDiagnosis[id].label}</button>)}</div>
+              <div data-control="graph" role="group" aria-label="Graph backend ve kapsam"><b>GRAPH YOLU</b>{INFERENCE_GRAPH_IDS.map((id) => <button type="button" aria-pressed={graphId === id} onClick={() => setGraphId(id)} key={id}>{inferenceGraphs[id].label}</button>)}</div>
+              <div data-control="parallelism" role="group" aria-label="Çıkarım paralelliği"><b>PARALELLİK</b>{INFERENCE_PARALLELISM_IDS.map((id) => <button type="button" aria-pressed={parallelismId === id} onClick={() => setParallelismId(id)} key={id}>{inferenceParallelism[id].label}</button>)}</div>
+              <div data-control="precision" role="group" aria-label="Düşük hassasiyet formatı"><b>HASSASİYET</b>{INFERENCE_PRECISION_IDS.map((id) => <button type="button" aria-pressed={precisionId === id} onClick={() => setPrecisionId(id)} key={id}>{inferencePrecisions[id].label}</button>)}</div>
+            </div>
+            <article className="inference-decision-evidence" aria-live="polite" data-diagnosis={diagnosisId} data-graph={graphId} data-parallelism={parallelismId} data-precision={precisionId}>
+              <div data-claim="diagnosis"><small>DARBOĞAZ AYRIMI</small><h3>{getInferenceDiagnosis(diagnosisId).bottleneck}</h3><p>{getInferenceDiagnosis(diagnosisId).signals.join(" · ")}</p><p>{getInferenceDiagnosis(diagnosisId).action}</p></div>
+              <div data-claim="graph" data-source-id={getInferenceGraphPlan(graphId).sourceId} data-maturity={getInferenceGraphPlan(graphId).maturity}><small>{getInferenceGraphPlan(graphId).maturity === "current" ? "GÜNCEL" : "ÖNİZLEME"} · {getInferenceGraphPlan(graphId).backend} / {getInferenceGraphPlan(graphId).capture}</small><p>{getInferenceGraphPlan(graphId).note}</p></div>{getInferenceGraphPlan(graphId).mechanism && <div data-claim="graph-mechanism" data-source-id={getInferenceGraphPlan(graphId).mechanismSourceId} data-maturity="current"><small>ALT API MEKANİZMASI · AMD HIP</small><p>{getInferenceGraphPlan(graphId).mechanism}</p></div>}
+              <div data-claim="parallelism" data-source-id={getInferenceParallelismPlan(parallelismId).sourceId} data-maturity={getInferenceParallelismPlan(parallelismId).maturity}><small>{getInferenceParallelismPlan(parallelismId).maturity === "preview" ? "ÖNİZLEME" : "GÜNCEL"}</small><p>{getInferenceParallelismPlan(parallelismId).note}</p>{!getInferenceParallelismPlan(parallelismId).coreCompletion && <p><b>Bu Önizleme yolu temel tamamlanma koşulu değildir.</b></p>}</div>
+              <div data-claim="precision" data-source-id={getInferencePrecisionPlan(precisionId).sourceId} data-source-ids={getInferencePrecisionPlan(precisionId).sourceIds.join(" ")} data-maturity={getInferencePrecisionPlan(precisionId).maturity}><small>DONANIM · BACKEND · ÖLÇEK · BİRİKİM · KALİTE</small><p><b>Donanım:</b> {getInferencePrecisionPlan(precisionId).hardware}</p><p><b>Backend:</b> {getInferencePrecisionPlan(precisionId).backend}</p><p><b>Ölçek:</b> {getInferencePrecisionPlan(precisionId).scaleRepresentation}</p><p><b>Birikim:</b> {getInferencePrecisionPlan(precisionId).accumulation}</p><p><b>Kalite:</b> {getInferencePrecisionPlan(precisionId).qualityGuardrail}</p></div>
+              <div data-source-id="vllm-disaggregated-encoder" data-maturity="current"><small>AYRIŞTIRILMIŞ SUNUM</small><p>Encode, prefill ve decode ayrı instance'larda ölçeklenebilir; KV/encoder aktarım süresi ağ tanısına aittir.</p></div>
+              <div data-claim="speculative-acceptance" data-source-id={getInferenceSpeculativeBoundary().acceptanceSourceId} data-maturity="preview"><small>ÖNİZLEME · METRİK ŞEMASI DENEYSEL</small><p>Kabul oranı: {getInferenceSpeculativeBoundary().acceptanceRate}.</p></div><div data-claim="draft-cost" data-evidence-kind={getInferenceSpeculativeBoundary().draftCostEvidenceKind}><small>EĞİTSEL KARAR GİRDİSİ</small><p>Taslak maliyeti: {getInferenceSpeculativeBoundary().draftCost}</p></div>
+            <p className="inference-evidence-caveat"><b>Bu karar modeli ölçülmüş donanım kanıtı değildir.</b> TTFT, ITL, throughput ve VRAM sonuçlarını gerçek iş yüküyle yeniden ölç.</p>
+          </article>
+          <aside data-source-id="vllm-context-parallel" data-maturity="preview">Bağlam paralelliği · ÖNİZLEME · temel tamamlanma koşulu değildir.</aside>
+        </section>
 
           <section className="lesson graphs-section" id="graphs">
             <div className="section-index">02 / CUDA GRAPHS</div>
@@ -256,12 +312,12 @@ export default function InferenceSystemsEmbedded() {
               <div className="memory-calc">
                 <span className="tool-label">LAB / 03 · WEIGHT HAFIZASI</span><h3>Modeli tart</h3>
                 <label htmlFor="parameter-count">PARAMETRE <b>{params}B</b></label><input id="parameter-count" type="range" min="1" max="70" value={params} onChange={(e) => setParams(Number(e.target.value))} />
-                <span className="tool-label">HASSASİYET</span><div className="segmented">{[16, 8, 4].map((b) => <button type="button" className={bits === b ? "selected" : ""} onClick={() => setBits(b)} key={b}>{b}-BIT</button>)}</div>
+                <span className="tool-label">HASSASİYET</span><div className="segmented" role="group" aria-label="Ağırlık hassasiyeti">{[16, 8, 4].map((b) => <button type="button" aria-pressed={bits === b} className={bits === b ? "selected" : ""} onClick={() => setBits(b)} key={b}>{b}-BIT</button>)}</div>
                 <div className="memory-output"><span>TEORİK AĞIRLIK BELLEĞİ</span><b>{weightMemory.toFixed(1)} <small>GB</small></b><p>GiB değil, ondalık GB yaklaşımıdır.</p></div>
               </div>
               <div className="decision-card">
                 <span className="tool-label">KARAR ASİSTANI</span><h3>Önceliğin ne?</h3>
-                <div className="goal-tabs">{(["memory", "latency", "quality"] as QuantGoal[]).map((g) => <button type="button" onClick={() => setGoal(g)} className={goal === g ? "selected" : ""} key={g}>{g === "memory" ? "BELLEK" : g === "latency" ? "GECİKME" : "KALİTE"}</button>)}</div>
+                <div className="goal-tabs" role="group" aria-label="Optimizasyon önceliği">{(["memory", "latency", "quality"] as QuantGoal[]).map((g) => <button type="button" aria-pressed={goal === g} onClick={() => setGoal(g)} className={goal === g ? "selected" : ""} key={g}>{g === "memory" ? "BELLEK" : g === "latency" ? "GECİKME" : "KALİTE"}</button>)}</div>
                 <div className={`recommendation ${quantData[goal].accent}`}><span>{quantData[goal].eyebrow}</span><h4>{quantData[goal].title}</h4><p>{quantData[goal].copy}</p></div>
               </div>
             </div>
@@ -289,8 +345,8 @@ export default function InferenceSystemsEmbedded() {
             </div>
 
             <div className="detective">
-              <div className="detective-menu"><span>LAB / 04</span><h3>Darboğaz dedektifi</h3><p>Gözlemlediğin ana semptomu seç.</p>{(Object.keys(bottlenecks) as Bottleneck[]).map((key) => <button type="button" className={bottleneck === key ? "selected" : ""} onClick={() => setBottleneck(key)} key={key}>{bottlenecks[key].label}<span>→</span></button>)}</div>
-              <div className="diagnosis"><span>OLASI TEŞHİS</span><h3>{bottlenecks[bottleneck].diagnosis}</h3><ol>{bottlenecks[bottleneck].actions.map((action) => <li key={action}>{action}</li>)}</ol><p>Tek bir metriğe bakarak kök neden ilan etme. GPU timeline, scheduler istatistikleri ve istem dağılımını birlikte incele.</p></div>
+              <div className="detective-menu" role="group" aria-label="Gözlemlenen darboğaz"><span>LAB / 04</span><h3>Darboğaz dedektifi</h3><p>Gözlemlediğin ana semptomu seç.</p>{(Object.keys(bottlenecks) as Bottleneck[]).map((key) => <button type="button" aria-pressed={bottleneck === key} className={bottleneck === key ? "selected" : ""} onClick={() => setBottleneck(key)} key={key}>{bottlenecks[key].label}<span>→</span></button>)}</div>
+              <div className="diagnosis" aria-live="polite"><span>OLASI TEŞHİS</span><h3>{bottlenecks[bottleneck].diagnosis}</h3><ol>{bottlenecks[bottleneck].actions.map((action) => <li key={action}>{action}</li>)}</ol><p>Tek bir metriğe bakarak kök neden ilan etme. GPU timeline, scheduler istatistikleri ve istem dağılımını birlikte incele.</p></div>
             </div>
           </section>
 
@@ -324,7 +380,7 @@ export default function InferenceSystemsEmbedded() {
                 const selected = answers[qIndex] === oIndex;
                 const answered = answers[qIndex] !== -1;
                 const correct = oIndex === item.answer;
-                return <button type="button" className={`${selected ? "selected" : ""} ${answered && selected ? (correct ? "correct" : "wrong") : ""}`} onClick={() => setAnswers((current) => current.map((a, i) => i === qIndex ? oIndex : a))} key={option}><span>{String.fromCharCode(65 + oIndex)}</span>{option}{answered && selected && <b>{correct ? "DOĞRU" : "TEKRAR DÜŞÜN"}</b>}</button>;
+                return <button type="button" aria-pressed={selected} className={`${selected ? "selected" : ""} ${answered && selected ? (correct ? "correct" : "wrong") : ""}`} onClick={() => setAnswers((current) => current.map((a, i) => i === qIndex ? oIndex : a))} key={option}><span>{String.fromCharCode(65 + oIndex)}</span>{option}<b className="quiz-feedback" aria-live="polite" hidden={!answered || !selected}>{answered && selected ? (correct ? "DOĞRU" : "TEKRAR DÜŞÜN") : ""}</b></button>;
               })}</fieldset>)}
             </div>
           </section>
@@ -338,10 +394,10 @@ export default function InferenceSystemsEmbedded() {
               <a href="https://docs.vllm.ai/en/latest/features/quantization/" target="_blank" rel="noreferrer"><span>04</span><b>vLLM Quantization</b><ArrowIcon /></a>
             </div>
           </section>
+          <p className="closing-note">ÖLÇ → TEŞHİS ET → DEĞİŞTİR → TEKRAR ÖLÇ</p>
         </div>
       </div>
 
-      <footer><a className="brand" href="#top"><span className="brand-mark">IS</span><span>ÇIKARIM SİSTEMLERİ LABORATUVARI</span></a><p>ÖLÇ → TEŞHİS ET → DEĞİŞTİR → TEKRAR ÖLÇ</p><a href="#top">BAŞA DÖN ↑</a></footer>
-    </main>
+    </section>
   );
 }

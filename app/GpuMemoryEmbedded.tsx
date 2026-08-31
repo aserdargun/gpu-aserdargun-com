@@ -1,8 +1,35 @@
 "use client";
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- Labelled overflow regions must remain keyboard-scrollable. */
 
 import { useMemo, useState } from "react";
 
 type ModuleId = "hierarchy" | "coalescing" | "banks" | "occupancy";
+type MemoryArchitecture = "ada" | "hopper" | "blackwell";
+type MemoryFeatureId = "asyncBulk" | "tensorDescriptor" | "dsmem" | "tmem";
+
+export const MEMORY_ARCHITECTURES: ReadonlyArray<{ id: MemoryArchitecture; label: string; capability: string }> = [
+  { id: "ada", label: "Ada", capability: "SM89" },
+  { id: "hopper", label: "Hopper", capability: "SM90" },
+  { id: "blackwell", label: "Blackwell", capability: "SM100 ailesi" },
+];
+
+const memoryArchitectureFeatures: ReadonlyArray<{ id: MemoryFeatureId; label: string; detail: string; introduced: MemoryArchitecture }> = [
+  { id: "asyncBulk", label: "Asenkron bulk tensor kopyası", detail: "TMA ile büyük 1D veya çok boyutlu aktarımlar; tamamlanma bariyer/proxy kurallarıyla izlenir.", introduced: "hopper" },
+  { id: "tensorDescriptor", label: "Tensor descriptor / tensör tanımlayıcı", detail: "Çok boyutlu bulk tensor kopyasında tensor map; şekil, stride ve düzen bilgisini adres üretiminden ayırır.", introduced: "hopper" },
+  { id: "dsmem", label: "DSMEM", detail: "Aynı thread-block cluster içindeki blokların paylaşılan bellek bölümlerine cluster kapsamlı erişim.", introduced: "hopper" },
+  { id: "tmem", label: "TMEM · Tensor Memory", detail: "Blackwell beşinci nesil Tensor Core işlemlerinin akümülatör yolu için uzmanlaşmış on-chip alan.", introduced: "blackwell" },
+];
+
+export function getMemoryFeatureSupport(architecture: MemoryArchitecture) {
+  const rank: Record<MemoryArchitecture, number> = { ada: 0, hopper: 1, blackwell: 2 };
+  return memoryArchitectureFeatures.map((feature) => {
+    const enabled = rank[architecture] >= rank[feature.introduced];
+    const reason = enabled ? null : feature.introduced === "blackwell"
+      ? "TMEM bu atlas kapsamında Blackwell'e özgüdür; Ada veya Hopper için donanım sonucu üretilemez."
+      : "Bu özellik Hopper / SM90 ve daha yeni bir compute capability gerektirir.";
+    return { ...feature, enabled, reason };
+  });
+}
 
 const modules: { id: ModuleId; number: string; label: string; short: string }[] = [
   { id: "hierarchy", number: "01", label: "Bellek hiyerarşisi", short: "Hiyerarşi" },
@@ -66,29 +93,21 @@ const hierarchyLayers = [
 
 function Header({ active, setActive, visited }: { active: ModuleId; setActive: (id: ModuleId) => void; visited: Set<ModuleId> }) {
   return (
-    <header className="topbar">
-      <button className="brand" onClick={() => setActive("hierarchy")} aria-label="GPU Memory Lab ana sayfa">
-        <span className="brand-mark" aria-hidden="true"><i /><i /><i /></span>
-        <span><strong>GPU BELLEĞİ</strong><small>ETKİLEŞİMLİ LABORATUVAR</small></span>
-      </button>
-      <nav className="module-nav" aria-label="Ders modülleri">
+    <div className="topbar">
+      <div className="module-nav" role="group" aria-label="Ders modülleri" tabIndex={0}>
         {modules.map((module) => (
           <button
             key={module.id}
             className={active === module.id ? "active" : ""}
             onClick={() => setActive(module.id)}
-            aria-current={active === module.id ? "page" : undefined}
+            aria-pressed={active === module.id}
           >
             <span>{module.number}</span>{module.short}
             {visited.has(module.id) && <b aria-label="ziyaret edildi">•</b>}
           </button>
         ))}
-      </nav>
-      <div className="course-meta">
-        <span>{visited.size}/4 MODÜL</span>
-        <div className="progress-track" aria-label={`İlerleme: ${visited.size} / 4`}><i style={{ width: `${visited.size * 25}%` }} /></div>
       </div>
-    </header>
+    </div>
   );
 }
 
@@ -97,7 +116,7 @@ function ModuleIntro({ eyebrow, title, lead, children }: { eyebrow: string; titl
     <aside className="lesson-copy">
       <div>
         <p className="eyebrow">{eyebrow}</p>
-        <h1>{title}</h1>
+        <h2>{title}</h2>
         <p className="lead">{lead}</p>
       </div>
       {children}
@@ -107,6 +126,45 @@ function ModuleIntro({ eyebrow, title, lead, children }: { eyebrow: string; titl
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return <div className="fact"><span>{label}</span><p>{children}</p></div>;
+}
+
+function ArchitectureMemoryGate() {
+  const [architecture, setArchitecture] = useState<MemoryArchitecture>("ada");
+  const [selectedFeature, setSelectedFeature] = useState<MemoryFeatureId | null>(null);
+  const features = getMemoryFeatureSupport(architecture);
+  const selected = features.find((feature) => feature.id === selectedFeature && feature.enabled);
+  return (
+    <section className="architecture-memory-gate" aria-labelledby="memory-architecture-title">
+      <div className="architecture-memory-heading">
+        <div><span>MİMARİ UYGULANABİLİRLİĞİ</span><h2 id="memory-architecture-title">Ada → Hopper → Blackwell bellek yolları</h2><p>Kapasite, bant genişliği ve veri hareketi orkestrasyonu farklı sorulardır. GPU adından destek sonucu çıkarma; compute capability ve derleme hedefini doğrula.</p></div>
+        <div className="architecture-selector" role="group" aria-label="GPU bellek mimarisi">
+          {MEMORY_ARCHITECTURES.map((item) => <button key={item.id} type="button" aria-pressed={architecture === item.id} onClick={() => { setArchitecture(item.id); setSelectedFeature(null); }}><strong>{item.label}</strong><span>{item.capability}</span></button>)}
+        </div>
+      </div>
+      <div className="memory-feature-grid">
+        {features.map((feature) => (
+          <div className={feature.enabled ? "available" : "unavailable"} key={feature.id}>
+            <button
+              type="button"
+              disabled={!feature.enabled}
+              aria-disabled={!feature.enabled}
+              aria-describedby={`memory-feature-${feature.id}-reason`}
+              aria-pressed={selectedFeature === feature.id}
+              onClick={() => setSelectedFeature(feature.id)}
+            >
+              <span>{feature.enabled ? "KULLANILABİLİR" : "DESTEKLENMİYOR"}</span><strong>{feature.label}</strong>
+            </button>
+            <small id={`memory-feature-${feature.id}-reason`}>{feature.reason ?? feature.detail}</small>
+          </div>
+        ))}
+      </div>
+      <div className="memory-feature-detail" aria-live="polite">
+        <strong>{selected ? selected.label : `${MEMORY_ARCHITECTURES.find((item) => item.id === architecture)?.label} yolu`}</strong>
+        <p>{selected ? selected.detail : "Desteklenen bir özelliği seçerek programlama sorumluluğunu incele. Bu seçim ölçülmüş veya simüle edilmiş bir donanım sonucu üretmez."}</p>
+      </div>
+      <p className="tmem-boundary"><strong>TMEM sınırı:</strong> Tensor Memory, Blackwell Tensor Core akümülatör akışı için uzmanlaşmıştır; yazmaçların veya paylaşılan belleğin genel amaçlı yerine geçmez.</p>
+    </section>
+  );
 }
 
 function HierarchyLab() {
@@ -195,7 +253,7 @@ function CoalescingLab() {
           {result.addresses.map((address, lane) => <div key={lane} className="lane" title={`Thread ${lane}: byte ${address}`}><span>T{String(lane).padStart(2, "0")}</span><strong>{address}</strong></div>)}
         </div>
         <div className="transaction-map">
-          <div className="transaction-summary"><span>BELLEK SEKTÖRLERİ</span><strong>{result.sectors.length} × 32 B</strong><small>{result.sectors.length * 32} byte taşındı · 128 byte istendi</small></div>
+          <div className="transaction-summary" aria-live="polite"><span>BELLEK SEKTÖRLERİ</span><strong>{result.sectors.length} × 32 B</strong><small>{result.sectors.length * 32} byte taşındı · 128 byte istendi</small></div>
           <div className="sector-strip" aria-label={`${result.sectors.length} bellek sektörü kullanılıyor`}>
             {Array.from({ length: Math.min(32, Math.max(...result.sectors) + 1) }, (_, sector) => (
               <div key={sector} className={result.sectors.includes(sector) ? "used" : ""}><span>{sector}</span></div>
@@ -231,7 +289,7 @@ function BankConflictLab() {
           <div><span>BANK EŞLEME DENEYİ</span><h2>Stride değişince bank'lar nasıl dolar?</h2></div>
           <div className={`result-stamp ${result.degree === 1 ? "good" : result.degree <= 4 ? "mid" : "bad"}`}><strong>{result.degree}×</strong><span>{pattern === "broadcast" ? "Broadcast" : result.degree === 1 ? "Çatışmasız" : "Serileşme"}</span></div>
         </div>
-        <div className="stride-control" role="group" aria-label="Shared memory erişim stride değeri">
+        <div className="stride-control" role="group" aria-label="Shared memory erişim stride değeri" tabIndex={0}>
           {(["1", "2", "4", "8", "16", "32", "broadcast"] as BankPattern[]).map((value) => <button key={value} onClick={() => setPattern(value)} className={pattern === value ? "active" : ""} aria-pressed={pattern === value}>{value === "broadcast" ? "Aynı adres" : `Stride ${value}`}</button>)}
         </div>
         <div className="mapping-equation"><span>İŞ PARÇACIĞI <b>t</b></span><i>→</i><code>word[{pattern === "broadcast" ? "0" : `t × ${pattern}`}]</code><i>→</i><span>BANK <b>{pattern === "broadcast" ? "0" : `(t × ${pattern}) % 32`}</b></span></div>
@@ -244,7 +302,7 @@ function BankConflictLab() {
             </div>
           ))}
         </div>
-        <div className="bank-explanation">
+        <div className="bank-explanation" aria-live="polite">
           <div><span>AKTİF BANK</span><strong>{result.counts.filter(Boolean).length} / 32</strong></div>
           <p>{pattern === "broadcast" ? "Tüm thread'ler aynı kelimeyi okuyor: donanım değeri warp'a yayınlar, bank conflict oluşmaz." : result.degree === 1 ? "Her thread ayrı bir bank'a düşüyor. Warp isteği paralel olarak servis edilebilir." : `Her aktif bank ${result.degree} farklı adres isteği alıyor. Donanım erişimi yaklaşık ${result.degree} çatışmasız adıma böler.`}</p>
         </div>
@@ -325,19 +383,19 @@ export default function GpuMemoryEmbedded() {
   const [visited, setVisited] = useState<Set<ModuleId>>(new Set(["hierarchy"]));
   const setActive = (id: ModuleId) => { setActiveState(id); setVisited((previous) => new Set(previous).add(id)); };
   return (
-    <main className="gpu-memory-embed">
+    <section className="gpu-memory-surface" aria-label="GPU bellek laboratuvarı">
       <Header active={active} setActive={setActive} visited={visited} />
       <div className="page-shell">
+        <ArchitectureMemoryGate />
         {active === "hierarchy" && <HierarchyLab />}
         {active === "coalescing" && <CoalescingLab />}
         {active === "banks" && <BankConflictLab />}
         {active === "occupancy" && <OccupancyLab />}
+        <aside className="resource-links" aria-label="GPU bellek kaynakları">
+          <p>Simülasyonlar kavramsal öğrenme içindir; gerçek kernel için ölçüm yap.</p>
+          <div><a href="https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/writing-cuda-kernels.html#memory-performance" target="_blank" rel="noreferrer">CUDA Programming Guide ↗</a><a href="https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/" target="_blank" rel="noreferrer">Best Practices ↗</a></div>
+        </aside>
       </div>
-      <footer>
-        <span>GPU Belleği Etkileşimli Laboratuvarı</span>
-        <p>Simülasyonlar kavramsal öğrenme içindir; gerçek kernel için ölçüm yap.</p>
-        <div><a href="https://docs.nvidia.com/cuda/cuda-programming-guide/02-basics/writing-cuda-kernels.html#memory-performance" target="_blank" rel="noreferrer">CUDA Programming Guide ↗</a><a href="https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/" target="_blank" rel="noreferrer">Best Practices ↗</a></div>
-      </footer>
-    </main>
+    </section>
   );
 }

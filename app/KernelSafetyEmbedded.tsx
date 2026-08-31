@@ -1,8 +1,24 @@
 "use client";
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- Labelled overflow regions must remain keyboard-scrollable. */
 
 import { useMemo, useState } from "react";
 
 type Tool = "memcheck" | "racecheck" | "initcheck" | "synccheck";
+type CorrectnessArchitecture = "ada" | "hopper" | "blackwell";
+
+export const CORRECTNESS_ACCEPTANCE_CLASSES = [
+  { id: "deterministic", label: "Deterministik", detail: "Tekrarlanan çalıştırmalar aynı sınırlı hata bütçesi içinde referansla eşleşmeli." },
+  { id: "nondeterministic", label: "Nondeterministik", detail: "Tek şanslı koşu yerine farklı seed ve zamanlamalarda sınırlı sonuç dağılımını kabul et." },
+  { id: "mutation-alias", label: "Mutasyon / alias", detail: "Hangi girdinin değişebileceğini, hangi çıktının depolamayı alias ettiğini ve hangi sentinel değerlerin sabit kaldığını doğrula." },
+] as const;
+
+export function getCorrectnessArchitectureSupport(architecture: CorrectnessArchitecture) {
+  return { tmemGuardrails: architecture === "blackwell", reason: architecture === "blackwell" ? null : "Tensor Memory korumaları Blackwell · SM100 ailesi yolunu gerektirir." };
+}
+
+export function buildSanitizerCommand(tool: Tool, lineInfo: boolean, exitCode: boolean) {
+  return ["compute-sanitizer", "--tool", tool, lineInfo ? "--show-backtrace yes" : null, exitCode ? "--error-exitcode 99" : null, "./build/kernel_tests"].filter(Boolean).join(" ");
+}
 
 const toolData: Record<Tool, { eyebrow: string; title: string; catches: string; misses: string; command: string; report: string[] }> = {
   memcheck: {
@@ -80,14 +96,18 @@ export default function KernelSafetyEmbedded() {
   const [lineInfo, setLineInfo] = useState(true);
   const [exitCode, setExitCode] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [menu, setMenu] = useState(false);
+  const [acceptanceClass, setAcceptanceClass] = useState<(typeof CORRECTNESS_ACCEPTANCE_CLASSES)[number]["id"]>("deterministic");
+  const [architecture, setArchitecture] = useState<CorrectnessArchitecture>("ada");
+  const [tmemSelected, setTmemSelected] = useState(false);
 
   const s = scenarios[scenario];
   const absoluteError = Math.abs(s.actual - s.expected);
   const threshold = s.atol + s.rtol * Math.abs(s.expected);
   const passes = absoluteError <= threshold;
   const score = useMemo(() => questions.reduce((sum, q, i) => sum + (answers[i] === q.correct ? 1 : 0), 0), [answers]);
-  const command = `compute-sanitizer --tool ${tool}${lineInfo ? " --show-backtrace yes" : ""}${exitCode ? " --error-exitcode 99" : ""} ./build/kernel_tests`;
+  const command = buildSanitizerCommand(tool, lineInfo, exitCode);
+  const selectedAcceptance = CORRECTNESS_ACCEPTANCE_CLASSES.find((item) => item.id === acceptanceClass) ?? CORRECTNESS_ACCEPTANCE_CLASSES[0];
+  const architectureSupport = getCorrectnessArchitectureSupport(architecture);
 
   const copyCommand = async () => {
     try { await navigator.clipboard.writeText(command); } catch { /* clipboard may be unavailable in preview */ }
@@ -96,28 +116,11 @@ export default function KernelSafetyEmbedded() {
   };
 
   return (
-    <main className="kernel-safety-embed">
-      <header className="topbar">
-        <a className="brand" href="#top" aria-label="Kernel Güvenlik Laboratuvarı ana sayfa">
-          <span className="brand-mark">K<span>✓</span></span>
-          <span><b>KERNEL GÜVENLİK</b><small>doğruluk laboratuvarı</small></span>
-        </a>
-        <nav className={menu ? "nav open" : "nav"} aria-label="Ana menü">
-          <a href="#dogruluk" onClick={() => setMenu(false)}>Doğruluk</a>
-          <a href="#sanitizer" onClick={() => setMenu(false)}>Sanitizer</a>
-          <a href="#is-akisi" onClick={() => setMenu(false)}>İş akışı</a>
-          <a href="#sinav" onClick={() => setMenu(false)}>Sınav</a>
-        </nav>
-        <div className="top-actions">
-          <span className="status"><i /> CUDA ARAÇ KİTİ</span>
-          <button className="menu-button" onClick={() => setMenu(!menu)} aria-expanded={menu} aria-label="Menüyü aç">≡</button>
-        </div>
-      </header>
-
-      <section className="hero" id="top">
+    <section className="kernel-safety-surface" id="top" aria-labelledby="kernel-safety-title">
+      <section className="hero">
         <div className="hero-copy">
           <div className="kicker"><span>GPU KERNEL MÜHENDİSLİĞİ</span><i /> MODÜL 03</div>
-          <h1>Hızlı olması yetmez.<br /><em>Doğru</em> olduğunu kanıtla.</h1>
+          <h2 id="kernel-safety-title">Hızlı olması yetmez.<br /><em>Doğru</em> olduğunu kanıtla.</h2>
           <p>GPU kernel doğruluğunu; referans uygulama, tolerans matrisi, uç durumlar ve NVIDIA Compute Sanitizer ile sistematik biçimde test etmeyi öğren.</p>
           <div className="hero-actions">
             <a className="primary" href="#dogruluk">Laboratuvara başla <span>↓</span></a>
@@ -126,7 +129,7 @@ export default function KernelSafetyEmbedded() {
         </div>
         <div className="hero-terminal" aria-label="Örnek başarılı test çıktısı">
           <div className="terminal-head"><span><i /><i /><i /></span><code>kernel_tests — zsh</code><b>GEÇTİ</b></div>
-          <pre><span className="muted">$</span> pytest tests/test_rmsnorm.py -q{`\n`}
+          <pre tabIndex={0} aria-label="Test terminali"><span className="muted">$</span> pytest tests/test_rmsnorm.py -q{`\n`}
 <span className="cyan">test_forward_fp32</span>      <span className="green">GEÇTİ</span>{`\n`}
 <span className="cyan">test_odd_shapes</span>         <span className="green">GEÇTİ</span>{`\n`}
 <span className="cyan">test_noncontiguous</span>      <span className="green">GEÇTİ</span>{`\n`}
@@ -141,6 +144,20 @@ export default function KernelSafetyEmbedded() {
         <article><span>01</span><div><b>SAYISAL</b><p>Referansa yeterince yakın mı?</p></div></article>
         <article><span>02</span><div><b>BELLEK</b><p>Her erişim geçerli ve başlatılmış mı?</p></div></article>
         <article><span>03</span><div><b>EŞZAMANLILIK</b><p>Thread sırası sonucu değiştirebilir mi?</p></div></article>
+      </section>
+
+      <section className="section task3-correctness" aria-labelledby="acceptance-classes-heading">
+        <div className="section-title"><div><span className="chapter">KABUL MODELİ</span><h2 id="acceptance-classes-heading">Tek sonucu okumadan önce <em>sözleşmeyi sınıflandır</em></h2></div><p>Sayısal karşılaştırma, tekrarlanabilirlik ve depolama semantiği ayrı kanıtlardır. Yerel Python ana makine çağrı yığını desteği cihaz raporunu Python çağrı zincirine bağlar.</p></div>
+        <div className="correctness-acceptance-lab">
+          <div className="acceptance-class-options" role="group" aria-label="Doğruluk kabul sınıfları">{CORRECTNESS_ACCEPTANCE_CLASSES.map((item) => <button key={item.id} aria-pressed={acceptanceClass === item.id} onClick={() => setAcceptanceClass(item.id)}>{item.label}</button>)}</div>
+          <p className="acceptance-class-detail" aria-live="polite"><strong>{selectedAcceptance.label}</strong>{selectedAcceptance.detail}</p>
+        </div>
+        <div className="correctness-architecture-gate">
+          <div className="architecture-selector" role="group" aria-label="Doğruluk mimarisi">{([['ada','Ada · SM89'],['hopper','Hopper · SM90'],['blackwell','Blackwell · SM100 ailesi']] as const).map(([id,label]) => <button key={id} aria-pressed={architecture === id} onClick={() => { setArchitecture(id); setTmemSelected(false); }}>{label}</button>)}</div>
+          <div className="tmem-gate"><button disabled={!architectureSupport.tmemGuardrails} aria-disabled={!architectureSupport.tmemGuardrails} aria-pressed={tmemSelected} aria-describedby={!architectureSupport.tmemGuardrails ? "tmem-disabled-reason" : undefined} onClick={() => setTmemSelected(true)}>Tensor Memory korumaları</button></div>
+          {!architectureSupport.tmemGuardrails && <p id="tmem-disabled-reason" className="gate-reason">{architectureSupport.reason}</p>}
+          <p className="tmem-detail" aria-live="polite">{tmemSelected ? "PTXAS derlemesine -g-tmem-access-check ekle; ardından sınır dışı, hizasız, tahsis edilmemiş veya bırakılmış Tensor Memory erişimini memcheck ile tara." : "-g-tmem-access-check ayrıntısı için Blackwell yolunu seç; bu donanım-özgü kapı simüle edilmiş sonuç üretmez."}</p>
+        </div>
       </section>
 
       <section className="section" id="dogruluk">
@@ -158,8 +175,8 @@ export default function KernelSafetyEmbedded() {
         <div className="lab-grid">
           <article className="tolerance-lab">
             <div className="lab-head"><div><span>ETKİLEŞİMLİ LAB</span><h3>Tolerans kararını gör</h3></div><b className={passes ? "pass-badge" : "fail-badge"}>{passes ? "PASS" : "FAIL"}</b></div>
-            <div className="scenario-tabs" role="tablist" aria-label="Test senaryoları">
-              {scenarios.map((item, i) => <button role="tab" aria-selected={scenario === i} className={scenario === i ? "active" : ""} key={item.name} onClick={() => setScenario(i)}>{item.name}</button>)}
+            <div className="scenario-tabs" role="group" aria-label="Test senaryoları">
+              {scenarios.map((item, i) => <button aria-pressed={scenario === i} className={scenario === i ? "active" : ""} key={item.name} onClick={() => setScenario(i)}>{item.name}</button>)}
             </div>
             <div className="number-pair">
               <label>REFERANS <output>{s.expected}</output></label>
@@ -196,8 +213,8 @@ export default function KernelSafetyEmbedded() {
           <p>Her araç farklı bir hata sınıfına bakar. Temiz bir memcheck koşusu, diğer araçların ön koşuludur; hepsinin temiz olması yine de matematiksel doğruluğu garanti etmez.</p>
         </div>
         <div className="tool-shell">
-          <div className="tool-tabs" role="tablist" aria-label="Compute Sanitizer araçları">
-            {(Object.keys(toolData) as Tool[]).map((key) => <button key={key} role="tab" aria-selected={tool === key} className={tool === key ? "active" : ""} onClick={() => setTool(key)}><span>{toolData[key].eyebrow}</span>{key}</button>)}
+          <div className="tool-tabs" role="group" aria-label="Compute Sanitizer araçları">
+            {(Object.keys(toolData) as Tool[]).map((key) => <button key={key} aria-pressed={tool === key} className={tool === key ? "active" : ""} onClick={() => setTool(key)}><span>{toolData[key].eyebrow}</span>{key}</button>)}
           </div>
           <div className="tool-body">
             <div className="tool-explain">
@@ -205,11 +222,11 @@ export default function KernelSafetyEmbedded() {
               <h3>{toolData[tool].title}</h3>
               <div className="explain-row"><b className="good">YAKALAR</b><p>{toolData[tool].catches}</p></div>
               <div className="explain-row"><b className="bad">YAKALAMAZ</b><p>{toolData[tool].misses}</p></div>
-              <div className="code-line"><code>{toolData[tool].command}</code></div>
+              <div className="code-line" tabIndex={0} aria-label="Sanitizer komutu"><code>{toolData[tool].command}</code></div>
             </div>
             <div className="report-window">
               <div className="report-head"><span>compute-sanitizer report</span><b>örnek çıktı</b></div>
-              <pre>{toolData[tool].report.map((line, i) => <span key={line} className={i === 0 ? "report-error" : ""}>========= {line}{`\n`}</span>)}</pre>
+              <pre tabIndex={0} aria-label="Sanitizer raporu">{toolData[tool].report.map((line, i) => <span key={line} className={i === 0 ? "report-error" : ""}>========= {line}{`\n`}</span>)}</pre>
               <div className="report-summary">========= ERROR SUMMARY: <b>1 error</b></div>
             </div>
           </div>
@@ -221,7 +238,7 @@ export default function KernelSafetyEmbedded() {
             <label><input type="checkbox" checked={lineInfo} onChange={(e) => setLineInfo(e.target.checked)} /><span /> Backtrace göster</label>
             <label><input type="checkbox" checked={exitCode} onChange={(e) => setExitCode(e.target.checked)} /><span /> Hatada exit 99</label>
           </div>
-          <div className="generated-command"><code>{command}</code><button onClick={copyCommand}>{copied ? "Kopyalandı ✓" : "Kopyala"}</button></div>
+          <div className="generated-command"><code tabIndex={0} aria-label="Üretilen komut">{command}</code><button onClick={copyCommand}>{copied ? "Kopyalandı ✓" : "Kopyala"}</button></div>
           <p><b>Derleme notu:</b> Kaynak satırı eşlemesi için debug build yerine genellikle <code>-lineinfo</code> ekle; optimizasyon davranışını korurken raporu okunur kılar.</p>
         </article>
       </section>
@@ -249,18 +266,16 @@ export default function KernelSafetyEmbedded() {
       </section>
 
       <section className="quiz-section" id="sinav">
-        <div className="quiz-intro"><span className="chapter">BÖLÜM 04</span><h2>Hazır mısın?<br /><em>Karar ver.</em></h2><p>Dört kısa senaryo. Amaç komut ezberlemek değil, doğru kanıt aracını seçmek.</p>{checked && <div className="score"><b>{score}/4</b><span>{score === 4 ? "Kernel reviewer modu açıldı." : "Yanıtları incele, sonra tekrar dene."}</span></div>}</div>
+        <div className="quiz-intro"><span className="chapter">BÖLÜM 04</span><h2>Hazır mısın?<br /><em>Karar ver.</em></h2><p>Dört kısa senaryo. Amaç komut ezberlemek değil, doğru kanıt aracını seçmek.</p><div className="score" aria-live="polite" hidden={!checked}>{checked ? <><b>{score}/4</b><span>{score === 4 ? "Kernel reviewer modu açıldı." : "Yanıtları incele, sonra tekrar dene."}</span></> : null}</div></div>
         <div className="questions">
           {questions.map((q, qi) => <fieldset key={q.q}><legend><span>{qi + 1}</span>{q.q}</legend>{q.a.map((answer, ai) => <label key={answer} className={checked ? (ai === q.correct ? "correct" : answers[qi] === ai ? "wrong" : "") : ""}><input type="radio" name={`q-${qi}`} checked={answers[qi] === ai} onChange={() => { setAnswers({ ...answers, [qi]: ai }); setChecked(false); }} /><i />{answer}</label>)}</fieldset>)}
           <button className="quiz-button" disabled={Object.keys(answers).length !== questions.length} onClick={() => setChecked(true)}>Yanıtları değerlendir <span>→</span></button>
         </div>
       </section>
 
-      <footer>
-        <div className="brand footer-brand"><span className="brand-mark">K<span>✓</span></span><span><b>KERNEL GÜVENLİK</b><small>doğruluk laboratuvarı</small></span></div>
+      <aside className="resources" aria-label="Kaynaklar">
         <p>Kaynak: <a href="https://docs.nvidia.com/compute-sanitizer/ComputeSanitizer/index.html" target="_blank" rel="noreferrer">NVIDIA Compute Sanitizer</a> · <a href="https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/" target="_blank" rel="noreferrer">CUDA Best Practices</a></p>
-        <span className="footer-note">ÖĞREN · TEST ET · KANITLA</span>
-      </footer>
-    </main>
+      </aside>
+    </section>
   );
 }
