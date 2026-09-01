@@ -1,12 +1,37 @@
 "use client";
 
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- The labelled CUDA sample remains keyboard-scrollable on narrow screens. */
+
 import { useMemo, useState } from "react";
+import { curriculumSources } from "./atlas/curriculum-sources";
 
 type Tab = "overview" | "architecture" | "simt" | "memory" | "lab" | "latency" | "occupancy" | "quiz";
 type ArchLevel = "grid" | "block" | "warp" | "thread" | "instruction";
 type MemoryLevel = "register" | "shared" | "l2" | "global";
 type Predicate = "cutoff" | "even" | "quarter" | "uniform";
 type Pattern = "contiguous" | "stride2" | "stride4" | "broadcast";
+type ArchitectureId = "ada" | "hopper" | "blackwell";
+
+export const CUDA_PROGRAMMING_BRIDGE = [
+  { id: "thread", title: "İş parçacığı / şerit", body: "SIMT kernel’de her lane kendi indeksini, denetim akışını ve register durumunu taşır." },
+  { id: "warp", title: "Warp işbirliği", body: "32 lane ortak instruction akışında; aktif maske, coalescing ve warp-level primitive’lerle işbirliği yapar." },
+  { id: "tile", title: "Tile işlemi", body: "Programcı çok boyutlu bir veri döşemesini yükler, dönüştürür ve saklar; thread eşlemesini tek tek yazmaz." },
+  { id: "mapping", title: "Derleyici / runtime eşlemesi", body: "CUDA Tile IR ve derleyici tile işlemlerini block içindeki thread’lere ve uygun donanım yollarına eşler." },
+] as const;
+
+export const CUDA_TILE_MATURITY = { cudaTile: "current", cuTile: "current" } as const;
+
+const architectureSources = ["cuda-guide", "cuda-tile", "cuda-tile-nvcc-13-3", "cutile-python-1-5-release"].map((id) => {
+  const source = curriculumSources.find((candidate) => candidate.id === id);
+  if (!source) throw new Error(`Missing architecture source: ${id}`);
+  return source;
+});
+
+export function getCudaArchitectureSupport(architecture: ArchitectureId) {
+  return architecture === "ada"
+    ? { tma: false, reason: "TMA bulk tensor kopyaları Hopper / SM90 ve daha yeni compute capability gerektirir." }
+    : { tma: true, reason: null };
+}
 
 const tabs: { id: Tab; label: string }[] = [
   { id: "overview", label: "1 · Büyük resim" },
@@ -101,6 +126,7 @@ export default function CudaSimtEmbedded() {
   const [occBlockSize, setOccBlockSize] = useState(256);
   const [regsPerThread, setRegsPerThread] = useState(32);
   const [sharedPerBlock, setSharedPerBlock] = useState(0);
+  const [selectedArchitecture, setSelectedArchitecture] = useState<ArchitectureId>("ada");
 
   const laneTakesA = (lane: number) => {
     if (predicate === "cutoff") return lane < cutoff;
@@ -126,6 +152,7 @@ export default function CudaSimtEmbedded() {
   const validThreadsInLastBlock = n - (blocks - 1) * blockSize;
   const lastWarpStart = (warpsPerBlock - 1) * 32;
   const lastWarpActive = Math.max(0, Math.min(32, validThreadsInLastBlock - lastWarpStart));
+  const architectureSupport = getCudaArchitectureSupport(selectedArchitecture);
 
   const period = computeCycles + latency;
   const neededWarps = Math.ceil(period / computeCycles);
@@ -154,26 +181,26 @@ export default function CudaSimtEmbedded() {
   const occMinBlocks = Math.min(...occLimits.map((l) => l.blocks));
 
   return (
-    <main className="cuda-simt-embed atlas-shell">
-      <header className="hero">
+    <section className="cuda-simt-surface atlas-shell" aria-label="CUDA SIMT laboratuvarı">
+      <div className="hero">
         <div>
           <p className="eyebrow">ETKİLEŞİMLİ GPU ZİHİNSEL MODELİ</p>
-          <h1>Bilgisayar Mimarisi <span>→</span> SIMT <span>→</span> CUDA</h1>
+          <h2>Bilgisayar Mimarisi <span>→</span> SIMT <span>→</span> CUDA</h2>
           <p className="hero-copy">Bir kernel çağrısının CPU’dan başlayıp warp, bellek ve SM zamanlayıcısına uzanan yolculuğu.</p>
         </div>
         <div className="hero-chip" aria-label="Öğrenme rotası">
           <span>ANA SİSTEM</span><i>→</i><span>IZGARA</span><i>→</i><span>WARP</span><i>→</i><span>ŞERİT</span>
         </div>
-      </header>
+      </div>
 
-      <div className="tabs" role="tablist" aria-label="CUDA öğrenme bölümleri">
+      <div className="tabs" role="group" aria-label="CUDA öğrenme bölümleri">
         {tabs.map((item) => (
-          <button key={item.id} type="button" role="tab" aria-selected={tab === item.id} onClick={() => setTab(item.id)}>{item.label}</button>
+          <button key={item.id} type="button" aria-pressed={tab === item.id} onClick={() => setTab(item.id)}>{item.label}</button>
         ))}
       </div>
 
       {tab === "overview" && (
-        <section className="panel-stack" role="tabpanel">
+        <section className="panel-stack">
           <SectionHead title="Heterojen sistem: kontrol CPU’da, paralel iş GPU’da" subtitle="Host kodu kernel’i başlatır; device kodu binlerce thread olarak çalışır." badge="Ana sistem + Aygıt" />
           <div className="flow" aria-label="CPU'dan GPU'ya yürütme akışı">
             <FlowNode tone="blue" title="CPU · Ana sistem" copy="Seri kontrol, I/O, kernel çalıştırma, bellek orkestrasyonu" />
@@ -187,6 +214,41 @@ export default function CudaSimtEmbedded() {
               <div className="launch-step" key={title}><em>{index + 1}</em><div><strong>{title}</strong><span>{copy}</span></div></div>
             ))}
           </div>
+          <section className="tile-bridge" aria-labelledby="tile-bridge-title">
+            <div className="tile-bridge-heading">
+              <div><span>SIMT → TILE KÖPRÜSÜ</span><h3 id="tile-bridge-title">Aynı donanım, iki tamamlayıcı programlama modeli</h3></div>
+              <div className="architecture-picker" role="group" aria-label="TMA uygulanabilirliği için mimari">
+                {(["ada", "hopper", "blackwell"] as ArchitectureId[]).map((architecture) => (
+                  <button key={architecture} type="button" aria-pressed={selectedArchitecture === architecture} onClick={() => setSelectedArchitecture(architecture)}>{architecture === "ada" ? "Ada · SM89" : architecture === "hopper" ? "Hopper · SM90" : "Blackwell"}</button>
+                ))}
+              </div>
+            </div>
+            <div className="tile-bridge-stages">
+              {CUDA_PROGRAMMING_BRIDGE.map((stage, index) => <article key={stage.id}><span>0{index + 1}</span><h4>{stage.title}</h4><p>{stage.body}</p></article>)}
+            </div>
+            <div className="tile-bridge-notes">
+              <p><strong>Model sınırı:</strong> Tile programlama SIMT&apos;nin yerini almaz; thread düzeyi denetim gereken kerneller için SIMT kalır, tile modeli block düzeyi veri-paralel işi tamamlar.</p>
+              <p className={architectureSupport.tma ? "supported" : "unsupported"} aria-live="polite"><strong>TMA · {architectureSupport.tma ? "uygulanabilir" : "desteklenmiyor"}</strong>{architectureSupport.tma ? "Bulk asenkron tensor kopyası ve tensor map tanımlayıcıları bu mimari yolunda kullanılabilir." : architectureSupport.reason}</p>
+              <p data-version-claim="cuda-13.3" data-source-id="cuda-tile-nvcc-13-3"><strong>Güncel · CUDA 13.3:</strong> NVCC, <code>-enable-tile</code> ile isteğe bağlı Tile derlemesi ekler; kurulu toolkit, sürücü ve GPU önkoşullarını ayrıca doğrula.</p>
+              <p data-version-claim="cutile-1.5" data-source-id="cutile-python-1-5-release"><strong>Güncel · cuTile Python 1.5:</strong> sürümlenmiş paket doğrudan sürüm notlarında belgelenir; paket ve platform önkoşullarını ayrıca doğrula.</p>
+            </div>
+            <div className="architecture-source-evidence">
+              <div className="architecture-source-heading">
+                <span>MİMARİ KAYNAK KANITI</span>
+                <h3>Her model sınırını doğrudan, sürüm-bağlamlı kaynağıyla izle</h3>
+              </div>
+              <div className="architecture-source-cards">
+                {architectureSources.map((source) => (
+                  <article key={source.id} data-source-id={source.id} data-maturity={source.maturity}>
+                    <span>GÜNCEL</span>
+                    <h4><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a></h4>
+                    <p><strong>Uygulanabilirlik:</strong> {source.id === "cuda-guide" ? "Grid, block, warp, thread ve SIMT sınırları için birinci taraf başvuru kaynağıdır." : source.id === "cuda-tile" ? "Tile programlama yönü için tarihsel CUDA 13.1 bağlamıdır; sonraki sürüm iddialarını kanıtlamaz." : source.id === "cuda-tile-nvcc-13-3" ? "CUDA 13.3 Tile derlemesi ve -enable-tile için doğrudan NVCC kanıtıdır." : "cuTile Python 1.5 paketi için doğrudan sürüm kanıtıdır."}</p>
+                    <p><strong>Durum:</strong> {source.verifiedAt} tarihinde doğrulanmış Güncel kaynaktır; hedef toolkit, sürücü ve GPU koşullarını kaynak sürümüne göre ayrıca doğrula.</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
           <div className="compare-grid">
             <Compare title="CPU tasarım önceliği" rows={[["Amaç", "Düşük gecikme"], ["Çekirdek", "Az sayıda, karmaşık"], ["Kontrol", "Branch prediction + out-of-order"], ["İdeal iş", "Seri akış, düzensiz kontrol, OS / I/O"]]} />
             <Compare title="GPU tasarım önceliği" rows={[["Amaç", "Yüksek throughput"], ["Çekirdek", "Çok sayıda paralel yürütme kaynağı"], ["Kontrol", "Warp çokluğu ile latency hiding"], ["İdeal iş", "Düzenli, veri-paralel, aritmetik yoğun"]]} />
@@ -196,7 +258,7 @@ export default function CudaSimtEmbedded() {
       )}
 
       {tab === "architecture" && (
-        <section className="panel-stack" role="tabpanel">
+        <section className="panel-stack">
           <SectionHead title="Programlama hiyerarşisi donanıma nasıl oturur?" subtitle="Bir düzeyi seç; kapsamı, çalışma birimini ve donanım karşılığını izle." badge={`Seçili: ${archData[arch].label}`} />
           <div className="arch-layout">
             <div className="choice-rail">
@@ -220,7 +282,7 @@ export default function CudaSimtEmbedded() {
       )}
 
       {tab === "simt" && (
-        <section className="panel-stack" role="tabpanel">
+        <section className="panel-stack">
           <SectionHead title="SIMT: tek instruction, 32 bağımsız thread durumu" subtitle="Her lane farklı veriye ve register durumuna sahip; warp ortak instruction akışını issue eder." badge="Warp = 32 iş parçacığı" />
           <div className="controls">
             <label>Predicate<select value={predicate} onChange={(e) => { setPredicate(e.target.value as Predicate); setPhase(0); }}><option value="cutoff">lane &lt; eşik</option><option value="even">lane % 2 == 0</option><option value="quarter">lane % 4 == 0</option><option value="uniform">tüm lane’ler true</option></select></label>
@@ -247,7 +309,7 @@ export default function CudaSimtEmbedded() {
       )}
 
       {tab === "memory" && (
-        <section className="panel-stack" role="tabpanel">
+        <section className="panel-stack">
           <SectionHead title="Bellek hiyerarşisi + coalescing" subtitle="Hız kadar kapsam, kapasite, erişim düzeni ve yeniden kullanım da önemlidir." badge="Yakın → uzak" />
           <div className="memory-layout">
             <div className="memory-stack">
@@ -267,7 +329,7 @@ export default function CudaSimtEmbedded() {
       )}
 
       {tab === "lab" && (
-        <section className="panel-stack" role="tabpanel">
+        <section className="panel-stack">
           <SectionHead title="Kernel Lab: problem boyutunu grid’e dönüştür" subtitle="1D örnek: her thread bir elementi işler; sınır kontrolü son block’u güvenli tutar." badge="i = blockIdx.x × blockDim.x + threadIdx.x" />
           <div className="lab-layout">
             <div className="lab-controls">
@@ -304,7 +366,7 @@ export default function CudaSimtEmbedded() {
             <Stat label="Tam gizleme için warp" value={String(neededWarps)} />
             <Stat label="Periyot" value={period + " çevrim"} />
           </div>
-          <div className="latency-timeline">
+          <div className="latency-timeline" tabIndex={0} role="region" aria-label="Warp gecikme zaman çizelgesi">
             {Array.from({ length: warps }, (_, w) => (
               <div className="latency-row" key={w}>
                 <span className="latency-label">W{w}</span>
@@ -356,7 +418,7 @@ export default function CudaSimtEmbedded() {
           <Quiz questions={quizQuestions} />
         </section>
       )}
-    </main>
+    </section>
   );
 }
 
@@ -385,7 +447,7 @@ function KernelCode({ n, blockSize, blocks }: { n: number; blockSize: number; bl
     "\n",
     "scale_kernel<<<", { hl: String(blocks) }, ", ", { hl: String(blockSize) }, ">>>(d_x, d_y, 2.0f, ", { hl: String(n) }, ");\n",
   ];
-  return <pre className="kernel-code"><code>{segs.map((seg, i) => typeof seg === "string" ? seg : <span key={i} className="hl">{seg.hl}</span>)}</code></pre>;
+  return <pre className="kernel-code" tabIndex={0} aria-label="CUDA kernel kod örneği"><code>{segs.map((seg, i) => typeof seg === "string" ? seg : <span key={i} className="hl">{seg.hl}</span>)}</code></pre>;
 }
 function Quiz({ questions }: { questions: QuizQuestion[] }) {
   const [answers, setAnswers] = useState<Record<number, number>>({});

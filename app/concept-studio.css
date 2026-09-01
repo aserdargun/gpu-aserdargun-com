@@ -317,7 +317,7 @@
 .st-ring-arrow.a3 { bottom: 42%; left: 50%; transform: translate(-50%, 50%); }
 .st-ring-arrow.a4 { left: 14px; top: 50%; transform: translateY(-50%); }
 
-@media (max-width: 1020px) {
+@media (max-width: 1180px) {
   .cs-frame { grid-template-columns: 1fr; }
   .cs-stage { min-height: 460px; }
   .cs-head { grid-template-columns: 1fr; gap: 14px; }
@@ -325,6 +325,8 @@
 
 @media (max-width: 640px) {
   .cs-lanes { grid-template-columns: repeat(16, 1fr); }
+  .st-sectors { grid-template-columns: repeat(8, 1fr); }
+  .st-mats { flex-direction: column; gap: 26px; }
   .cs-flow, .st-gemm-lower, .st-corr-cols, .st-slots, .st-triton, .st-sms, .st-meters, .st-meters.prof { grid-template-columns: 1fr; }
   .st-sms { gap: 8px; }
   .st-launch { flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: wrap; }

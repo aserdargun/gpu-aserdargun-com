@@ -1,8 +1,24 @@
 "use client";
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- Labelled overflow regions must remain keyboard-scrollable. */
 
 import { useMemo, useState } from "react";
 
 type Tool = "memcheck" | "racecheck" | "initcheck" | "synccheck";
+type CorrectnessArchitecture = "ada" | "hopper" | "blackwell";
+
+export const CORRECTNESS_ACCEPTANCE_CLASSES = [
+  { id: "deterministic", label: "Deterministic", detail: "Repeated runs must match the reference within the same bounded error budget." },
+  { id: "nondeterministic", label: "Nondeterministic", detail: "Accept a bounded result distribution across seeds and repeated schedules, not one lucky run." },
+  { id: "mutation-alias", label: "Mutation / alias", detail: "Assert which inputs may mutate, which outputs alias storage, and which sentinels remain unchanged." },
+] as const;
+
+export function getCorrectnessArchitectureSupport(architecture: CorrectnessArchitecture) {
+  return { tmemGuardrails: architecture === "blackwell", reason: architecture === "blackwell" ? null : "Tensor Memory guardrails require the Blackwell · SM100-family path." };
+}
+
+export function buildSanitizerCommand(tool: Tool, lineInfo: boolean, exitCode: boolean) {
+  return ["compute-sanitizer", "--tool", tool, lineInfo ? "--show-backtrace yes" : null, exitCode ? "--error-exitcode 99" : null, "./build/kernel_tests"].filter(Boolean).join(" ");
+}
 
 const toolData: Record<Tool, { eyebrow: string; title: string; catches: string; misses: string; command: string; report: string[] }> = {
   memcheck: {
@@ -80,14 +96,18 @@ export default function KernelSafetyEmbedded() {
   const [lineInfo, setLineInfo] = useState(true);
   const [exitCode, setExitCode] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [menu, setMenu] = useState(false);
+  const [acceptanceClass, setAcceptanceClass] = useState<(typeof CORRECTNESS_ACCEPTANCE_CLASSES)[number]["id"]>("deterministic");
+  const [architecture, setArchitecture] = useState<CorrectnessArchitecture>("ada");
+  const [tmemSelected, setTmemSelected] = useState(false);
 
   const s = scenarios[scenario];
   const absoluteError = Math.abs(s.actual - s.expected);
   const threshold = s.atol + s.rtol * Math.abs(s.expected);
   const passes = absoluteError <= threshold;
   const score = useMemo(() => questions.reduce((sum, q, i) => sum + (answers[i] === q.correct ? 1 : 0), 0), [answers]);
-  const command = `compute-sanitizer --tool ${tool}${lineInfo ? "--show-backtrace yes" : ""}${exitCode ? "--error-exitcode 99" : ""} ./build/kernel_tests`;
+  const command = buildSanitizerCommand(tool, lineInfo, exitCode);
+  const selectedAcceptance = CORRECTNESS_ACCEPTANCE_CLASSES.find((item) => item.id === acceptanceClass) ?? CORRECTNESS_ACCEPTANCE_CLASSES[0];
+  const architectureSupport = getCorrectnessArchitectureSupport(architecture);
 
   const copyCommand = async () => {
     try { await navigator.clipboard.writeText(command); } catch { /* clipboard may be unavailable in preview */ }
@@ -96,28 +116,11 @@ export default function KernelSafetyEmbedded() {
   };
 
   return (
-    <main className="kernel-safety-embed">
-      <header className="topbar">
-        <a className="brand" href="#top" aria-label="Kernel Safety Lab home page">
-          <span className="brand-mark">K<span>✓</span></span>
-          <span><b>KERNEL SAFETY</b><small>correctness lab</small></span>
-        </a>
-        <nav className={menu ? "nav open" : "nav"} aria-label="Main menu">
-          <a href="#correctness" onClick={() => setMenu(false)}>Correctness</a>
-          <a href="#sanitizer" onClick={() => setMenu(false)}>Sanitizer</a>
-          <a href="#workflow" onClick={() => setMenu(false)}>Workflow</a>
-          <a href="#quiz" onClick={() => setMenu(false)}>Quiz</a>
-        </nav>
-        <div className="top-actions">
-          <span className="status"><i /> CUDA TOOLKIT</span>
-          <button className="menu-button" onClick={() => setMenu(!menu)} aria-expanded={menu} aria-label="Open menu">≡</button>
-        </div>
-      </header>
-
-      <section className="hero" id="top">
+    <section className="kernel-safety-surface" id="top" aria-labelledby="kernel-safety-title">
+      <section className="hero">
         <div className="hero-copy">
           <div className="kicker"><span>GPU KERNEL ENGINEERING</span><i /> MODULE 03</div>
-          <h1>Being fast isn't enough.<br />Prove that it is <em>correct.</em></h1>
+          <h2 id="kernel-safety-title">Being fast isn't enough.<br />Prove that it is <em>correct.</em></h2>
           <p>Learn how to test GPU kernels systematically with a reference implementation, tolerance matrix, edge cases, and NVIDIA Compute Sanitizer.</p>
           <div className="hero-actions">
             <a className="primary" href="#correctness">Start lab <span>↓</span></a>
@@ -126,7 +129,7 @@ export default function KernelSafetyEmbedded() {
         </div>
         <div className="hero-terminal" aria-label="Example successful test output">
           <div className="terminal-head"><span><i /><i /><i /></span><code>kernel_tests — zsh</code><b>PASS</b></div>
-          <pre><span className="muted">$</span> pytest tests/test_rmsnorm.py -q{`\n`}
+          <pre tabIndex={0} aria-label="Test terminal"><span className="muted">$</span> pytest tests/test_rmsnorm.py -q{`\n`}
 <span className="cyan">test_forward_fp32</span>      <span className="green">PASSED</span>{`\n`}
 <span className="cyan">test_odd_shapes</span>         <span className="green">PASSED</span>{`\n`}
 <span className="cyan">test_noncontiguous</span>      <span className="green">PASSED</span>{`\n`}
@@ -141,6 +144,20 @@ export default function KernelSafetyEmbedded() {
         <article><span>01</span><div><b>NUMERICAL</b><p>Is it close enough to the reference?</p></div></article>
         <article><span>02</span><div><b>MEMORY</b><p>Is every access valid and initialized?</p></div></article>
         <article><span>03</span><div><b>CONCURRENCY</b><p>Can thread order change the result?</p></div></article>
+      </section>
+
+      <section className="section task3-correctness" aria-labelledby="acceptance-classes-heading">
+        <div className="section-title"><div><span className="chapter">ACCEPTANCE MODEL</span><h2 id="acceptance-classes-heading">Classify the contract before reading <em>one result</em></h2></div><p>Numerical comparison, repeatability, and storage semantics are separate evidence. Native Python host backtrace support helps connect a device report to its Python call stack.</p></div>
+        <div className="correctness-acceptance-lab">
+          <div className="acceptance-class-options" role="group" aria-label="Correctness acceptance classes">{CORRECTNESS_ACCEPTANCE_CLASSES.map((item) => <button key={item.id} aria-pressed={acceptanceClass === item.id} onClick={() => setAcceptanceClass(item.id)}>{item.label}</button>)}</div>
+          <p className="acceptance-class-detail" aria-live="polite"><strong>{selectedAcceptance.label}</strong>{selectedAcceptance.detail}</p>
+        </div>
+        <div className="correctness-architecture-gate">
+          <div className="architecture-selector" role="group" aria-label="Correctness architecture">{([['ada','Ada · SM89'],['hopper','Hopper · SM90'],['blackwell','Blackwell · SM100 family']] as const).map(([id,label]) => <button key={id} aria-pressed={architecture === id} onClick={() => { setArchitecture(id); setTmemSelected(false); }}>{label}</button>)}</div>
+          <div className="tmem-gate"><button disabled={!architectureSupport.tmemGuardrails} aria-disabled={!architectureSupport.tmemGuardrails} aria-pressed={tmemSelected} aria-describedby={!architectureSupport.tmemGuardrails ? "tmem-disabled-reason" : undefined} onClick={() => setTmemSelected(true)}>Tensor Memory guardrails</button></div>
+          {!architectureSupport.tmemGuardrails && <p id="tmem-disabled-reason" className="gate-reason">{architectureSupport.reason}</p>}
+          <p className="tmem-detail" aria-live="polite">{tmemSelected ? "Compile PTXAS with -g-tmem-access-check, then use memcheck for out-of-bounds, misaligned, unallocated, or relinquished Tensor Memory access." : "Select the Blackwell path to inspect -g-tmem-access-check; this hardware-specific gate does not create a simulated result."}</p>
+        </div>
       </section>
 
       <section className="section" id="correctness">
@@ -158,8 +175,8 @@ export default function KernelSafetyEmbedded() {
         <div className="lab-grid">
           <article className="tolerance-lab">
             <div className="lab-head"><div><span>INTERACTIVE LAB</span><h3>See tolerance decision</h3></div><b className={passes ? "pass-badge" : "fail-badge"}>{passes ? "PASS" : "FAIL"}</b></div>
-            <div className="scenario-tabs" role="tablist" aria-label="Test scenarios">
-              {scenarios.map((item, i) => <button role="tab" aria-selected={scenario === i} className={scenario === i ? "active" : ""} key={item.name} onClick={() => setScenario(i)}>{item.name}</button>)}
+            <div className="scenario-tabs" role="group" aria-label="Test scenarios">
+              {scenarios.map((item, i) => <button aria-pressed={scenario === i} className={scenario === i ? "active" : ""} key={item.name} onClick={() => setScenario(i)}>{item.name}</button>)}
             </div>
             <div className="number-pair">
               <label>REFERENCE <output>{s.expected}</output></label>
@@ -196,8 +213,8 @@ export default function KernelSafetyEmbedded() {
           <p>Each tool targets a different error class. Run memcheck before the other tools, and remember that clean sanitizer results do not guarantee mathematical correctness.</p>
         </div>
         <div className="tool-shell">
-          <div className="tool-tabs" role="tablist" aria-label="Compute Sanitizer tools">
-            {(Object.keys(toolData) as Tool[]).map((key) => <button key={key} role="tab" aria-selected={tool === key} className={tool === key ? "active" : ""} onClick={() => setTool(key)}><span>{toolData[key].eyebrow}</span>{key}</button>)}
+          <div className="tool-tabs" role="group" aria-label="Compute Sanitizer tools">
+            {(Object.keys(toolData) as Tool[]).map((key) => <button key={key} aria-pressed={tool === key} className={tool === key ? "active" : ""} onClick={() => setTool(key)}><span>{toolData[key].eyebrow}</span>{key}</button>)}
           </div>
           <div className="tool-body">
             <div className="tool-explain">
@@ -205,11 +222,11 @@ export default function KernelSafetyEmbedded() {
               <h3>{toolData[tool].title}</h3>
               <div className="explain-row"><b className="good">CAPTURES</b><p>{toolData[tool].catches}</p></div>
               <div className="explain-row"><b className="bad">CAN'T CATCH</b><p>{toolData[tool].misses}</p></div>
-              <div className="code-line"><code>{toolData[tool].command}</code></div>
+              <div className="code-line" tabIndex={0} aria-label="Sanitizer command"><code>{toolData[tool].command}</code></div>
             </div>
             <div className="report-window">
               <div className="report-head"><span>compute-sanitizer report</span><b>sample output</b></div>
-              <pre>{toolData[tool].report.map((line, i) => <span key={line} className={i === 0 ? "report-error" : ""}>========= {line}{`\n`}</span>)}</pre>
+              <pre tabIndex={0} aria-label="Sanitizer report">{toolData[tool].report.map((line, i) => <span key={line} className={i === 0 ? "report-error" : ""}>========= {line}{`\n`}</span>)}</pre>
               <div className="report-summary">========= ERROR SUMMARY: <b>1 error</b></div>
             </div>
           </div>
@@ -221,7 +238,7 @@ export default function KernelSafetyEmbedded() {
             <label><input type="checkbox" checked={lineInfo} onChange={(e) => setLineInfo(e.target.checked)} /><span /> Show backtrace</label>
             <label><input type="checkbox" checked={exitCode} onChange={(e) => setExitCode(e.target.checked)} /><span /> Exit 99 on error</label>
           </div>
-          <div className="generated-command"><code>{command}</code><button onClick={copyCommand}>{copied ? "Copied ✓" : "Copy"}</button></div>
+          <div className="generated-command"><code tabIndex={0} aria-label="Generated command">{command}</code><button onClick={copyCommand}>{copied ? "Copied ✓" : "Copy"}</button></div>
           <p><b>Compilation note:</b> Add <code>-lineinfo</code> for source-line mapping instead of switching to a fully unoptimized debug build. It keeps reports readable while preserving optimized behavior.</p>
         </article>
       </section>
@@ -249,18 +266,16 @@ export default function KernelSafetyEmbedded() {
       </section>
 
       <section className="quiz-section" id="quiz">
-        <div className="quiz-intro"><span className="chapter">CHAPTER 04</span><h2>Are you ready?<br /><em>Decide.</em></h2><p>Four short scenarios. The goal is not to memorize commands, but to choose the right evidence tool.</p>{checked && <div className="score"><b>{score}/4</b><span>{score === 4 ? "Kernel reviewer mode is enabled." : "Review the answers, then try again."}</span></div>}</div>
+        <div className="quiz-intro"><span className="chapter">CHAPTER 04</span><h2>Are you ready?<br /><em>Decide.</em></h2><p>Four short scenarios. The goal is not to memorize commands, but to choose the right evidence tool.</p><div className="score" aria-live="polite" hidden={!checked}>{checked ? <><b>{score}/4</b><span>{score === 4 ? "Kernel reviewer mode is enabled." : "Review the answers, then try again."}</span></> : null}</div></div>
         <div className="questions">
           {questions.map((q, qi) => <fieldset key={q.q}><legend><span>{qi + 1}</span>{q.q}</legend>{q.a.map((answer, ai) => <label key={answer} className={checked ? (ai === q.correct ? "correct" : answers[qi] === ai ? "wrong" : "") : ""}><input type="radio" name={`q-${qi}`} checked={answers[qi] === ai} onChange={() => { setAnswers({ ...answers, [qi]: ai }); setChecked(false); }} /><i />{answer}</label>)}</fieldset>)}
           <button className="quiz-button" disabled={Object.keys(answers).length !== questions.length} onClick={() => setChecked(true)}>Check answers <span>→</span></button>
         </div>
       </section>
 
-      <footer>
-        <div className="brand footer-brand"><span className="brand-mark">K<span>✓</span></span><span><b>KERNEL SAFETY</b><small>correctness lab</small></span></div>
+      <aside className="resources" aria-label="Resources">
         <p>Source: <a href="https://docs.nvidia.com/compute-sanitizer/ComputeSanitizer/index.html" target="_blank" rel="noreferrer">NVIDIA Compute Sanitizer</a> · <a href="https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/" target="_blank" rel="noreferrer">CUDA Best Practices</a></p>
-        <span className="footer-note">LEARN · TEST · PROVE</span>
-      </footer>
-    </main>
+      </aside>
+    </section>
   );
 }

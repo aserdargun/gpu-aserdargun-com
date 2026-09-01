@@ -854,22 +854,22 @@ function StageCorrectness({ step, locale }: StageProps) {
       <div className="st-corr-cols">
         <div className="st-corr-col">
           <small>{tr ? "REFERANS (torch, cpu)" : "REFERENCE (torch, cpu)"}</small>
-          {rows.map((row) => (
-            <p key={row[0]}>{row[0]}</p>
+          {rows.map((row, index) => (
+            <p key={`reference-${index}`}>{row[0]}</p>
           ))}
         </div>
         <div className="st-corr-col">
           <small>{tr ? "KERNEL (gpu)" : "KERNEL (gpu)"}</small>
-          {rows.map((row) => (
-            <p key={row[0]} className={comparing ? (fixed || row[2] ? "ok" : "no") : ""}>
+          {rows.map((row, index) => (
+            <p key={`kernel-${index}`} className={comparing ? (fixed || row[2] ? "ok" : "no") : ""}>
               {row[1]}
             </p>
           ))}
         </div>
         <div className="st-corr-col wide">
           <small>{tr ? "TOLERANS |x−y| ≤ atol + rtol·|y|" : "TOLERANCE |x−y| ≤ atol + rtol·|y|"}</small>
-          {rows.map((row) => (
-            <p key={row[0]} className={showVerdict ? (fixed || row[2] ? "ok" : "no") : ""}>
+          {rows.map((row, index) => (
+            <p key={`verdict-${index}`} className={showVerdict ? (fixed || row[2] ? "ok" : "no") : ""}>
               {showVerdict ? (fixed || row[2] ? "✓" : (tr ? "✗ tolerans dışı" : "✗ out of tolerance")) : "…"}
             </p>
           ))}
@@ -926,8 +926,8 @@ function StageProfiling({ step, locale }: StageProps) {
         <div className="st-tl">
           <small>{tr ? "ZAMAN ÇİZELGESİ (Nsight Systems)" : "TIMELINE (Nsight Systems)"}</small>
           <div>
-            {timeline.map((seg) => (
-              <span key={seg[0]} style={{ flexGrow: seg[1] }} className={seg[0].startsWith("boş") || seg[0] === "gap" ? (overlap ? "gap fixed" : "gap") : ""}>
+            {timeline.map((seg, index) => (
+              <span key={`${seg[0]}-${index}`} style={{ flexGrow: seg[1] }} className={seg[0].startsWith("boş") || seg[0] === "gap" ? (overlap ? "gap fixed" : "gap") : ""}>
                 {seg[1] >= 10 ? seg[0] : ""}
               </span>
             ))}

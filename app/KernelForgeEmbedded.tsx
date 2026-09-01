@@ -1,10 +1,28 @@
 "use client";
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- Labelled overflow regions must remain keyboard-scrollable. */
 
 import { useEffect, useMemo, useState } from "react";
+import { acquireStorage, readStringArray, writeJson } from "./atlas/lab-storage.mjs";
 
 type TrackKey = "cpp" | "python" | "linux" | "git" | "cmake";
 type ViewKey = "learn" | "lab" | "questions";
 type LabKey = "cpp" | "python" | "bash";
+type CapabilityFieldKey = "gpuModel" | "computeCapability" | "driver" | "toolkit" | "framework" | "compilerFlags" | "benchmarkCommand";
+
+export const CAPABILITY_FIELDS: ReadonlyArray<{ key: CapabilityFieldKey; label: string; hint: string }> = [
+  { key: "gpuModel", label: "GPU modeli", hint: "örn. NVIDIA H100" },
+  { key: "computeCapability", label: "Compute capability", hint: "örn. 9.0 / sm_90" },
+  { key: "driver", label: "Sürücü", hint: "örn. 580.xx" },
+  { key: "toolkit", label: "CUDA veya ROCm sürümü", hint: "örn. CUDA 13.3" },
+  { key: "framework", label: "Framework sürümü", hint: "örn. PyTorch 2.x" },
+  { key: "compilerFlags", label: "Derleyici bayrakları", hint: "örn. -O3 -arch=sm_90" },
+  { key: "benchmarkCommand", label: "Kıyaslama komutu", hint: "örn. ncu -o baseline …" },
+];
+
+export function getCapabilityRecordStatus(record: Partial<Record<CapabilityFieldKey, string>>) {
+  const completed = CAPABILITY_FIELDS.filter(({ key }) => record[key]?.trim()).length;
+  return { completed, total: CAPABILITY_FIELDS.length, ready: completed === CAPABILITY_FIELDS.length };
+}
 
 const tracks: Array<{
   key: TrackKey;
@@ -170,13 +188,16 @@ export default function KernelForgeEmbedded() {
   const [running, setRunning] = useState(false);
   const [query, setQuery] = useState("");
   const [revealed, setRevealed] = useState<number[]>([]);
+  const [capabilityRecord, setCapabilityRecord] = useState<Partial<Record<CapabilityFieldKey, string>>>({});
 
   useEffect(() => {
-    const saved = localStorage.getItem("kernel-forge-progress");
-    if (saved) window.queueMicrotask(() => setCompleted(JSON.parse(saved)));
+    const valid = new Set([...Object.keys(curriculum).flatMap((track) => [0, 1, 2].map((index) => `${track}-${index}`)), ...questions.map((_, index) => `q-${index}`)]);
+    const saved = readStringArray(acquireStorage(window), "kernel-forge-progress", valid);
+    window.queueMicrotask(() => setCompleted(saved));
   }, []);
 
   const progress = Math.round((completed.length / 15) * 100);
+  const capabilityStatus = getCapabilityRecordStatus(capabilityRecord);
   const filteredQuestions = useMemo(() => questions.filter((item) =>
     (activeTrack === item.track || query.length > 0) && `${item.q} ${item.a}`.toLocaleLowerCase("tr").includes(query.toLocaleLowerCase("tr"))
   ), [activeTrack, query]);
@@ -184,7 +205,7 @@ export default function KernelForgeEmbedded() {
   const toggleComplete = (id: string) => {
     const next = completed.includes(id) ? completed.filter((item) => item !== id) : [...completed, id];
     setCompleted(next);
-    localStorage.setItem("kernel-forge-progress", JSON.stringify(next));
+    writeJson(acquireStorage(window), "kernel-forge-progress", next);
   };
 
   const changeLab = (next: LabKey) => { setLab(next); setCode(codeSamples[next]); setOutput("Çalıştır’a bas; sonuç burada görünecek."); };
@@ -216,30 +237,23 @@ export default function KernelForgeEmbedded() {
   };
 
   return (
-    <main className="kernel-forge-embed">
-      <header className="topbar">
-        <button className="brand" onClick={() => setView("learn")} aria-label="Kernel Forge ana sayfa">
-          <span className="brand-mark">KF</span><span>KERNEL<span>FORGE</span></span>
-        </button>
-        <nav aria-label="Ana navigasyon">
-          <button className={view === "learn" ? "active" : ""} onClick={() => setView("learn")}>Öğren</button>
-          <button className={view === "lab" ? "active" : ""} onClick={() => setView("lab")}>Web IDE <i>3</i></button>
-          <button className={view === "questions" ? "active" : ""} onClick={() => setView("questions")}>Soru bankası</button>
-        </nav>
-        <div className="header-actions">
-          <div className="streak"><span>◆</span><b>1</b><small>gün seri</small></div>
-          <div className="avatar">AS</div>
+    <section className="kernel-forge-surface" aria-label="Kernel Forge laboratuvarı">
+      <div className="topbar">
+        <div aria-label="Laboratuvar görünümleri" role="group">
+          <button aria-pressed={view === "learn"} className={view === "learn" ? "active" : ""} onClick={() => setView("learn")}>Öğren</button>
+          <button aria-pressed={view === "lab"} className={view === "lab" ? "active" : ""} onClick={() => setView("lab")}>Web IDE <i>3</i></button>
+          <button aria-pressed={view === "questions"} className={view === "questions" ? "active" : ""} onClick={() => setView("questions")}>Soru bankası</button>
         </div>
-      </header>
+      </div>
 
       <div className="app-shell">
-        <aside className="sidebar">
+        <aside className="sidebar" tabIndex={0} aria-label="Ders yolları">
           <div className="progress-head"><span>GENEL İLERLEME</span><strong>{progress}%</strong></div>
           <div className="progress-track"><span style={{ width: `${progress}%` }} /></div>
           <p>{completed.length} / 15 çekirdek modül</p>
           <div className="track-label">ÖĞRENME YOLLARI</div>
           {tracks.map((track) => (
-            <button key={track.key} className={`track-item ${activeTrack === track.key ? "selected" : ""}`} onClick={() => { setActiveTrack(track.key); setView("learn"); }} style={{ "--track-color": track.color } as React.CSSProperties}>
+            <button key={track.key} aria-pressed={activeTrack === track.key} className={`track-item ${activeTrack === track.key ? "selected" : ""}`} onClick={() => { setActiveTrack(track.key); setView("learn"); }} style={{ "--track-color": track.color } as React.CSSProperties}>
               <span className="track-mark">{track.mark}</span>
               <span><b>{track.label}</b><small>{track.version}</small></span>
               <em>{curriculum[track.key].filter((_, i) => completed.includes(`${track.key}-${i}`)).length}/3</em>
@@ -257,7 +271,7 @@ export default function KernelForgeEmbedded() {
               <div className="eyebrow">YOĞUN TEMEL PROGRAMI · 5 DİSİPLİN</div>
               <div className="hero">
                 <div>
-                  <h1>Sistemi öğren.<br/><span>Kodu ezberleme.</span></h1>
+                  <h2>Sistemi öğren.<br/><span>Kodu ezberleme.</span></h2>
                   <p>C++’ın bellek modelinden Linux process’lerine; Git grafiğinden modern CMake target’larına uzanan uygulamalı mühendislik yolu.</p>
                   <div className="hero-actions">
                     <button className="primary" onClick={() => setView("lab")}>Bugünkü laboratuvar <span>→</span></button>
@@ -269,6 +283,32 @@ export default function KernelForgeEmbedded() {
                   <pre><span>$</span> forge status --today{"\n\n"}<b>HEDEF</b>  Ownership → Build graph{"\n"}<b>LAB</b>    3 uygulamalı görev{"\n"}<b>TEKRAR</b> 8 kilit soru{"\n\n"}<i>▰▰▰▰▰▰▱▱▱▱  60%</i>{"\n\n"}<span className="cursor">▋</span></pre>
                 </div>
               </div>
+
+              <section className="capability-artifact" aria-labelledby="capability-artifact-title">
+                <div className="capability-intro">
+                  <span>Ortam manifestosu · Yetenek kaydı</span>
+                  <h2 id="capability-artifact-title">Ölçümün bağlamını kaydet.</h2>
+                  <p>Bu form bir yeniden üretilebilirlik kontrol listesidir. Değerler yalnız bu bileşenin belleğinde tutulur; makine ayrıntıları tarayıcı depolamasına yazılmaz.</p>
+                  <output aria-live="polite">{capabilityStatus.completed} / {capabilityStatus.total} alan hazır</output>
+                </div>
+                <div className="capability-fields">
+                  {CAPABILITY_FIELDS.map((field) => {
+                    const complete = Boolean(capabilityRecord[field.key]?.trim());
+                    return (
+                      <label key={field.key} className={complete ? "complete" : ""}>
+                        <span>{complete ? "✓" : "○"} {field.label}</span>
+                        <input
+                          value={capabilityRecord[field.key] ?? ""}
+                          onChange={(event) => setCapabilityRecord((previous) => ({ ...previous, [field.key]: event.target.value }))}
+                          placeholder={field.hint}
+                          autoComplete="off"
+                        />
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="capability-verdict"><strong>{capabilityStatus.ready ? "Yetenek kaydı tamamlandı." : "Eksik bağlam ölçümü taşınamaz kılar."}</strong> GPU modeli tek başına destek kanıtı değildir; compute capability, yazılım sürümleri, bayraklar ve komut birlikte saklanmalıdır.</p>
+              </section>
 
               <div className="section-heading">
                 <div><span style={{ color: tracks.find(t => t.key === activeTrack)?.color }}>●</span><h2>{tracks.find(t => t.key === activeTrack)?.label}</h2><p>{tracks.find(t => t.key === activeTrack)?.note}</p></div>
@@ -295,11 +335,11 @@ export default function KernelForgeEmbedded() {
 
           {view === "lab" && (
             <div className="lab-page">
-              <div className="page-title"><div><span>WEB GELİŞTİRME ORTAMI</span><h1>Deneyerek öğren.</h1><p>İzolasyonlu tarayıcı laboratuvarı. Dosyana dokunmaz, sistem komutu çalıştırmaz.</p></div><div className="runtime-pill"><span/> KORUMALI ALAN HAZIR</div></div>
-              <div className="lab-tabs">
-                <button className={lab === "cpp" ? "active" : ""} onClick={() => changeLab("cpp")}><b>C++</b><span>C++23 sözdizimi</span></button>
-                <button className={lab === "python" ? "active" : ""} onClick={() => changeLab("python")}><b>Python</b><span>Pyodide çalışma zamanı</span></button>
-                <button className={lab === "bash" ? "active" : ""} onClick={() => changeLab("bash")}><b>Bash</b><span>Güvenli mini-shell</span></button>
+              <div className="page-title"><div><span>WEB GELİŞTİRME ORTAMI</span><h2>Deneyerek öğren.</h2><p>İzolasyonlu tarayıcı laboratuvarı. Dosyana dokunmaz, sistem komutu çalıştırmaz.</p></div><div className="runtime-pill"><span/> KORUMALI ALAN HAZIR</div></div>
+              <div className="lab-tabs" role="group" aria-label="Laboratuvar dili">
+                <button aria-pressed={lab === "cpp"} className={lab === "cpp" ? "active" : ""} onClick={() => changeLab("cpp")}><b>C++</b><span>C++23 sözdizimi</span></button>
+                <button aria-pressed={lab === "python"} className={lab === "python" ? "active" : ""} onClick={() => changeLab("python")}><b>Python</b><span>Pyodide çalışma zamanı</span></button>
+                <button aria-pressed={lab === "bash"} className={lab === "bash" ? "active" : ""} onClick={() => changeLab("bash")}><b>Bash</b><span>Güvenli mini-shell</span></button>
               </div>
               <div className="ide">
                 <div className="editor-pane">
@@ -307,7 +347,7 @@ export default function KernelForgeEmbedded() {
                   <textarea value={code} onChange={(e) => setCode(e.target.value)} spellCheck={false} aria-label="Kod editörü" />
                   <div className="editor-actions"><button onClick={() => setCode(codeSamples[lab])}>Sıfırla</button><button className="run" disabled={running} onClick={runCode}>{running ? "Çalışıyor…" : "▶ Çalıştır"}</button></div>
                 </div>
-                <div className="output-pane"><div className="pane-head">ÇIKTI <button onClick={() => setOutput("")}>temizle</button></div><pre>{output}<span className="cursor">▋</span></pre></div>
+                <div className="output-pane" aria-live="polite"><div className="pane-head">ÇIKTI <button onClick={() => setOutput("")}>temizle</button></div><pre>{output}<span className="cursor">▋</span></pre></div>
               </div>
               <div className="lab-notes"><div><b>01</b><span><strong>Değiştir</strong>Kodu boz, varsayımını görünür kıl.</span></div><div><b>02</b><span><strong>Çalıştır</strong>Çıktı ile zihinsel modelini karşılaştır.</span></div><div><b>03</b><span><strong>Açıkla</strong>Sonucu kendi cümlelerinle not et.</span></div></div>
             </div>
@@ -315,9 +355,9 @@ export default function KernelForgeEmbedded() {
 
           {view === "questions" && (
             <div className="questions-page">
-              <div className="page-title"><div><span>KİLİT SORU BANKASI</span><h1>Bildiklerini değil,<br/>boşluklarını bul.</h1><p>{questions.length} kısa soru; mülakat, debugging ve günlük mühendislik kararları için.</p></div><div className="score-ring"><b>{revealed.length}</b><span>cevap<br/>açıldı</span></div></div>
+              <div className="page-title"><div><span>KİLİT SORU BANKASI</span><h2>Bildiklerini değil,<br/>boşluklarını bul.</h2><p>{questions.length} kısa soru; mülakat, debugging ve günlük mühendislik kararları için.</p></div><div className="score-ring"><b>{revealed.length}</b><span>cevap<br/>açıldı</span></div></div>
               <div className="question-tools">
-                <div className="filter-row">{tracks.map(track => <button key={track.key} className={activeTrack === track.key && !query ? "active" : ""} onClick={() => { setActiveTrack(track.key); setQuery(""); }}>{track.label}</button>)}</div>
+                <div className="filter-row">{tracks.map(track => <button key={track.key} aria-pressed={activeTrack === track.key && !query} className={activeTrack === track.key && !query ? "active" : ""} onClick={() => { setActiveTrack(track.key); setQuery(""); }}>{track.label}</button>)}</div>
                 <label><span>⌕</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tüm sorularda ara…" /></label>
               </div>
               <div className="question-list">
@@ -325,14 +365,13 @@ export default function KernelForgeEmbedded() {
                   <button onClick={() => setRevealed(open ? revealed.filter(i => i !== index) : [...revealed, index])} aria-expanded={open}>
                     <span className="q-number">{String(index + 1).padStart(2, "0")}</span><span className="q-main"><small>{tracks.find(t => t.key === item.track)?.label} · {item.level}</small><b>{item.q}</b></span><i>{open ? "−" : "+"}</i>
                   </button>
-                  {open && <div className="answer"><span>CEVAP</span><p>{item.a}</p><button onClick={() => toggleComplete(`q-${index}`)}>☆ Tekrar listeme ekle</button></div>}
+                  <div className="answer" aria-live="polite" hidden={!open}>{open ? <><span>CEVAP</span><p>{item.a}</p><button onClick={() => toggleComplete(`q-${index}`)}>☆ Tekrar listeme ekle</button></> : null}</div>
                 </article>; })}
               </div>
             </div>
           )}
         </section>
       </div>
-      <footer><span>KERNELFORGE / 2026</span><p>Temeller eskimez. Sürüm notları değişir.</p><a href="https://en.cppreference.com/w/cpp/current_status.html" target="_blank" rel="noreferrer">Kaynak politikası ↗</a></footer>
-    </main>
+    </section>
   );
 }

@@ -23,6 +23,8 @@
   color: var(--ink);
   font-family: Arial, Helvetica, sans-serif;
   scroll-behavior: smooth;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .visual-foundations-embed * { box-sizing: border-box; }
@@ -30,6 +32,8 @@
 @scope (.visual-foundations-embed) {
 button, input, textarea { font: inherit; }
 button { color: inherit; }
+button, input, textarea, select { min-height: 44px; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, [tabindex]:focus-visible, [tabindex="0"]:focus-visible { outline: 3px solid #8b1647; outline-offset: 3px; }
 code { font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace; }
 
 /* TOPBAR */
@@ -201,7 +205,8 @@ code { font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo,
 @media (max-width: 720px) {
   .vf-topbar { grid-template-columns: 1fr; min-height: auto; }
   .vf-module-nav, .vf-course-meta { border-left: 0; border-top: 1px solid var(--line); padding: 12px 16px; }
-  .vf-module-nav button { min-width: 0; flex: 1; }
+  .vf-module-nav { justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-inline: contain; }
+  .vf-module-nav button { min-width: 104px; flex: 0 0 104px; }
   .vf-page-shell { padding: 24px 18px 40px; }
   .vf-section-head { flex-direction: column; align-items: flex-start; }
   .vf-compare { grid-template-columns: 1fr; }
@@ -359,5 +364,9 @@ code { font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo,
   .vf-page-shell { padding: 0; }
   .vf-cheat-card { box-shadow: none; border: 1px solid #000; }
   body { background: white; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
 }

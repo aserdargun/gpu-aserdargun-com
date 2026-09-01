@@ -1,6 +1,135 @@
 "use client";
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- Labelled overflow regions must remain keyboard-scrollable. */
 
 import { useEffect, useMemo, useState } from "react";
+import { getSourcesForModule } from "./atlas/curriculum-sources";
+import { acquireStorage, readFiniteInteger, readText, writeText } from "./atlas/lab-storage.mjs";
+
+export const PYTORCH_INTEGRATION_DECISIONS = [
+  { id: "composition", label: "Yerleşik PyTorch bileşimi", summary: "Önce yerleşik PyTorch operatörlerini birleştir; en küçük bakım ve derleyici yüzeyi." },
+  { id: "plain-triton", label: "Düz Triton", summary: "Düz Triton AOTInductor ile uygundur; PyTorch alt sistemleriyle bileşim veya açık bir operatör entegrasyon sınırı gerektiğinde triton_op + wrap_triton kullan." },
+  { id: "triton-op", label: "torch.library.triton_op + wrap_triton", summary: "Triton kernel çağrısı PyTorch alt sistemleriyle bileşir; torch.compile gövdeyi izleyebilir." },
+  { id: "custom-op", label: "custom_op", summary: "Derleyiciye opak bir sınır gerekirken kullan; mutasyon ve alias şemasını eksiksiz bildir." },
+] as const;
+
+export const PYTORCH_ACCEPTANCE_ROWS = [
+  { id: "dynamic-shape", label: "Dinamik şekil", detail: "Asal ve blok sınırı ±1 şekillerde maske ve sembolik boyutları doğrula." },
+  { id: "mutation-alias", label: "Mutasyon / alias", detail: "Şema, gerçekten değişen girdileri ve çıktı alias davranışını birebir açıklamalı." },
+  { id: "faketensor", label: "FakeTensor", detail: "Meta yürütme çıktı şekli, dtype ve cihaz semantiğini gerçek tahsis olmadan üretmeli." },
+  { id: "autograd", label: "Autograd", detail: "İleri ve geri yolları ayrı gradyan karşılaştırmasıyla kabul et." },
+  { id: "aotinductor", label: "AOTInductor", detail: "Derleme, dışa aktarma ve yeniden yükleme yolunu temsilî şekillerde sınırla." },
+] as const;
+
+export const TRITON_AUTOTUNE_CONFIGS = [
+  { id: "latency", label: "Kısa gecikme", config: "BLOCK_SIZE=128 · num_warps=4", acceptance: "Küçük şekillerde p50 gecikme" },
+  { id: "balanced", label: "Dengeli", config: "BLOCK_SIZE=256 · num_warps=8", acceptance: "Şekil matrisinde kararlı medyan" },
+  { id: "throughput", label: "Throughput", config: "BLOCK_SIZE=512 · num_warps=8", acceptance: "Büyük şekillerde GB/s ve p95" },
+] as const;
+
+export const TRITON_GLUON_PREVIEW = { sourceId: "triton-gluon", maturity: "preview" as const };
+
+type IntegrationBranch = (typeof PYTORCH_INTEGRATION_DECISIONS)[number]["id"];
+type AutotuneProfile = (typeof TRITON_AUTOTUNE_CONFIGS)[number]["id"];
+type AcceptanceStatus = "covered" | "not-applicable" | "owned" | "visible" | "supported" | "required" | "manual" | "opaque";
+
+const acceptanceByBranch: Record<IntegrationBranch, readonly AcceptanceStatus[]> = {
+  composition: ["covered", "not-applicable", "owned", "owned", "visible"],
+  "plain-triton": ["required", "required", "not-applicable", "manual", "supported"],
+  "triton-op": ["required", "required", "required", "required", "visible"],
+  "custom-op": ["required", "required", "required", "required", "opaque"],
+};
+
+const acceptanceStatusLabels: Record<AcceptanceStatus, string> = {
+  covered: "Yerleşik semantikle kapsanır",
+  "not-applicable": "Bu sınırda kullanılamaz",
+  owned: "PyTorch sahiplenir",
+  visible: "AOTInductor tarafından görünür",
+  supported: "AOTInductor ile uygun",
+  required: "Test edilmesi zorunlu",
+  manual: "Elle backward gerekir",
+  opaque: "AOTInductor'a opak",
+};
+
+export function getPyTorchExecutionPlan(branch: IntegrationBranch, autotune: AutotuneProfile) {
+  const config = TRITON_AUTOTUNE_CONFIGS.find((item) => item.id === autotune) ?? TRITON_AUTOTUNE_CONFIGS[1];
+  const [blockSize, numWarps] = config.config.match(/\d+/g) ?? ["256", "8"];
+  const commonKernel = `@triton.jit
+def add_kernel(x_ptr, y_ptr, out_ptr, n: tl.constexpr,
+               BLOCK_SIZE: tl.constexpr):
+    pid = tl.program_id(axis=0)
+    offsets = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
+    mask = offsets < n
+    x = tl.load(x_ptr + offsets, mask=mask)
+    y = tl.load(y_ptr + offsets, mask=mask)
+    tl.store(out_ptr + offsets, x + y, mask=mask)`;
+  const plans = {
+    composition: {
+      code: `import torch
+
+def vector_add(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    return x + y`,
+      configEffect: "Autotune uygulanmaz: kernel seçimini yerleşik PyTorch dispatch sahiplenir.",
+      runLabel: "Yerleşik bileşim · doğrudan x + y · özel kayıt yok",
+      compile: "Yerleşik grafik torch.compile ve AOTInductor tarafından görünür kalır.",
+      opcheck: "not-required" as const,
+    },
+    "plain-triton": {
+      code: `import torch
+import triton
+import triton.language as tl
+
+${commonKernel}
+
+def vector_add(x, y):
+    out = torch.empty_like(x)
+    grid = (triton.cdiv(x.numel(), ${blockSize}),)
+    add_kernel[grid](x, y, out, x.numel(), BLOCK_SIZE=${blockSize}, num_warps=${numWarps})
+    return out`,
+      configEffect: `Doğrudan Triton başlatması BLOCK_SIZE=${blockSize} · num_warps=${numWarps} kullanır.`,
+      runLabel: "Düz Triton · doğrudan maskeli başlatma",
+      compile: "Düz Triton başlatmaları torch.compile ve AOTInductor ile uygundur. PyTorch alt sistemleriyle bileşim veya açık bir operatör entegrasyon sınırı gerektiğinde triton_op + wrap_triton kullan.",
+      opcheck: "not-required" as const,
+    },
+    "triton-op": {
+      code: `import torch
+import triton
+import triton.language as tl
+
+${commonKernel}
+
+@torch.library.triton_op("kernellab::vector_add", mutates_args={})
+def vector_add(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    out = torch.empty_like(x)
+    grid = (triton.cdiv(x.numel(), ${blockSize}),)
+    torch.library.wrap_triton(add_kernel)[grid](
+        x, y, out, x.numel(), BLOCK_SIZE=${blockSize}, num_warps=${numWarps})
+    return out`,
+      configEffect: `wrap_triton başlatması BLOCK_SIZE=${blockSize} · num_warps=${numWarps} kullanır.`,
+      runLabel: "triton_op · izlenebilir wrap_triton maskeli başlatması",
+      compile: "Sarmalanan kernel gövdesi torch.compile ve AOTInductor tarafından görünür kalır.",
+      opcheck: "registration" as const,
+    },
+    "custom-op": {
+      code: `import torch
+
+@torch.library.custom_op("kernellab::opaque_add", mutates_args=())
+def vector_add(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+    # Kasıtlı derleyici sınırı; uygulama içeride Triton başlatabilir.
+    return opaque_triton_add(x, y, BLOCK_SIZE=${blockSize}, num_warps=${numWarps})`,
+      configEffect: `Opak uygulama BLOCK_SIZE=${blockSize} · num_warps=${numWarps} değerlerini sahiplenir; gövde izlenmez.`,
+      runLabel: "custom_op · kasıtlı opak derleyici sınırı",
+      compile: "custom_op gövdesi torch.compile ve AOTInductor'a opaktır.",
+      opcheck: "registration" as const,
+    },
+  } as const;
+  const selected = plans[branch];
+  return {
+    branch,
+    ...selected,
+    acceptance: PYTORCH_ACCEPTANCE_ROWS.map((row, index) => ({ id: row.id, status: acceptanceByBranch[branch][index], statusLabel: acceptanceStatusLabels[acceptanceByBranch[branch][index]] })),
+    boundaries: { opcheck: selected.opcheck, numerical: "separate" as const, gradient: "separate" as const, compile: selected.compile },
+  };
+}
 
 const weeks = [
   { id: 1, title: "Tensor anatomisi", eyebrow: "Temel", desc: "Stride, layout ve eager yürütmeyi çıplak gözle gör.", status: "done", minutes: 90, skills: ["stride", "broadcast", "profiling"] },
@@ -16,25 +145,6 @@ const weeks = [
   { id: 11, title: "Füzyon stüdyosu", eyebrow: "Optimizasyon", desc: "İki fused kernel'de en az %15 medyan iyileşme hedefle.", status: "locked", minutes: 240, skills: ["fusion", "register pressure", "autotune"] },
   { id: 12, title: "Çıkarım bitirme projesi", eyebrow: "Mezuniyet", desc: "vLLM iş yükünde TTFT, ITL ve throughput raporu üret.", status: "locked", minutes: 300, skills: ["vLLM", "TTFT", "portfolio"] },
 ];
-
-const customOpCode = `import torch
-from torch.library import custom_op
-
-@custom_op("kernellab::add", mutates_args=())
-def vector_add(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-    """CPU/CUDA referansı: önce doğruluk."""
-    return x + y
-
-@vector_add.register_fake
-def _(x, y):
-    torch._check(x.shape == y.shape)
-    return torch.empty_like(x)
-
-# Derleyici ve alt sistem kontrolleri
-torch.library.opcheck(
-    vector_add,
-    (torch.randn(128), torch.randn(128)),
-)`;
 
 const tritonCode = `import torch
 import triton
@@ -76,60 +186,56 @@ export default function PyTorchTritonEmbedded() {
   const [blockSize, setBlockSize] = useState(256);
   const [quiz, setQuiz] = useState<number | null>(null);
   const [note, setNote] = useState("");
-  const [saved, setSaved] = useState(false);
+  const [saveState, setSaveState] = useState<"idle" | "saved" | "memory">("idle");
   const [completedLabs, setCompletedLabs] = useState(1);
+  const [integrationChoice, setIntegrationChoice] = useState<(typeof PYTORCH_INTEGRATION_DECISIONS)[number]["id"]>("composition");
+  const [autotuneConfig, setAutotuneConfig] = useState<(typeof TRITON_AUTOTUNE_CONFIGS)[number]["id"]>("balanced");
+  const [runSnapshot, setRunSnapshot] = useState<ReturnType<typeof getPyTorchExecutionPlan> | null>(null);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("kernel-lab-note");
-    const storedLabs = window.localStorage.getItem("kernel-lab-completed");
+    const storage = acquireStorage(window);
+    const stored = readText(storage, "kernel-lab-note", "");
+    const storedLabs = readFiniteInteger(storage, "kernel-lab-completed", { fallback: 1, min: 0, max: 18 });
     window.queueMicrotask(() => {
       if (stored) setNote(stored);
-      if (storedLabs) setCompletedLabs(Number(storedLabs));
+      setCompletedLabs(storedLabs);
     });
   }, []);
 
   const activeWeek = weeks.find((week) => week.id === selectedWeek) ?? weeks[1];
   const totalMinutes = useMemo(() => weeks.reduce((sum, week) => sum + week.minutes, 0), []);
   const progress = Math.round((completedLabs / 18) * 100);
+  const selectedDecision = PYTORCH_INTEGRATION_DECISIONS.find((decision) => decision.id === integrationChoice) ?? PYTORCH_INTEGRATION_DECISIONS[0];
+  const selectedAutotune = TRITON_AUTOTUNE_CONFIGS.find((config) => config.id === autotuneConfig) ?? TRITON_AUTOTUNE_CONFIGS[1];
+  const selectedPlan = getPyTorchExecutionPlan(integrationChoice, autotuneConfig);
+  const gluonSource = getSourcesForModule("triton").find((source) => source.id === TRITON_GLUON_PREVIEW.sourceId);
 
   function runTests() {
+    const planAtRun = selectedPlan;
+    setRunSnapshot(null);
     setRunState("running");
     window.setTimeout(() => {
+      setRunSnapshot(planAtRun);
       setRunState("passed");
       const next = Math.max(completedLabs, 2);
       setCompletedLabs(next);
-      window.localStorage.setItem("kernel-lab-completed", String(next));
+      writeText(acquireStorage(window), "kernel-lab-completed", String(next));
     }, 900);
   }
 
   function saveNote() {
-    window.localStorage.setItem("kernel-lab-note", note);
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 1500);
+    const persisted = writeText(acquireStorage(window), "kernel-lab-note", note);
+    setSaveState(persisted ? "saved" : "memory");
+    window.setTimeout(() => setSaveState("idle"), 3000);
   }
 
   return (
-    <main className="pytorch-triton-embed">
-      <nav className="topbar" aria-label="Ana navigasyon">
-        <a className="brand" href="#top" aria-label="Kernel Lab ana sayfa">
-          <span className="brand-mark">K//</span>
-          <span>KERNEL LAB</span>
-        </a>
-        <div className="nav-links">
-          <a href="#yol">Yol haritası</a>
-          <a href="#lab">Kod laboratuvarı</a>
-          <a href="#model">Zihinsel model</a>
-        </div>
-        <div className="nav-status" aria-label="Öğrenme serisi">
-          <span className="pulse-dot" /> 3 günlük seri
-        </div>
-      </nav>
-
-      <section className="hero" id="top">
+    <section className="pytorch-triton-surface" id="top" aria-label="PyTorch ve Triton laboratuvarı">
+      <section className="hero">
         <div className="hero-grid" />
         <div className="hero-copy">
           <div className="kicker"><span>YOĞUN PROGRAM</span><span>12 HAFTA</span><span>14–16 SA / HAFTA</span></div>
-          <h1>PyTorch’tan<br /><em>çıplak metale.</em></h1>
+          <h2>PyTorch’tan<br /><em>çıplak metale.</em></h2>
           <p className="hero-lede">Bir operatörün doğru Python referansından başlayıp derlenebilir bir PyTorch özel operatörüne ve ölçülmüş Triton kernel’ine dönüşmesini yaparak öğren.</p>
           <div className="hero-actions">
             <a className="primary-button" href="#lab">Aktif laboratuvara gir <span>↗</span></a>
@@ -148,7 +254,7 @@ export default function PyTorchTritonEmbedded() {
         <div className="hero-index" aria-hidden="true">01</div>
       </section>
 
-      <section className="ticker" aria-label="Program kazanımları">
+      <section className="ticker" aria-label="Program kazanımları" tabIndex={0}>
         <div>DOĞRULUK MATRİSİ <span>×</span> TORCH.COMPILE <span>×</span> TRITON KERNEL <span>×</span> AUTOGRAD <span>×</span> NSIGHT <span>×</span> VLLM CAPSTONE <span>×</span></div>
       </section>
 
@@ -158,9 +264,9 @@ export default function PyTorchTritonEmbedded() {
           <p>Her hafta tek bir zihinsel modeli; çalışan kod, test kanıtı ve performans raporuna dönüştürür.</p>
         </div>
 
-        <div className="week-rail" role="tablist" aria-label="12 haftalık program">
+        <div className="week-rail" role="group" aria-label="12 haftalık program">
           {weeks.map((week) => (
-            <button key={week.id} role="tab" aria-selected={selectedWeek === week.id} className={`week-node ${week.status} ${selectedWeek === week.id ? "selected" : ""}`} onClick={() => setSelectedWeek(week.id)}>
+            <button key={week.id} aria-pressed={selectedWeek === week.id} className={`week-node ${week.status} ${selectedWeek === week.id ? "selected" : ""}`} onClick={() => setSelectedWeek(week.id)}>
               <span>{String(week.id).padStart(2, "0")}</span>
               <i />
             </button>
@@ -180,10 +286,39 @@ export default function PyTorchTritonEmbedded() {
           <div className="week-gate">
             <p>HAFTA ÇIKIŞ KAPISI</p>
             <strong>{activeWeek.id < 4 ? "Kod + test + kendi cümlelerinle açıklama" : "Doğruluk matrisi + kıyaslama raporu"}</strong>
-            <button onClick={() => document.querySelector("#lab")?.scrollIntoView({ behavior: "smooth" })}>İçeriği aç <span>→</span></button>
+            <button onClick={() => document.querySelector("#lab")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })}>İçeriği aç <span>→</span></button>
           </div>
         </article>
         <p className="roadmap-total"><strong>{formatTime(totalMinutes)}</strong> çekirdek laboratuvar · 5 zorunlu LLM operatörü · 1 capstone</p>
+      </section>
+
+      <section className="section integration-section" aria-labelledby="integration-heading">
+        <div className="section-heading">
+          <div><span className="section-number">02</span><p className="eyebrow">PYTORCH KARAR MATRİSİ</p><h2 id="integration-heading">Doğru entegrasyon<br /><em>sınırını seç.</em></h2></div>
+          <p><code>opcheck</code> kayıt, şema, FakeTensor ve derleyici sözleşmesini denetler; sayısal doğruluk ya da gradyan doğruluğu kanıtlamaz.</p>
+        </div>
+        <div className="integration-decision-matrix">
+          <div className="decision-options" role="group" aria-label="PyTorch entegrasyon seçenekleri">
+            {PYTORCH_INTEGRATION_DECISIONS.map((decision) => <button key={decision.id} aria-pressed={integrationChoice === decision.id} onClick={() => setIntegrationChoice(decision.id)}>{decision.label}</button>)}
+          </div>
+          <p className="decision-result" aria-live="polite"><strong>{selectedDecision.label}</strong>{selectedDecision.summary}</p>
+          <pre className="integration-code" data-branch={selectedPlan.branch} tabIndex={0} aria-label="Seçili entegrasyon dalı kodu"><code>{selectedPlan.code}</code></pre>
+          <div className="autotune-control">
+            <label htmlFor="triton-autotune">Autotune kabul profili</label>
+            <select id="triton-autotune" className="autotune-select" value={autotuneConfig} onChange={(event) => setAutotuneConfig(event.target.value as typeof autotuneConfig)}>
+              {TRITON_AUTOTUNE_CONFIGS.map((config) => <option key={config.id} value={config.id}>{config.label}</option>)}
+            </select>
+            <p className="autotune-result" aria-live="polite"><code>{selectedAutotune.config}</code><span>{selectedAutotune.acceptance}</span></p>
+            <p className="branch-config-effect" aria-live="polite">{selectedPlan.configEffect}</p>
+          </div>
+          <div className="acceptance-grid" aria-label="PyTorch özel operatör kabul matrisi">
+            {PYTORCH_ACCEPTANCE_ROWS.map((row, index) => <article className="acceptance-row" data-status={selectedPlan.acceptance[index].status} key={row.id}><strong>{row.label}</strong><em>{selectedPlan.acceptance[index].statusLabel}</em><span>{row.detail}</span></article>)}
+          </div>
+          <ul className="boundary-list"><li><b>opcheck</b>{selectedPlan.boundaries.opcheck === "registration" ? "Yalnız kayıt/şema sınırı" : "Bu sınırda gerekmez veya kullanılamaz"}</li><li><b>Sayısal</b>Ayrı referans karşılaştırması</li><li><b>Gradyan</b>Ayrı backward/gradcheck kanıtı</li><li><b>AOTInductor</b>{selectedPlan.boundaries.compile}</li></ul>
+          <aside className="preview-panel" data-source-id={TRITON_GLUON_PREVIEW.sourceId}>
+            <span className="preview-badge">Önizleme</span><div><strong>Triton Gluon</strong><p><code>triton.experimental</code> içindeki donanım-özgü DSL yoludur; çekirdek programın zorunlu mezuniyet koşulu değildir.</p>{gluonSource && <a href={gluonSource.url} target="_blank" rel="noreferrer">Resmî Gluon öğreticisi ↗</a>}</div>
+          </aside>
+        </div>
       </section>
 
       <section className="section lab-section" id="lab">
@@ -195,9 +330,9 @@ export default function PyTorchTritonEmbedded() {
         <div className="lab-shell">
           <div className="lab-toolbar">
             <div className="window-dots" aria-hidden="true"><i /><i /><i /></div>
-            <div className="file-tabs" role="tablist">
-              <button className={codeTab === "pytorch" ? "active" : ""} onClick={() => setCodeTab("pytorch")}>operator.py</button>
-              <button className={codeTab === "triton" ? "active" : ""} onClick={() => setCodeTab("triton")}>kernel.py <span>●</span></button>
+            <div className="file-tabs" role="group" aria-label="Kod dosyaları">
+              <button aria-pressed={codeTab === "pytorch"} className={codeTab === "pytorch" ? "active" : ""} onClick={() => setCodeTab("pytorch")}>operator.py</button>
+              <button aria-pressed={codeTab === "triton"} className={codeTab === "triton" ? "active" : ""} onClick={() => setCodeTab("triton")}>kernel.py <span>●</span></button>
             </div>
             <span className="runtime">CUDA · FP32 · n=65,537</span>
           </div>
@@ -205,7 +340,7 @@ export default function PyTorchTritonEmbedded() {
           <div className="lab-main">
             <div className="editor-pane">
               <div className="editor-heading"><span>{codeTab === "triton" ? "TRITON UYGULAMASI" : "PYTORCH ÖZEL OPERATÖR"}</span><span>Python</span></div>
-              <pre aria-label={`${codeTab} örnek kodu`}><code>{(codeTab === "triton" ? tritonCode : customOpCode).split("\n").map((line, index) => <span className="code-line" key={index}><i>{index + 1}</i>{line || " "}</span>)}</code></pre>
+              <pre aria-label={`${codeTab} örnek kodu`} tabIndex={0}><code>{(codeTab === "triton" ? tritonCode : selectedPlan.code).split("\n").map((line, index) => <span className="code-line" key={index}><i>{index + 1}</i>{line || " "}</span>)}</code></pre>
             </div>
             <aside className="task-pane">
               <p className="task-kicker">GÖREV 02.3</p>
@@ -227,7 +362,8 @@ export default function PyTorchTritonEmbedded() {
             <div className="console-title"><span>TEST KONSOLU</span><span>{runState === "passed" ? "4/4 GEÇTİ" : runState === "running" ? "ÇALIŞIYOR" : "HAZIR"}</span></div>
             {runState === "idle" && <p><span className="prompt">$</span> opcheck ve correctness matrisini başlatmaya hazır.</p>}
             {runState === "running" && <p><span className="prompt">›</span> n ∈ [1, 257, 65_537] · fp32/fp16 karşılaştırılıyor…</p>}
-            {runState === "passed" && <div className="test-results"><p><b>✓</b> opcheck: schema + fake tensor</p><p><b>✓</b> n=1 / sınır</p><p><b>✓</b> n=257 / mask</p><p><b>✓</b> max |Δ| = 0.00e+00</p></div>}
+            {runState === "passed" && <div className="test-results"><p><b>✓</b> {runSnapshot?.boundaries.opcheck === "registration" ? "opcheck: kayıt + şema" : "opcheck: bu dalın dışında"}</p><p><b>✓</b> sayısal: ayrı referans</p><p><b>✓</b> gradyan: ayrı kanıt</p><p><b>✓</b> maskeli n=257 sınırı</p></div>}
+            <p className="run-context" data-branch={runSnapshot?.branch ?? ""}>{runSnapshot ? `${runSnapshot.runLabel} · ${runSnapshot.configEffect}` : ""}</p>
           </div>
         </div>
 
@@ -258,7 +394,7 @@ export default function PyTorchTritonEmbedded() {
                 {Array.from({ length: 32 }).map((_, index) => <i key={index} className={index < Math.min(32, blockSize / 16) ? "hot" : ""} style={{ animationDelay: `${index * 25}ms` }} />)}
               </div>
               <div className="flow-lines"><i /><i /><i /><i /></div>
-              <div className="program-row">
+              <div className="program-row" tabIndex={0} aria-label="Program blokları">
                 {Array.from({ length: Math.max(2, 1024 / blockSize) }).slice(0, 8).map((_, index) => <div key={index} className={index === 0 ? "active" : ""}><span>PID {index}</span><b>{index * blockSize}…{Math.min(1023, (index + 1) * blockSize - 1)}</b></div>)}
               </div>
             </div>
@@ -296,7 +432,7 @@ export default function PyTorchTritonEmbedded() {
               </button>
             ))}
           </div>
-          {quiz !== null && <p className={`feedback ${quiz === 1 ? "success" : "retry"}`}>{quiz === 1 ? "Doğru. Maske, son programın tahsis edilmemiş belleğe erişmesini engeller." : "Tekrar düşün: son programın offset’leri tensör sınırını aşabilir."}</p>}
+          <p className={`feedback ${quiz === 1 ? "success" : "retry"}`} aria-live="polite" hidden={quiz === null}>{quiz === null ? "" : quiz === 1 ? "Doğru. Maske, son programın tahsis edilmemiş belleğe erişmesini engeller." : "Tekrar düşün: son programın offset’leri tensör sınırını aşabilir."}</p>
         </div>
       </section>
 
@@ -309,15 +445,15 @@ export default function PyTorchTritonEmbedded() {
         <div className="note-area">
           <label htmlFor="learning-note">“Mask” kavramını, ilk kez duyan birine iki cümlede açıkla.</label>
           <textarea id="learning-note" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Kendi cümlelerinle…" />
-          <div><span>{note.length} karakter · bu cihazda saklanır</span><button onClick={saveNote}>{saved ? "KAYDEDİLDİ ✓" : "NOTU KAYDET"}</button></div>
+          <div>
+            <span className="note-storage-status" role="status" aria-live="polite">
+              {saveState === "memory" ? "Depolama kullanılamıyor — not bu oturum için bellekte kalır." : saveState === "saved" ? "Not bu cihaza kaydedildi." : `${note.length} karakter · bu cihazda saklanır`}
+            </span>
+            <button onClick={saveNote}>{saveState === "saved" ? "KAYDEDİLDİ ✓" : saveState === "memory" ? "YALNIZ BELLEKTE" : "NOTU KAYDET"}</button>
+          </div>
         </div>
       </section>
 
-      <footer>
-        <div className="footer-brand"><span className="brand-mark">K//</span><h2>Ölçmediğin hız,<br />kanıt değildir.</h2></div>
-        <div className="footer-stats"><div><strong>12</strong><span>hafta</span></div><div><strong>18</strong><span>laboratuvar</span></div><div><strong>05</strong><span>LLM operatörü</span></div></div>
-        <a href="#top">YUKARI DÖN ↑</a>
-      </footer>
-    </main>
+    </section>
   );
 }

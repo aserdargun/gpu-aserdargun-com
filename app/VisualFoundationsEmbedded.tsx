@@ -1,5 +1,7 @@
 "use client";
 
+/* eslint-disable jsx-a11y/no-noninteractive-tabindex -- Labelled overflow regions remain keyboard-scrollable on narrow screens. */
+
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type Section = "compare" | "anatomy" | "lifecycle" | "memory" | "pitfalls" | "quiz" | "map" | "recall" | "glossary" | "cheat" | "code" | "anim";
@@ -255,7 +257,7 @@ function Header({ active, setActive, visited }: { active: Section; setActive: (s
         <span className="vf-brand-mark">G/Ö</span>
         <span><strong>GÖRSEL & KALICI</strong><small>ÖĞRENME ATLASI</small></span>
       </button>
-      <nav className="vf-module-nav" aria-label="Bölümler">
+      <nav className="vf-module-nav" aria-label="Bölümler" tabIndex={0}>
         {sections.map((s) => (
           <button
             key={s.id}
@@ -785,7 +787,7 @@ function MapSection() {
         <span className="item"><span className="swatch" style={{ background: "transparent", borderColor: "var(--rose)", borderStyle: "dashed" }} /> ÖNKOŞUL (PREREQ)</span>
       </div>
       <div className="vf-map-canvas">
-        <svg viewBox="0 0 820 540" role="img" aria-label="Atlas kavram haritası">
+        <svg viewBox="0 0 910 540" role="img" aria-label="Atlas kavram haritası">
           {conceptMapEdges.map((edge) => {
             const from = nodeMap[edge.from];
             const to = nodeMap[edge.to];
@@ -1296,7 +1298,7 @@ function CodeSection() {
               <span className="tag">{p.tag}</span>
             </div>
             <div className="vf-code-pattern-body">
-              <pre className="vf-code-block">
+              <pre className="vf-code-block" tabIndex={0} aria-label={`${p.title} kod örneği`}>
                 {p.code.map((tok, j) => (
                   <span key={j} className={tok.type === "st" ? "" : tok.type}>
                     {j === 0 ? <span className="ln">{i + 1}</span> : null}
@@ -1473,8 +1475,12 @@ export default function VisualFoundationsEmbedded() {
   const [visited, setVisitedRaw] = useState<Set<Section>>(() => new Set(["compare"]));
   const [bestScore, setBestScore] = useState<number | null>(() => {
     if (typeof window === "undefined") return null;
-    const saved = window.localStorage.getItem("vf-quiz-best");
-    return saved ? Number(saved) : null;
+    try {
+      const saved = window.localStorage.getItem("vf-quiz-best");
+      return saved ? Number(saved) : null;
+    } catch {
+      return null;
+    }
   });
 
   const setActive = (next: Section) => {
@@ -1490,15 +1496,17 @@ export default function VisualFoundationsEmbedded() {
   const handleScore = (score: number) => {
     setBestScore((prev) => {
       const next = prev === null ? score : Math.max(prev, score);
-      if (typeof window !== "undefined") window.localStorage.setItem("vf-quiz-best", String(next));
+      if (typeof window !== "undefined") {
+        try { window.localStorage.setItem("vf-quiz-best", String(next)); } catch { /* Device storage can be unavailable. */ }
+      }
       return next;
     });
   };
 
   return (
-    <div className="visual-foundations-embed">
+    <section className="visual-foundations-embed" aria-label="Görsel ve kalıcı GPU öğrenme laboratuvarı">
       <Header active={active} setActive={setActive} visited={visited} />
-      <main className="vf-page-shell">
+      <div className="vf-page-shell">
         {active === "compare" && <CompareSection />}
         {active === "anatomy" && <AnatomySection />}
         {active === "lifecycle" && <LifecycleSection />}
@@ -1511,7 +1519,7 @@ export default function VisualFoundationsEmbedded() {
         {active === "cheat" && <CheatSection />}
         {active === "code" && <CodeSection />}
         {active === "anim" && <AnimSection />}
-        <footer className="vf-foot">
+        <div className="vf-foot">
           <div>
             <b>Kalıcı Öğrenme Üçgeni</b>
             <p>Görsel · Sözel · Geri-getirme. Üçü birlikte uygulanınca bilgi 1 yıl değil, 5 yıl kalıcı olur.</p>
@@ -1520,8 +1528,8 @@ export default function VisualFoundationsEmbedded() {
             <b>EN İYİ SKOR · {bestScore ?? "—"} / 5</b>
             <p>Bu skor yalnızca bu cihazda saklanır. Tekrar ettikçe yükselir.</p>
           </div>
-        </footer>
-      </main>
-    </div>
+        </div>
+      </div>
+    </section>
   );
 }
