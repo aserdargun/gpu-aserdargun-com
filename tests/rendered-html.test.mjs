@@ -120,12 +120,11 @@ test("ships locale-aware routing, metadata, accessibility, favicon, and social c
   assert.match(proxy, /Content-Language/);
   assert.match(proxy, /accept-language/);
   assert.match(readme, /Turkish and English UI/);
-  assert.match(favicon, /<title[^>]*>GPU Kernel Atlas cube favicon<\/title>/);
-  assert.match(favicon, /<desc[^>]*>Isometric cube with lime top, blue left, and orange right faces\.<\/desc>/);
-  assert.match(favicon, /#121310/);
-  assert.match(favicon, /#c8ff36/);
-  assert.match(favicon, /#6a8dff/);
-  assert.match(favicon, /#ff7043/);
+  // aserdargun family: SVG with lime + dark palette, no legacy cube marks
+      assert.match(favicon, /<svg\b/);
+      assert.match(favicon, /#c8ff36/);
+      assert.match(favicon, /#121310/);
+      assert.doesNotMatch(favicon, /cube favicon|Isometric cube/);
   assert.equal(favicon.match(/<polygon\b/g)?.length, 3);
 
   for (const image of [trCard, enCard]) {
