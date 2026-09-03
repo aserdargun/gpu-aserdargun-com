@@ -28,7 +28,7 @@ const checks = [
   [html.includes("Kernel’i yaz."), "Turkish shell"],
   [html.includes("_next/static/chunks/"), "client chunks"],
   [!/localhost(?::\d+)?/i.test(html), "production URLs"],
-  [favicon.includes("GPU Kernel Atlas cube favicon"), "favicon"],
+  [favicon.includes("#c8ff36") && favicon.includes("#121310"), "favicon"],
   [trCard.size > 100_000 && enCard.size > 100_000, "social cards"],
   [files.some((path) => path.endsWith(".js")), "JavaScript assets"],
   [files.some((path) => path.endsWith(".css")), "CSS assets"],
