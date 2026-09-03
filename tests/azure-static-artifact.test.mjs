@@ -31,7 +31,10 @@ test("Azure artifact is a complete prebuilt static site", async () => {
   assert.match(html, /Kernel’i yaz\./);
   assert.match(html, /_next\/static\/chunks\//);
   assert.doesNotMatch(html, /localhost(?::\d+)?/i);
-  assert.match(favicon, /GPU Kernel Atlas cube favicon/);
+  // brand family check: must be an SVG that uses the lime + dark brand colors
+  assert.match(favicon, /<svg\b/);
+  assert.match(favicon, /#c8ff36/);
+  assert.match(favicon, /#121310/);
   assert.ok(trCard.size > 100_000);
   assert.ok(enCard.size > 100_000);
   assert.ok(files.some((path) => path.endsWith(".js")));
