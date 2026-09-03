@@ -26,7 +26,7 @@ test("Azure artifact is a complete prebuilt static site", async () => {
     filesUnder(resolve(out, "_next/static")),
   ]);
 
-  assert.match(html, /<title>GPU Kernel Atlas — GPU Kernel Mühendisliği<\/title>/i);
+  assert.match(html, /<title>GPU - GPU Kernel Engineering<\/title>/i);
   assert.match(html, /GPU KERNEL ATLAS/);
   assert.match(html, /Kernel’i yaz\./);
   assert.match(html, /_next\/static\/chunks\//);

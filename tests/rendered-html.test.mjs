@@ -37,7 +37,7 @@ test("server-renders the complete Turkish shell and metadata", async () => {
 
   const html = await response.text();
   assert.match(html, /<html lang="tr">/i);
-  assert.match(html, /<title>GPU Kernel Atlas — GPU Kernel Mühendisliği<\/title>/i);
+  assert.match(html, /<title>GPU - GPU Kernel Engineering<\/title>/i);
   assert.match(html, /<b>GPU KERNEL ATLAS<\/b><small>GPU KERNEL MÜHENDİSLİĞİ<\/small>/);
   assert.match(html, /aria-label="GPU Kernel Atlas ana sayfa"/);
   assert.match(html, /<nav class="topnav" aria-label="Ana navigasyon"><a href="#roadmap">12 hafta<\/a><\/nav>/);
@@ -61,7 +61,7 @@ test("server-renders the complete English shell with static production metadata"
 
   const html = await response.text();
   assert.match(html, /<html lang="tr">/i);
-  assert.match(html, /<title>GPU Kernel Atlas — GPU Kernel Mühendisliği<\/title>/i);
+  assert.match(html, /<title>GPU - GPU Kernel Engineering<\/title>/i);
   assert.match(html, /<b>GPU KERNEL ATLAS<\/b><small>GPU KERNEL ENGINEERING<\/small>/);
   assert.match(html, /aria-label="GPU Kernel Atlas home"/);
   assert.match(html, /<nav class="topnav" aria-label="Main navigation"><a href="#roadmap">12 weeks<\/a><\/nav>/);
