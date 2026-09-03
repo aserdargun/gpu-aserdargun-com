@@ -42,8 +42,8 @@ test("server-renders the complete Turkish shell and metadata", async () => {
   assert.match(html, /aria-label="GPU Kernel Atlas ana sayfa"/);
   assert.match(html, /<nav class="topnav" aria-label="Ana navigasyon"><a href="#roadmap">12 hafta<\/a><\/nav>/);
   assert.doesNotMatch(html, /<button[^>]*>Genel bakış<\/button>|<button[^>]*>Atlas<\/button>/);
-  assert.match(html, /property="og:title" content="GPU Kernel Atlas — GPU Kernel Mühendisliği"/);
-  assert.match(html, /name="twitter:title" content="GPU Kernel Atlas — GPU Kernel Mühendisliği"/);
+  assert.match(html, /property="og:title" content="GPU - GPU Kernel Engineering"/);
+  assert.match(html, /name="twitter:title" content="GPU - GPU Kernel Engineering"/);
   assert.match(html, /Kernel’i yaz\./);
   assert.match(html, /GPU KERNEL MÜHENDİSLİĞİ/);
   assert.match(html, /12 atlas · 12 hafta · Tek öğrenme sistemi/);
@@ -66,8 +66,8 @@ test("server-renders the complete English shell with static production metadata"
   assert.match(html, /aria-label="GPU Kernel Atlas home"/);
   assert.match(html, /<nav class="topnav" aria-label="Main navigation"><a href="#roadmap">12 weeks<\/a><\/nav>/);
   assert.doesNotMatch(html, /<button[^>]*>Overview<\/button>|<button[^>]*>Atlas<\/button>/);
-  assert.match(html, /property="og:title" content="GPU Kernel Atlas — GPU Kernel Mühendisliği"/);
-  assert.match(html, /name="twitter:title" content="GPU Kernel Atlas — GPU Kernel Mühendisliği"/);
+  assert.match(html, /property="og:title" content="GPU - GPU Kernel Engineering"/);
+  assert.match(html, /name="twitter:title" content="GPU - GPU Kernel Engineering"/);
   assert.match(html, /Write the kernel\./);
   assert.match(html, /GPU KERNEL ENGINEERING/);
   assert.match(html, /12 atlas · 12 hafta · Tek öğrenme sistemi/);
