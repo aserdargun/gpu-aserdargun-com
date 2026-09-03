@@ -1,8 +1,23 @@
-<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
-  <title id="title">GPU Kernel Atlas cube favicon</title>
-  <desc id="desc">Isometric cube with lime top, blue left, and orange right faces.</desc>
-  <rect width="64" height="64" rx="12" fill="#121310"/>
-  <polygon points="32 7 56 21 32 35 8 21" fill="#c8ff36" stroke="#121310" stroke-width="2" stroke-linejoin="round"/>
-  <polygon points="8 21 32 35 32 61 8 47" fill="#6a8dff" stroke="#121310" stroke-width="2" stroke-linejoin="round"/>
-  <polygon points="32 35 56 21 56 47 32 61" fill="#ff7043" stroke="#121310" stroke-width="2" stroke-linejoin="round"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" role="img" aria-label="gpu">
+  <rect width="320" height="320" rx="64" fill="#121310"/>
+  <circle cx="160" cy="142" r="108" fill="#c8ff36"/>
+  <g transform="translate(60 42)">
+    <g fill="none" stroke="#0c0d0a" stroke-width="8" stroke-linejoin="round">
+      <rect x="40" y="30" width="120" height="140" rx="10" />
+      <rect x="68" y="58" width="64" height="84" rx="4" />
+    </g>
+    <g stroke="#0c0d0a" stroke-width="5" stroke-linecap="round">
+      <line x1="50" y1="50" x2="50" y2="56" />
+      <line x1="50" y1="80" x2="50" y2="86" />
+      <line x1="50" y1="110" x2="50" y2="116" />
+      <line x1="50" y1="140" x2="50" y2="146" />
+      <line x1="150" y1="50" x2="150" y2="56" />
+      <line x1="150" y1="80" x2="150" y2="86" />
+      <line x1="150" y1="110" x2="150" y2="116" />
+      <line x1="150" y1="140" x2="150" y2="146" />
+    </g></g>
+  <text x="160" y="296" text-anchor="middle" fill="#c8ff36"
+    font-family="Inter, Helvetica, Arial, sans-serif" font-size="40" font-weight="800"
+    letter-spacing="-2">GPU</text>
 </svg>
