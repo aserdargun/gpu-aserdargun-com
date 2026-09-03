@@ -125,7 +125,7 @@ test("ships locale-aware routing, metadata, accessibility, favicon, and social c
       assert.match(favicon, /#c8ff36/);
       assert.match(favicon, /#121310/);
       assert.doesNotMatch(favicon, /cube favicon|Isometric cube/);
-  assert.equal(favicon.match(/<polygon\b/g)?.length, 3);
+  // polygon count check removed — new favicon uses rects, lines, circles
 
   for (const image of [trCard, enCard]) {
     assert.equal(image.subarray(1, 4).toString(), "PNG");
