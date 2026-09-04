@@ -79,7 +79,7 @@ const questions = [
   { q: "FP32 paralel reduction sonucu CPU referansından 2e-6 farklı. İlk doğru yaklaşım?", a: ["Bit-bit eşitlik istemek", "rtol/atol ile hata bütçesi tanımlamak", "memcheck çalıştırıp geçerse kabul etmek"], correct: 1 },
   { q: "Sınır dışı genel bellek yazımını hangi araç doğrudan yakalar?", a: ["racecheck", "synccheck", "memcheck"], correct: 2 },
   { q: "Kernel yalnızca N=1024 için doğru. En olası test açığı nedir?", a: ["Şekil ve sınır matrisi", "Daha düşük rtol", "Daha uzun benchmark"], correct: 0 },
-  { q: "Koşullu __syncthreads() şüphesinde hangi sıra uygundur?", a: ["synccheck → profiler", "benchmark → initcheck", "racecheck → bit-bit kıyas"], correct: 0 },
+  { q: "Koşullu __syncthreads() şüphesinde hangi sıra uygundur?", a: ["synccheck → profil oluşturucu", "kıyaslama → initcheck", "racecheck → bit düzeyi kıyas"], correct: 0 },
 ];
 
 const scenarios = [
@@ -168,7 +168,7 @@ export default function KernelSafetyEmbedded() {
 
         <div className="contract-grid">
           <article className="lesson-card"><span className="card-no">A</span><h3>Referans</h3><p>Basit, okunabilir ve bağımsız bir CPU/PyTorch uygulaması. Performans değil güvenilirlik için yazılır.</p><code>expected = torch_rmsnorm(x, w)</code></article>
-          <article className="lesson-card"><span className="card-no">B</span><h3>Gözlenen</h3><p>Aynı girdiyi, dtype’ı ve semantiği kullanan CUDA/Triton kernel çıktısı.</p><code>actual = custom_kernel(x, w)</code></article>
+          <article className="lesson-card"><span className="card-no">B</span><h3>Gözlenen</h3><p>Aynı girdiyi, veri tipini ve semantiği kullanan CUDA/Triton kernel çıktısı.</p><code>actual = custom_kernel(x, w)</code></article>
           <article className="lesson-card accent"><span className="card-no">C</span><h3>Karar kuralı</h3><p>Mutlak ve bağıl toleransı birlikte kullan. Büyük ve sıfıra yakın değerleri aynı sözleşme kapsar.</p><code>|a-b| ≤ atol + rtol × |b|</code></article>
         </div>
 
@@ -188,7 +188,7 @@ export default function KernelSafetyEmbedded() {
               <span>{passes ? "≤" : ">"}</span>
               <div><small>İZİN VERİLEN</small><b>{threshold.toExponential(2)}</b></div>
             </div>
-            <p className="lab-note">{passes ? "Fark, tanımlı hata bütçesinin içinde. Bu test geçer; yine de Sanitizer kontrolleri gerekir." : "Fark, toleransla açıklanamayacak kadar büyük. İndeksleme, reduction sırası veya dtype dönüşümünü incele."}</p>
+            <p className="lab-note">{passes ? "Fark, tanımlı hata bütçesinin içinde. Bu test geçer; yine de Sanitizer kontrolleri gerekir." : "Fark, toleransla açıklanamayacak kadar büyük. İndekslemeyi, indirgeme sırasını veya veri tipi dönüşümünü incele."}</p>
           </article>
 
           <aside className="matrix-card">
@@ -198,9 +198,9 @@ export default function KernelSafetyEmbedded() {
               <li><b>Şekil:</b> 0/1, asal boyut, warp sınırı −1/+1</li>
               <li><b>Yerleşim:</b> contiguous, transposed, sliced</li>
               <li><b>Değer:</b> sıfır, negatif, çok küçük/büyük, NaN/Inf politikası</li>
-              <li><b>Tip:</b> FP32, FP16/BF16 ve birikim dtype’ı</li>
+              <li><b>Tip:</b> FP32, FP16/BF16 ve birikim veri tipi</li>
               <li><b>Başlatma:</b> farklı seed’ler ve tekrar koşuları</li>
-              <li><b>Koruma:</b> çıktı sentinel’ları, input değişmezliği</li>
+              <li><b>Koruma:</b> çıktı gözcü değerleri, girdi değişmezliği</li>
             </ul>
             <div className="warning"><b>!</b><p><strong>Önemli ayrım</strong>allclose sonucu semantik doğruluğu ölçer; bellek güvenliğini kanıtlamaz.</p></div>
           </aside>
@@ -235,8 +235,8 @@ export default function KernelSafetyEmbedded() {
         <article className="command-builder">
           <div><span className="mini-label">KOMUT OLUŞTURUCU</span><h3>CI için tekrarlanabilir bir koşu üret</h3></div>
           <div className="toggles">
-            <label><input type="checkbox" checked={lineInfo} onChange={(e) => setLineInfo(e.target.checked)} /><span /> Backtrace göster</label>
-            <label><input type="checkbox" checked={exitCode} onChange={(e) => setExitCode(e.target.checked)} /><span /> Hatada exit 99</label>
+            <label><input type="checkbox" checked={lineInfo} onChange={(e) => setLineInfo(e.target.checked)} /><span /> Geri izlemeyi göster</label>
+            <label><input type="checkbox" checked={exitCode} onChange={(e) => setExitCode(e.target.checked)} /><span /> Hatada 99 koduyla çık</label>
           </div>
           <div className="generated-command"><code tabIndex={0} aria-label="Üretilen komut">{command}</code><button onClick={copyCommand}>{copied ? "Kopyalandı ✓" : "Kopyala"}</button></div>
           <p><b>Derleme notu:</b> Kaynak satırı eşlemesi için debug build yerine genellikle <code>-lineinfo</code> ekle; optimizasyon davranışını korurken raporu okunur kılar.</p>
@@ -250,7 +250,7 @@ export default function KernelSafetyEmbedded() {
         </div>
         <ol className="steps">
           {[
-            ["Sözleşmeyi yaz", "Şekil, dtype, broadcasting, NaN/Inf ve aliasing davranışı açık olsun."],
+            ["Sözleşmeyi yaz", "Şekil, veri tipi, yayınlama, NaN/Inf ve örtüşme davranışı açık olsun."],
             ["Bağımsız referans kur", "Yavaş ama anlaşılır CPU/PyTorch yolu; kernel kodunu kopyalama."],
             ["Test matrisini tara", "Sınırlar, asal boyutlar, farklı stride’lar, uç değerler ve seed’ler."],
             ["memcheck ile temizle", "Sınır dışı/hizasız erişim ve CUDA API hatalarını önce kaldır."],

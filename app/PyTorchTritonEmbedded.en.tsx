@@ -370,8 +370,8 @@ export default function PyTorchTritonEmbedded() {
         <div className="evidence-strip">
           <div><span>TRUTH</span><strong>{runState === "passed" ? "4 / 4" : "—/4"}</strong><small>shape × dtype</small></div>
           <div><span>MEDIAN</span><strong>{runState === "passed" ? "18.7 µs" : "— µs"}</strong><small>100 reps</small></div>
-          <div><span>BANDWIDTH</span><strong>{runState === "passed" ? "612GB/s" : "— GB/s"}</strong><small>representative result</small></div>
-          <div className="proof-note"><i>!</i><p>Performance numbers are for instructional purposes. It's not portfolio proof until you measure it on your own GPU.</p></div>
+          <div><span>BANDWIDTH</span><strong>{runState === "passed" ? "612 GB/s" : "— GB/s"}</strong><small>illustrative simulation</small></div>
+          <div className="proof-note"><i>!</i><p>Illustrative simulation output; it was not measured on your device. It is not portfolio proof until you measure it on your own GPU.</p></div>
         </div>
       </section>
 

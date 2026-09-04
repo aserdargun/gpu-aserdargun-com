@@ -5,7 +5,7 @@ export type CurriculumSource = Readonly<{
   moduleId: ModuleId;
   title: string;
   url: `https://${string}`;
-  verifiedAt: "2026-08-29";
+  verifiedAt: "2026-09-04";
   maturity: Maturity;
 }>;
 
@@ -15,7 +15,7 @@ export const curriculumSources = [
     moduleId: "visual",
     title: "CUDA Programming Guide",
     url: "https://docs.nvidia.com/cuda/cuda-programming-guide/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "core",
   },
   {
@@ -23,7 +23,7 @@ export const curriculumSources = [
     moduleId: "toolchain",
     title: "CUDA Installation Guide for Linux",
     url: "https://docs.nvidia.com/cuda/cuda-installation-guide-linux/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -31,7 +31,7 @@ export const curriculumSources = [
     moduleId: "architecture",
     title: "CUDA Programming Guide",
     url: "https://docs.nvidia.com/cuda/cuda-programming-guide/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -39,7 +39,7 @@ export const curriculumSources = [
     moduleId: "architecture",
     title: "CUDA 13.1 and CUDA Tile",
     url: "https://developer.nvidia.com/blog/nvidia-cuda-13-1-powers-next-gen-gpu-programming-with-nvidia-cuda-tile-and-performance-gains/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -47,7 +47,7 @@ export const curriculumSources = [
     moduleId: "architecture",
     title: "NVIDIA CUDA Compiler Driver 13.3 — Tile Compilation",
     url: "https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -55,7 +55,7 @@ export const curriculumSources = [
     moduleId: "architecture",
     title: "cuTile Python 1.5.0 Release Notes",
     url: "https://docs.nvidia.com/cuda/cutile-python/generated/release_notes.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -63,7 +63,7 @@ export const curriculumSources = [
     moduleId: "memory",
     title: "CUDA Programming Guide: Memory",
     url: "https://docs.nvidia.com/cuda/cuda-programming-guide/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -71,7 +71,7 @@ export const curriculumSources = [
     moduleId: "triton",
     title: "PyTorch Custom Operators",
     url: "https://docs.pytorch.org/tutorials/advanced/custom_ops_landing_page.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -79,7 +79,7 @@ export const curriculumSources = [
     moduleId: "triton",
     title: "Using User-Defined Triton Kernels with torch.compile",
     url: "https://docs.pytorch.org/tutorials/recipes/torch_compile_user_defined_triton_kernel_tutorial.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -87,7 +87,7 @@ export const curriculumSources = [
     moduleId: "triton",
     title: "Introduction to Gluon",
     url: "https://triton-lang.org/main/getting-started/tutorials/gluon/intro.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "preview",
   },
   {
@@ -95,7 +95,7 @@ export const curriculumSources = [
     moduleId: "operators",
     title: "Triton Tutorials",
     url: "https://triton-lang.org/main/getting-started/tutorials/index.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -103,7 +103,7 @@ export const curriculumSources = [
     moduleId: "operators",
     title: "Triton Operator Tutorials",
     url: "https://triton-lang.org/main/getting-started/tutorials/index.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -111,7 +111,7 @@ export const curriculumSources = [
     moduleId: "operators",
     title: "Block Scaled Matrix Multiplication",
     url: "https://triton-lang.org/main/getting-started/tutorials/10-block-scaled-matmul.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -119,7 +119,7 @@ export const curriculumSources = [
     moduleId: "operators",
     title: "vLLM Paged Attention Design",
     url: "https://docs.vllm.ai/en/latest/design/paged_attention/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -127,7 +127,7 @@ export const curriculumSources = [
     moduleId: "operators",
     title: "PyTorch scaled_dot_product_attention",
     url: "https://docs.pytorch.org/docs/main/generated/torch.nn.functional.scaled_dot_product_attention.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "preview",
   },
   {
@@ -135,7 +135,7 @@ export const curriculumSources = [
     moduleId: "correctness",
     title: "Compute Sanitizer",
     url: "https://docs.nvidia.com/compute-sanitizer/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -143,7 +143,7 @@ export const curriculumSources = [
     moduleId: "correctness",
     title: "Compute Sanitizer Release Notes",
     url: "https://docs.nvidia.com/compute-sanitizer/ReleaseNotes/index.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -151,7 +151,7 @@ export const curriculumSources = [
     moduleId: "profiling",
     title: "Nsight Compute Release Notes",
     url: "https://docs.nvidia.com/nsight-compute/ReleaseNotes/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -159,7 +159,7 @@ export const curriculumSources = [
     moduleId: "profiling",
     title: "Nsight Compute Release Notes",
     url: "https://docs.nvidia.com/nsight-compute/ReleaseNotes/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -167,7 +167,7 @@ export const curriculumSources = [
     moduleId: "cutlass",
     title: "CUTLASS Changelog",
     url: "https://docs.nvidia.com/cutlass/latest/CHANGELOG.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -175,7 +175,7 @@ export const curriculumSources = [
     moduleId: "cutlass",
     title: "CUTLASS 4 Overview",
     url: "https://docs.nvidia.com/cutlass/latest/overview.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -183,7 +183,7 @@ export const curriculumSources = [
     moduleId: "cutlass",
     title: "CUTLASS 3.x GEMM API",
     url: "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/gemm_api_3x.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -191,7 +191,7 @@ export const curriculumSources = [
     moduleId: "cutlass",
     title: "CuTe DSL",
     url: "https://docs.nvidia.com/cutlass/latest/media/docs/pythonDSL/cute_dsl.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "preview",
   },
   {
@@ -199,7 +199,7 @@ export const curriculumSources = [
     moduleId: "cutlass",
     title: "CUTLASS Code Organization",
     url: "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/code_organization.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -207,7 +207,7 @@ export const curriculumSources = [
     moduleId: "cutlass",
     title: "CUTLASS Blackwell SM100 GEMMs",
     url: "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/blackwell_functionality.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -215,7 +215,7 @@ export const curriculumSources = [
     moduleId: "cutlass",
     title: "CUTLASS Grouped Kernel Schedulers",
     url: "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/grouped_scheduler.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -223,7 +223,7 @@ export const curriculumSources = [
     moduleId: "cutlass",
     title: "CUTLASS Blackwell Cluster Launch Control",
     url: "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/blackwell_cluster_launch_control.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -231,7 +231,7 @@ export const curriculumSources = [
     moduleId: "cutlass",
     title: "CUTLASS Rubin SM107 Changelog",
     url: "https://docs.nvidia.com/cutlass/latest/CHANGELOG.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "preview",
   },
   {
@@ -239,7 +239,7 @@ export const curriculumSources = [
     moduleId: "inference",
     title: "vLLM Stable Documentation",
     url: "https://docs.vllm.ai/en/stable/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -247,7 +247,7 @@ export const curriculumSources = [
     moduleId: "inference",
     title: "Disaggregated Encoder",
     url: "https://docs.vllm.ai/en/latest/examples/disaggregated/disaggregated_encoder/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -255,7 +255,7 @@ export const curriculumSources = [
     moduleId: "inference",
     title: "vLLM CUDA Graphs",
     url: "https://docs.vllm.ai/en/stable/design/cuda_graphs/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -263,7 +263,7 @@ export const curriculumSources = [
     moduleId: "inference",
     title: "HIP Graphs Runtime API",
     url: "https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/hip_runtime_api/hipgraph.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -271,7 +271,7 @@ export const curriculumSources = [
     moduleId: "inference",
     title: "AMD HIP Graphs Runtime API",
     url: "https://rocm.docs.amd.com/projects/HIP/en/latest/how-to/hip_runtime_api/hipgraph.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -279,7 +279,7 @@ export const curriculumSources = [
     moduleId: "inference",
     title: "vLLM Quantization Supported Hardware",
     url: "https://docs.vllm.ai/en/stable/features/quantization/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -287,7 +287,7 @@ export const curriculumSources = [
     moduleId: "inference",
     title: "vLLM Per-Request Acceptance Metrics",
     url: "https://docs.vllm.ai/en/latest/features/speculative_decoding/acceptance_metrics/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "preview",
   },
   {
@@ -295,7 +295,7 @@ export const curriculumSources = [
     moduleId: "inference",
     title: "vLLM Expert Parallel Deployment",
     url: "https://docs.vllm.ai/en/latest/serving/expert_parallel_deployment/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -303,7 +303,7 @@ export const curriculumSources = [
     moduleId: "inference",
     title: "vLLM Context Parallel Deployment",
     url: "https://docs.vllm.ai/en/latest/serving/context_parallel_deployment/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "preview",
   },
   {
@@ -311,7 +311,7 @@ export const curriculumSources = [
     moduleId: "inference",
     title: "vLLM Online Quantization",
     url: "https://docs.vllm.ai/en/latest/features/quantization/online/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -319,7 +319,7 @@ export const curriculumSources = [
     moduleId: "inference",
     title: "CUTLASS Blackwell Block-Scaled Formats",
     url: "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/blackwell_functionality.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -327,7 +327,7 @@ export const curriculumSources = [
     moduleId: "multigpu",
     title: "NCCL Release Notes",
     url: "https://docs.nvidia.com/deeplearning/nccl/release-notes/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -335,7 +335,7 @@ export const curriculumSources = [
     moduleId: "multigpu",
     title: "NCCL Topology Detection",
     url: "https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/troubleshooting/gpu_troubleshooting.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -343,7 +343,7 @@ export const curriculumSources = [
     moduleId: "multigpu",
     title: "NCCL PCIe Peer-to-Peer Check",
     url: "https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/troubleshooting/gpu_troubleshooting.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -351,7 +351,7 @@ export const curriculumSources = [
     moduleId: "multigpu",
     title: "NCCL NVLink Peer-to-Peer Check",
     url: "https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/troubleshooting/gpu_troubleshooting.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -359,7 +359,7 @@ export const curriculumSources = [
     moduleId: "multigpu",
     title: "NVIDIA Multi-Node NVLink Systems",
     url: "https://docs.nvidia.com/multi-node-nvlink-systems/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -367,7 +367,7 @@ export const curriculumSources = [
     moduleId: "multigpu",
     title: "NVIDIA GPUDirect RDMA",
     url: "https://docs.nvidia.com/cuda/gpudirect-rdma/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -375,7 +375,7 @@ export const curriculumSources = [
     moduleId: "multigpu",
     title: "NCCL 2.28.3 Device API Release Notes",
     url: "https://docs.nvidia.com/deeplearning/nccl/release-notes/rel_2-28-3.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "preview",
   },
   {
@@ -383,7 +383,7 @@ export const curriculumSources = [
     moduleId: "multigpu",
     title: "NCCL Device API",
     url: "https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/api/device.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -391,7 +391,7 @@ export const curriculumSources = [
     moduleId: "multigpu",
     title: "NCCL 2.31.2 Device API — LSA and Multimem Compatibility",
     url: "https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/deviceapi.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -399,7 +399,7 @@ export const curriculumSources = [
     moduleId: "multigpu",
     title: "NCCL 2.31.2 Device API — GIN Recompile Boundary",
     url: "https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/deviceapi.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -407,7 +407,7 @@ export const curriculumSources = [
     moduleId: "multigpu",
     title: "NCCL 2.31.2 Experimental Rust Device API Bindings",
     url: "https://docs.nvidia.com/deeplearning/nccl/archives/nccl_2312/release-notes/rel_2-31-2.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "preview",
   },
   {
@@ -415,7 +415,7 @@ export const curriculumSources = [
     moduleId: "multigpu",
     title: "NVIDIA NVSHMEM Symmetric Memory",
     url: "https://docs.nvidia.com/nvshmem/api/latest/using.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -423,7 +423,7 @@ export const curriculumSources = [
     moduleId: "multigpu",
     title: "NCCL CUDA Stream Semantics",
     url: "https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/streams.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -431,7 +431,7 @@ export const curriculumSources = [
     moduleId: "multigpu",
     title: "vLLM Parallelism and Scaling",
     url: "https://docs.vllm.ai/en/stable/serving/parallelism_scaling/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -439,7 +439,7 @@ export const curriculumSources = [
     moduleId: "systems",
     title: "ROCm Release Notes",
     url: "https://rocm.docs.amd.com/en/develop/about/release-notes.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -447,7 +447,7 @@ export const curriculumSources = [
     moduleId: "systems",
     title: "ROCm Core SDK 10.0.0 Release Notes",
     url: "https://rocm.docs.amd.com/en/develop/about/release-notes.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -455,7 +455,7 @@ export const curriculumSources = [
     moduleId: "systems",
     title: "ROCprofiler-SDK in ROCm 10",
     url: "https://rocm.docs.amd.com/en/develop/about/release-notes.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -463,7 +463,7 @@ export const curriculumSources = [
     moduleId: "systems",
     title: "AMD GPU Programming on ROCm",
     url: "https://rocm.docs.amd.com/en/develop/reference/hip-programming.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -471,7 +471,7 @@ export const curriculumSources = [
     moduleId: "systems",
     title: "MLIR Dialect Conversion",
     url: "https://mlir.llvm.org/docs/DialectConversion/",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -479,7 +479,7 @@ export const curriculumSources = [
     moduleId: "systems",
     title: "CUDA Tile IR",
     url: "https://docs.nvidia.com/cuda/tile-ir/main/sections/introduction.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -487,7 +487,7 @@ export const curriculumSources = [
     moduleId: "systems",
     title: "cuTile Python Quickstart",
     url: "https://docs.nvidia.com/cuda/cutile-python/quickstart.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -495,7 +495,7 @@ export const curriculumSources = [
     moduleId: "systems",
     title: "CUTLASS C++ Functionality",
     url: "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/functionality.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -503,7 +503,7 @@ export const curriculumSources = [
     moduleId: "systems",
     title: "CUTLASS CuTe DSL Overview",
     url: "https://docs.nvidia.com/cutlass/latest/overview.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "preview",
   },
   {
@@ -511,7 +511,7 @@ export const curriculumSources = [
     moduleId: "systems",
     title: "How TensorRT Works",
     url: "https://docs.nvidia.com/deeplearning/tensorrt/latest/architecture/how-trt-works.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "current",
   },
   {
@@ -519,7 +519,7 @@ export const curriculumSources = [
     moduleId: "systems",
     title: "Triton-to-Tile-IR Incubator",
     url: "https://github.com/triton-lang/Triton-to-tile-IR",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "preview",
   },
   {
@@ -527,7 +527,7 @@ export const curriculumSources = [
     moduleId: "systems",
     title: "CUTLASS Rubin SM107 Changelog",
     url: "https://docs.nvidia.com/cutlass/latest/CHANGELOG.html",
-    verifiedAt: "2026-08-29",
+    verifiedAt: "2026-09-04",
     maturity: "preview",
   },
 ] as const satisfies readonly CurriculumSource[];

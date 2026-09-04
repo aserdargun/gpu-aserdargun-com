@@ -271,7 +271,7 @@ test("Task 6 renders the Azure-built bilingual roadmap, maturity policy, and pre
 
   for (const [locale, expected] of Object.entries({
     tr: {
-      hero: "On iki etkileşimli atlas; görsel GPU temellerini, tile düzeyi programlamayı, Blackwell farkındalıklı optimizasyonu ve dağıtık çıkarımı, desteklenen mimari ve backend sınırlarını görünür kılan 12 haftalık kanıt rotasında birleştirir.",
+      hero: "On iki etkileşimli atlas; görsel GPU temellerini, döşeme düzeyi programlamayı, Blackwell farkındalıklı optimizasyonu ve dağıtık çıkarımı, desteklenen mimari ve arka uç sınırlarını görünür kılan 12 haftalık kanıt rotasında birleştirir.",
       labels: ["Temel", "Güncel", "Önizleme"],
       caveat: "Önizleme: araç zinciri ya da donanım olgunlaşmasına bağlı keşif yoludur; mezuniyet koşulu değildir.",
       evidence: "Etkileşimli laboratuvarlar eğitim amaçlı simülasyonlardır; ölçülmüş donanım sonucu iddia etmez.",

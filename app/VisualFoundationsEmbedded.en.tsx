@@ -40,15 +40,15 @@ const knowledgeCards: Array<{
     badge: "ANALOGY",
     type: "analogy",
     title: "A warp is a 32-person classroom",
-    body: "A warp is 32 students solving the same question in the same order. The teacher (issue unit) gives one instruction; all execute the same command at once. Someone going a different way = divergence.",
+    body: "A warp is like 32 students solving the same question. The scheduler issues a warp instruction to active lanes while inactive lanes are masked. Taking different paths is divergence.",
     hook: "Everyone on the same page is fastest; one going forward and one back slows the whole class.",
   },
   {
     badge: "ANALOGY",
     type: "analogy",
     title: "Coalescing = public transit",
-    body: "32 threads take one bus instead of 32 separate taxis. They arrive in 4 sectors (32 B × 4) at once. Same road, 32 passengers.",
-    hook: "Stride 1 = bus, stride 8 = 8 taxis. Same road, 8× the fuel.",
+    body: "When neighboring threads access nearby addresses, hardware can combine their requests into a small number of memory transactions. Scattered access may move more sectors.",
+    hook: "Inspect the address pattern by sector; wider spacing can increase bytes transferred but not used.",
   },
   {
     badge: "CONTRAST",
@@ -77,8 +77,8 @@ const pitfalls: Array<{ topic: string; title: string; wrong: string; right: stri
   {
     topic: "Memory access",
     title: "'Strided access is fine'",
-    wrong: "Stride 8 access uses only ~12.5% of each sector; you waste 8× the bandwidth.",
-    right: "Before reading, ask: 'which sector do I land in?' Aim for stride 1, repack through shared memory if you must.",
+    wrong: "As stride grows, accesses may spread across more sectors; unused bytes depend on alignment and workload shape.",
+    right: "Before reading, ask which sectors are touched. Measure the access pattern and repack through shared memory when that helps.",
   },
   {
     topic: "Kernel launch",
@@ -96,7 +96,7 @@ const pitfalls: Array<{ topic: string; title: string; wrong: string; right: stri
     topic: "Correctness",
     title: "'allclose(default) is enough'",
     wrong: "Default rtol=1e-05 atol=1e-08 becomes meaningless for FP16 or large reductions.",
-    right: "Write a tolerance matrix by shape and dtype. ~1e-2 for FP16; range checks for big softmax reductions.",
+    right: "Write a tolerance matrix by shape, dtype, and the operator's error accumulation; add range checks for large reductions.",
   },
 ];
 
@@ -109,15 +109,15 @@ type QuizQuestion = {
 
 const quiz: QuizQuestion[] = [
   {
-    q: "Why does a GPU have hundreds of small cores instead of a few large ones like a CPU?",
+    q: "Why does a GPU contain many parallel execution resources?",
     options: [
       "To use less energy",
-      "To hide latency by keeping many warps ready, increasing throughput on parallel work",
+      "To raise parallel throughput and cover waits with other eligible warps",
       "To increase the clock speed",
       "To produce less heat",
     ],
     correct: 1,
-    explain: "GPUs keep many warps ready to run while others wait on memory, hiding latency. The goal is throughput, not latency.",
+    explain: "A GPU can advance eligible warps while others wait on memory, raising parallel throughput. The details depend on architecture and workload.",
   },
   {
     q: "What is it called when 32 threads in a warp access consecutive bytes in the same 128-byte sector?",
@@ -129,7 +129,7 @@ const quiz: QuizQuestion[] = [
     q: "Which memory layer is the fastest?",
     options: ["L2 cache", "DRAM (global memory)", "Register", "Shared memory"],
     correct: 2,
-    explain: "Registers sit on the SM and are scalar-accessible in a single cycle. Shared memory is also very fast but is programmable and shared by all threads in a block. Registers are the fastest.",
+    explain: "Registers are low-latency, per-thread storage on an SM. Shared memory is also fast but is programmable and shared by threads in a block.",
   },
   {
     q: "Which of the following is required to call a kernel 'correct'?",
@@ -187,10 +187,10 @@ function CpuSvg() {
 
 function GpuSvg() {
   return (
-    <svg className="vf-compare-svg" viewBox="0 0 320 180" role="img" aria-label="GPU hundreds of small cores">
+    <svg className="vf-compare-svg" viewBox="0 0 320 180" role="img" aria-label="GPU parallel execution resources">
       <rect x="0" y="0" width="320" height="180" fill="#f9e0ea" />
       <rect x="10" y="20" width="300" height="140" fill="#fbf8f1" stroke="#d8467c" strokeWidth="1.5" />
-      <text x="160" y="14" className="sub" textAnchor="middle" fill="#d8467c">GPU · hundreds of small cores (SM × lane)</text>
+      <text x="160" y="14" className="sub" textAnchor="middle" fill="#d8467c">GPU · parallel execution resources (SM × lane)</text>
       {Array.from({ length: 8 }).map((_, row) =>
         Array.from({ length: 16 }).map((_, col) => {
           const x = 22 + col * 18;
@@ -288,8 +288,8 @@ function CompareSection() {
     <section className="vf-section">
       <SectionHead
         label="SECTION 01 · FIRST LOOK"
-        title={<>CPU <em>vs</em> GPU: not latency, but <em>throughput</em>.</>}
-        note="A CPU is a specialist: little work, low latency. A GPU is an army: many small soldiers working together for high throughput. Two different problems, two different designs."
+        title={<>CPU and GPU priorities: <em>single-task latency</em> and <em>parallel throughput</em>.</>}
+        note="A CPU advances complex individual tasks with low latency; a GPU emphasizes many similar operations in parallel. The useful balance depends on the workload."
       />
       <div className="vf-compare">
         <article className="vf-compare-card cpu">
@@ -298,7 +298,7 @@ function CompareSection() {
           <p className="lede">Heavy control flow, branch prediction, and serial workloads. Optimized to finish a single thread as fast as possible.</p>
           <CpuSvg />
           <dl className="vf-compare-grid">
-            <dt>CORES</dt><dd>4–16 large, complex cores</dd>
+            <dt>EXECUTION</dt><dd>A smaller number of powerful, complex general-purpose cores</dd>
             <dt>CACHE</dt><dd>L1/L2/L3 deep; predictors</dd>
             <dt>POWER</dt><dd>High clock × few cores</dd>
             <dt>PARADIGM</dt><dd>Cut latency, speed up a single task</dd>
@@ -306,11 +306,11 @@ function CompareSection() {
         </article>
         <article className="vf-compare-card gpu">
           <div className="tag">● GPU · Throughput-Optimizer</div>
-          <h3>Many cores, hundreds of lanes</h3>
-          <p className="lede">SM × hundreds of lanes run in parallel. While one warp waits on memory, others compute. Slice the data and run every slice in parallel.</p>
+          <h3>Many parallel execution resources</h3>
+          <p className="lede">Lanes inside SMs execute in warps. While some warps wait, schedulers can advance other eligible warps.</p>
           <GpuSvg />
           <dl className="vf-compare-grid">
-            <dt>CORES</dt><dd>128 lanes per SM (4 warp × 32)</dd>
+            <dt>EXECUTION</dt><dd>Lanes are grouped into 32-thread warps; resource counts are architecture-specific</dd>
             <dt>CACHE</dt><dd>L1/shared programmable; L2 shared</dd>
             <dt>PARADIGM</dt><dd>Hide latency, raise throughput</dd>
             <dt>BEST FOR</dt><dd>SIMD, matmul, convolution, attention</dd>
@@ -427,7 +427,7 @@ const lifecycleSteps = [
     title: "Execution",
     where: "SM × warp × lane",
     time: "ns – μs",
-    desc: "Blocks are assigned to SMs. SM issues a different warp each cycle. Warps waiting on memory go to the background; ready warps advance. Latency hiding happens here.",
+    desc: "Blocks are assigned to SMs. Schedulers issue from eligible warps, so another ready warp can advance while one waits on memory. This is latency hiding.",
     glyph: (
       <svg viewBox="0 0 56 56" width="56" height="56" aria-hidden="true">
         <rect x="6" y="10" width="44" height="36" fill="var(--rose-soft)" stroke="var(--rose)" />
@@ -597,7 +597,7 @@ function QuizSection({ onScore }: { onScore: (s: number) => void }) {
         <div className="vf-quiz">
           <p className="vf-quiz-question">
             {finalScore === quiz.length
-              ? "Perfect. These five questions cover ~80% of the atlases. Come back in a week and try again."
+              ? "Perfect. These five questions cover foundations reused throughout the atlas. Come back in a week and try again."
               : finalScore >= 3
               ? "Good. Revisit the wrong answers and reopen the relevant atlas. Without review, it won't stick."
               : "These are fundamentals. Walk through the atlases in order and revisit the 'lasting knowledge' cards."}
@@ -722,7 +722,7 @@ const conceptMapDetails: Record<string, { title: string; desc: string; prereq: s
   },
   operators: {
     title: "LLM Kernel Patterns",
-    desc: "GEMM, reduction, softmax, RMSNorm, attention. ~80% of modern GPU kernel work lives here.",
+    desc: "Common operator patterns including GEMM, reduction, softmax, RMSNorm, and attention live here.",
     prereq: ["memory", "triton"],
     feeds: ["correctness", "cutlass"],
   },
@@ -883,7 +883,7 @@ function RecallSection() {
       <SectionHead
         label="SECTION 08 · RETRIEVAL"
         title={<>A <em>one-sentence</em> summary of every atlas. Flip a card, try to recall.</>}
-        note="Active retrieval is ~3x more effective than re-reading. Click a card → see the answer → compare with your recall. Don't close the section until you've reviewed all of them."
+        note="Active retrieval checks what you can recall instead of only repeating the text. Click a card → see the answer → compare it with your recall. Review every card before you leave."
       />
       <div className="vf-card-grid">
         {recallCards.map((card, i) => {
@@ -941,11 +941,11 @@ function RecallSection() {
 const glossaryTerms: Array<{ term: string; def: string; analogy: string; cat: string }> = [
   { term: "Kernel", def: "A function run in parallel by thousands of threads on the GPU. Marked __global__.", analogy: "A stage director (host) hands the stage (GPU) a single script (kernel); hundreds of actors (threads) perform it at once.", cat: "Architecture" },
   { term: "Thread", def: "Smallest unit of execution. Each thread has its own register file.", analogy: "A single student in a classroom. Each writes in their own notebook (register).", cat: "Architecture" },
-  { term: "Warp", def: "32 threads that execute in lockstep. The SM issues one warp per cycle.", analogy: "A row of 32 students. They all turn the same page at the same time.", cat: "Architecture" },
+  { term: "Warp", def: "A 32-thread SIMT execution group. Schedulers issue instructions from eligible warps to their active lanes.", analogy: "A row of 32 students; active students follow the same instruction.", cat: "Architecture" },
   { term: "Block (CTA)", def: "Threads sharing one SM (up to 1024). They share shared memory and can sync.", analogy: "A classroom (32 rows = warps, classroom = block). They share a blackboard (shared memory).", cat: "Architecture" },
   { term: "Grid", def: "All blocks in one kernel launch. One launch = one grid.", analogy: "The whole school. Each class (block) does its own work; the principal (driver) only starts it.", cat: "Architecture" },
-  { term: "SM (Streaming Multiprocessor)", def: "Physical core of the GPU. Holds registers, shared memory, lanes, and a scheduler.", analogy: "A workshop: a foreman (scheduler) hands jobs to benches (warps) one by one.", cat: "Architecture" },
-  { term: "Register", def: "On-chip, single-cycle access. Fastest but smallest memory layer.", analogy: "The note in your pocket. Instant access, but you can only write a little.", cat: "Memory" },
+  { term: "SM (Streaming Multiprocessor)", def: "A GPU multiprocessor that schedules warps and contains execution units, a register file, and shared memory.", analogy: "A workshop where schedulers route eligible work groups to suitable benches.", cat: "Architecture" },
+  { term: "Register", def: "Low-latency, capacity-limited per-thread storage on an SM.", analogy: "The note in your pocket: quick to reach, with little room.", cat: "Memory" },
   { term: "Shared Memory", def: "Block-wide scratchpad. Programmable, high bandwidth, low latency.", analogy: "The classroom blackboard. Anyone can write or erase; everyone shares it.", cat: "Memory" },
   { term: "L2 Cache", def: "Cache shared by all SMs. MB scale, lower latency than DRAM.", analogy: "The school library. Anyone can borrow; classes don't bring the same book from home.", cat: "Memory" },
   { term: "HBM", def: "GPU DRAM. High bandwidth, high latency. Lives outside the die.", analogy: "The city warehouse. Far away, but bulk transport is fast (bus = sector).", cat: "Memory" },
@@ -962,7 +962,7 @@ const glossaryTerms: Array<{ term: string; def: string; analogy: string; cat: st
   { term: "Nsight Systems", def: "Timeline profiler. When each kernel runs, CPU↔GPU waits.", analogy: "A daily hourly schedule. Which class takes how long, what you do at break.", cat: "Profiling" },
   { term: "Nsight Compute", def: "Detailed profile of a single kernel: roofline, memory, occupancy.", analogy: "A single exam analysis. Time per question, where you got stuck.", cat: "Profiling" },
   { term: "Roofline", def: "Performance ceiling chart. Shows memory and compute limits.", analogy: "A car's top speed. Measure how close you are to the ceiling.", cat: "Profiling" },
-  { term: "Tensor Core", def: "Special hardware for matrix multiply. 4×4 FP16 matrices per cycle.", analogy: "Using a calculator in math class. Same job, way faster.", cat: "Hardware" },
+  { term: "Tensor Core", def: "Specialized execution hardware for matrix multiply-accumulate on architecture- and dtype-specific tile shapes.", analogy: "A specialist calculator designed for supported matrix operations.", cat: "Hardware" },
   { term: "CUDA Graph", def: "Record a sequence of kernel launches and replay them cheaply.", analogy: "An orchestra conductor saving the score. No need to re-read it every rehearsal.", cat: "Inference" },
   { term: "AllReduce", def: "Sum tensors across all GPUs and broadcast the result back.", analogy: "Collect class scores, take the average, share the result with everyone.", cat: "Multi-GPU" },
   { term: "NCCL", def: "NVIDIA Collective Communications Library. Multi-GPU collectives.", analogy: "The post office. Every city (GPU) sends, merges, and forwards the package.", cat: "Multi-GPU" },
@@ -1011,9 +1011,9 @@ const cheatSheets: Array<{ idx: string; name: string; atlas: string; points: str
   {
     idx: "01", name: "Visual & Lasting", atlas: "Visual & Lasting Learning",
     points: [
-      "GPU raises throughput by hiding latency — hundreds of small cores.",
+      "GPUs raise parallel throughput with many execution resources and eligible warps that can cover waits.",
       "Memory: Register → Shared → L2 → DRAM (HBM) → Host. Speed drops, size grows.",
-      "Coalesced = 32 threads land in the same sector. Stride 1 always wins.",
+      "Coalescing combines nearby thread requests into fewer memory transactions; measure alignment and access shape.",
       "A kernel is correct: reference + rtol/atol + sanitizer (R-T-S triangle).",
       "Roofline: memory or compute bound? Ask first, then optimize.",
     ],
@@ -1034,7 +1034,7 @@ const cheatSheets: Array<{ idx: string; name: string; atlas: string; points: str
     idx: "03", name: "Architecture → SIMT", atlas: "Architecture → SIMT → CUDA",
     points: [
       "Grid → Block → Warp → Lane. 32 lanes = 1 warp.",
-      "Block size must be a multiple of 32; never above 1024.",
+      "Warp-aligned block sizes are a common starting point; query the device limit and measure resource pressure.",
       "One block = one SM. The SM holds multiple blocks, not slices them.",
       "Shared memory: per-block, programmable. Fast but limited.",
       "Divergence: same warp, different paths = serial execution. Split data before branch.",
@@ -1046,8 +1046,8 @@ const cheatSheets: Array<{ idx: string; name: string; atlas: string; points: str
     points: [
       "Hierarchy: Register > Shared > L2 > HBM > Host.",
       "Coalesced: 128 B request lands in 4 sectors (32 B × 4).",
-      "Stride 8 = 8× wasted bandwidth. Aim for stride 1.",
-      "Shared memory: 32 banks. Conflict on the same bank. tile[33] padding fixes it.",
+      "A wider stride may move more sectors; measure transaction efficiency and alignment.",
+      "Bank conflicts depend on access layout and bank width; suitable padding can help transpose tiles.",
       "Occupancy = active/max warps. High isn't required — only enough to hide latency.",
     ],
     tag: "MEMORY",
@@ -1066,7 +1066,7 @@ const cheatSheets: Array<{ idx: string; name: string; atlas: string; points: str
   {
     idx: "06", name: "LLM Kernel Patterns", atlas: "LLM Kernel Patterns",
     points: [
-      "GEMM: M×K × K×N = M×N. Tensor Core does 4×4×4 cubes per cycle.",
+      "GEMM: M×K × K×N = M×N. Tensor Core instruction shapes depend on dtype and GPU architecture.",
       "Softmax: x - max(x) prevents overflow. Online softmax = one pass.",
       "RMSNorm: RMS instead of mean. Lighter than LayerNorm.",
       "FlashAttention: fusion for attention. Memory O(N) instead of O(N²).",
@@ -1078,7 +1078,7 @@ const cheatSheets: Array<{ idx: string; name: string; atlas: string; points: str
     idx: "07", name: "Correctness", atlas: "Kernel Correctness & Safety",
     points: [
       "R-T-S triangle: Reference, Tolerance, Sanitizer.",
-      "allclose(rtol=1e-5, atol=1e-8) for FP32, ~1e-2 for FP16.",
+      "Set rtol/atol from dtype, shape, value range, and reduction depth rather than one global preset.",
       "Edge-case matrix: empty, single element, NaN/Inf, large/small batch.",
       "Compute Sanitizer: memcheck (leaks), racecheck (data races).",
       "If not bitwise deterministic, fix seeds. Bf16 atomic add order matters.",
@@ -1088,8 +1088,8 @@ const cheatSheets: Array<{ idx: string; name: string; atlas: string; points: str
   {
     idx: "08", name: "Nsight & Benchmark", atlas: "Nsight & Benchmark Guide",
     points: [
-      "Warm-up: at least 10 iterations. Cache + clock stable now.",
-      "Quantile (p50/p95), not mean. p95 catches the tail.",
+      "Warm up until the workload reaches a steady state and report the stopping criterion.",
+      "Report median, tail percentiles, and dispersion together.",
       "Nsight Systems: timeline first. Which kernel takes how long?",
       "Nsight Compute: single kernel. Roofline + bottleneck visualization.",
       "Baseline: same shape/dtype, same hardware, same driver. Otherwise the claim is weak.",
@@ -1103,18 +1103,18 @@ const cheatSheets: Array<{ idx: string; name: string; atlas: string; points: str
       "CuTe: layout algebra. make_layout, local_partition.",
       "Tensor Core: 16×8×16 (mma.m16n8k16) with FP16, BF16, TF32.",
       "PTX: mma.sync instruction. Verify SASS — drivers can do surprising things.",
-      "Fusion: 3–5 ops in one kernel. Memory traffic halves.",
+      "Fusion can reduce intermediate traffic; measure register pressure and recomputation costs.",
     ],
     tag: "DEEP",
   },
   {
     idx: "10", name: "Inference", atlas: "Inference Systems Lab",
     points: [
-      "vLLM: PagedAttention fixes KV-cache memory fragmentation.",
-      "Continuous batching: dynamic batch. 5–10× throughput.",
-      "CUDA Graph: for repeated calls with fixed shapes. 2–3× speedup.",
-      "Quantization: FP32 → FP16 (1.5×), → INT8 (2–3×), → INT4 (4×).",
-      "TTFT vs ITL: chat cares about TTFT, batch about ITL. Different bottlenecks.",
+      "vLLM PagedAttention uses block-managed KV cache to reduce fragmentation.",
+      "Continuous batching schedules requests dynamically; measure gains against representative traffic and a stated baseline.",
+      "CUDA Graph can reduce launch overhead for suitable stable execution flows; gains are workload-dependent.",
+      "Quantization can reduce memory and data movement; speed and quality depend on hardware and kernel support.",
+      "Report TTFT, ITL, and throughput under one experiment definition; each can expose a different bottleneck.",
     ],
     tag: "INFERENCE",
   },
@@ -1136,7 +1136,7 @@ const cheatSheets: Array<{ idx: string; name: string; atlas: string; points: str
       "HIP: source portability. Same code, two platforms.",
       "MLIR: multi-level IR. Triton, IREE, JAX all use it.",
       "TensorRT: NVIDIA inference engine. Tactic selection + calibration.",
-      "Portability: ~80% HIP. The other 20% is arch-specific (warp features, async copy).",
+      "HIP source portability depends on the supported API subset; validate architecture-specific warp and asynchronous-copy paths separately.",
     ],
     tag: "STACK",
   },
@@ -1205,7 +1205,7 @@ const codePatterns = [
     ],
     annotations: [
       "Read float4 (16 B): 32 threads × 16 B = 512 B = 4 sectors. Fully coalesced.",
-      "Pitfall: never use stride 2 or random indexing. Bandwidth drops 2–8×.",
+      "Strided or random indexing may reduce sector utilization; measure the actual pattern with a profiler.",
     ],
   },
   {
@@ -1223,7 +1223,7 @@ const codePatterns = [
       { type: "cm", text: "  // 33 = padding, prevents bank conflicts" },
     ],
     annotations: [
-      "Padding 33 (instead of 32) breaks bank conflicts. A natural 32-wide column would put all threads on the same bank.",
+      "For this transpose layout, padding from 32 to 33 columns spreads the bank mapping for same-column accesses; the result depends on dtype and bank organization.",
       "__syncthreads() after each write. No thread reads before all have written.",
     ],
   },
@@ -1282,7 +1282,7 @@ function CodeSection() {
       <SectionHead
         label="SECTION 11 · CODE PATTERNS"
         title={<>4 <em>patterns</em>, 4 critical performance tricks.</>}
-        note="~80% of modern GPU kernels use one of these patterns. The 'why this way' is next to each pattern."
+        note="These four patterns are recurring building blocks across the atlas. The 'why this way' explanation sits next to each pattern."
       />
       <div className="vf-code-grid">
         {codePatterns.map((p, i) => (
@@ -1361,7 +1361,7 @@ function AnimSection() {
   };
 
   const currentStep = cycle < 8
-    ? "ISSUE: Scheduler picks a warp's instruction and sends it to the execution unit. One per cycle."
+    ? "ISSUE: A scheduler selects an instruction from an eligible warp and sends it to a suitable execution unit. Issue capacity is architecture-specific."
     : cycle < 16
     ? "EXECUTE: ALU or Tensor Core runs the instruction across 32 lanes. Single cycle."
     : cycle < 24

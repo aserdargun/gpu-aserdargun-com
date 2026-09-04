@@ -13,7 +13,7 @@ export const NSIGHT_REPORT_ARTIFACT_FIELDS = ["gpu", "driver", "cuda", "nsysVers
 const nsightReportArtifactRecord = {
   gpu: "GPU modeli + compute capability",
   driver: "NVIDIA sürücü sürümü",
-  cuda: "CUDA Toolkit/runtime sürümü",
+  cuda: "CUDA Toolkit ve çalışma zamanı sürümü",
   nsysVersion: "nsys --version",
   ncuVersion: "ncu --version",
 } as const;
@@ -25,7 +25,7 @@ export function getNsightReportArtifactRecord() {
 const nsightWorkflowEvidence: Record<NsightWorkflowId, { label: string; title: string; evidence: string; next: string }> = {
   "report-merge": { label: "Rapor birleştirme", title: "Birleştirilen rapor, karşılaştırılabilir kapsam", evidence: "Birleştirilen rapor, çoklu GPU veya ayrı koşuların .ncu-rep kanıtını tek görünümde tutar.", next: "Önce aynı iş yükü ve araç sürümünü kaydet; sonra sonuçları tek dosyada karşılaştır." },
   clustering: { label: "Kümeleme", title: "Benzer koşular, görünür örüntü", evidence: "Benzer koşular kümelenir; aykırı koşu veya ortak performans örüntüsü görünür hale gelir.", next: "Küme dışına düşen koşuyu sürüm, saat, girdi ve mimari bağlamıyla yeniden incele." },
-  "instruction-mix": { label: "Komut karışımı", title: "Komut sınıfları, darboğaz hipotezi", evidence: "Instruction mix, FP/INT/memory sınıflarının dengesizliğini kaynak ve SASS kanıtıyla ilişkilendirir.", next: "Kaynak satırını seç, sonra yalnız o hipotezin metriğini topla." },
+  "instruction-mix": { label: "Talimat karışımı", title: "Talimat sınıfları, darboğaz hipotezi", evidence: "Talimat karışımı, FP/INT/bellek sınıflarının dengesizliğini kaynak ve SASS kanıtıyla ilişkilendirir.", next: "Kaynak satırını seç, sonra yalnız o hipotezin metriğini topla." },
   scoreboard: { label: "Scoreboard bağımlılıkları", title: "Bağımlılık beklemeyi saklama", evidence: "Scoreboard bağımlılıkları, veri hazır olmadığı için issue edemeyen talimatları görünür kılar.", next: "Kayıt bağımlılığı, bellek gecikmesi ve yeterli eligible warp sayısını birlikte kontrol et." },
   "graph-node": { label: "CUDA Graph düğümü", title: "Seçili kernel düğümü, graph bağlamı", evidence: "CUDA Graph Viewer, seçili kernel düğümünü instantiated graph içinde vurgular; node profiling sürüm/driver bağlamına bağlıdır.", next: "Kaynak ve instantiated graph farkını, node adıyla birlikte rapora kaydet." },
 };
@@ -45,7 +45,7 @@ const lensData: Record<Lens, { kicker: string; title: string; question: string; 
   compute: {
     kicker: "MİKROSKOP",
     title: "Nsight Compute",
-    question: "Seçtiğim kernel neden yavaş? Bellek, yürütme birimleri, occupancy veya instruction mix mi?",
+    question: "Seçtiğim kernel neden yavaş? Bellek, yürütme birimleri, doluluk veya talimat karışımı mı?",
     output: ".ncu-rep · kernel metrikleri",
     color: "lime",
   },
@@ -87,7 +87,7 @@ const scenarioData: Record<Scenario, { title: string; subtitle: string; cpu: num
     copy: [54],
     clues: ["Çalıştırmalar arası fark yüksek", "İlk iterasyon aykırı", "Saat/ısı durumu değişiyor"],
     verdict: "Ölçüm protokolü sonucu açıklayamıyor.",
-    next: "Önce benchmark koşullarını sabitle; profiler ile süre kıyaslama.",
+    next: "Önce kıyaslama koşullarını sabitle; profil oluşturucu açıkken süre kıyaslama.",
   },
 };
 
@@ -126,14 +126,14 @@ const quiz = [
     why: "Önce geniş açıyla kritik yolu ve pahalı kernel/range'i bulmalısın.",
   },
   {
-    q: "Nsight Compute altında host timer ile ölçülen süre uzadı. Ne sonuç çıkar?",
+    q: "Nsight Compute altında ana sistem zamanlayıcısıyla ölçülen süre uzadı. Ne sonuç çıkar?",
     options: ["Kernel kesin yavaşladı", "Profiler overhead'i süreyi bozabilir", "GPU bozuk"],
     answer: 1,
-    why: "Metric toplama ve replay, profiler altındaki duvar saati ölçümünü benchmark olmaktan çıkarır.",
+    why: "Ölçüm toplama ve yeniden oynatma, profil oluşturucu altındaki duvar saati ölçümünü güvenilir kıyaslama olmaktan çıkarır.",
   },
   {
     q: "Optimize sürüm: 41.2 µs; baz sürüm: 42.0 µs; koşular arası sapma %4.",
-    options: ["%1.9 kesin kazanç", "Anlamlı fark yok", "2× hızlanma"],
+    options: ["Kesin %1,9 kazanç", "Anlamlı fark yok", "2× hızlanma"],
     answer: 1,
     why: "Gözlenen fark gürültü zemininden küçük; daha güçlü protokol ve daha çok örnek gerekir.",
   },
@@ -234,7 +234,7 @@ export default function NsightBenchmarkEmbedded() {
               <div><div className="mini-label">{lensData[lens].kicker}</div><h3>{lensData[lens].question}</h3><p>{lensData[lens].output}</p></div>
               <div className="lens-rule">
                 <span>YANLIŞ KULLANIM</span>
-                <p>{lens === "systems" ? "Tek kernelin instruction-level darboğazını aramak" : lens === "compute" ? "Uygulamanın uçtan uca süresini kıyaslamak" : "Profiler açıkken çıkan süreyi performans sonucu saymak"}</p>
+                <p>{lens === "systems" ? "Tek kernelin talimat düzeyi darboğazını aramak" : lens === "compute" ? "Uygulamanın uçtan uca süresini kıyaslamak" : "Profil oluşturucu açıkken çıkan süreyi performans sonucu saymak"}</p>
               </div>
             </div>
           </section>
@@ -365,7 +365,7 @@ export default function NsightBenchmarkEmbedded() {
               </article>
             </div>
 
-            <div className="warning-band"><b>PROFILER TUZAĞI</b><span>Nsight Compute replay ve metric toplama overhead’i ekler. NCU altında host timer veya CUDA event ile çıkan uçtan uca süreyi benchmark sonucu olarak kullanma.</span></div>
+            <div className="warning-band"><b>PROFİL OLUŞTURUCU TUZAĞI</b><span>Nsight Compute yeniden oynatma ve ölçüm toplama ek yükü getirir. NCU altında ana sistem zamanlayıcısı veya CUDA olayıyla çıkan uçtan uca süreyi kıyaslama sonucu olarak kullanma.</span></div>
           </section>
 
           <section className="section" id="benchmark" aria-labelledby="benchmark-title">
@@ -404,11 +404,11 @@ export default function NsightBenchmarkEmbedded() {
             <div className="benchmark-rules">
               {[
                 ["01", "Doğruluk önce", "Baz ve optimize sürüm aynı sonucu tolerans içinde üretmeli."],
-                ["02", "Warmup ayrı", "Context oluşturma, JIT ve cache dolumu ölçüm dışına alınmalı."],
+                ["02", "Isınma ayrı", "Bağlam oluşturma, JIT ve önbellek dolumu ölçüm dışında tutulmalı."],
                 ["03", "Async farkındalık", "CPU timer GPU işi bitmeden durmasın; doğru senkronizasyon kullan."],
                 ["04", "Dağılımı göster", "Tek sayı yerine medyan, örnek sayısı, yayılım ve aykırı değerleri raporla."],
-                ["05", "Şekil matrisi", "Tek shape zaferi genellenemez; küçük/orta/büyük ve gerçekçi şekilleri ölç."],
-                ["06", "Ortam kaydı", "GPU, driver, CUDA, güç modu, saat, dtype ve derleme bayraklarını sakla."],
+                ["05", "Şekil matrisi", "Tek şekil zaferi genellenemez; küçük, orta, büyük ve gerçekçi şekilleri ölç."],
+                ["06", "Ortam kaydı", "GPU, sürücü, CUDA, güç modu, saat, veri tipi ve derleme bayraklarını sakla."],
               ].map(([n, title, copy]) => <article key={n}><span>{n}</span><div><h3>{title}</h3><p>{copy}</p></div></article>)}
             </div>
 
@@ -420,12 +420,12 @@ export default function NsightBenchmarkEmbedded() {
             <div className="section-title-row"><div><h2 id="practice-title">Uçtan uca inceleme reçetesi</h2><p>Her optimizasyonda aynı kanıt zincirini üret. Araç çıktısı değil, karar kaydı bırak.</p></div></div>
             <div className="recipe">
               {[
-                ["1", "BASELINE", "Doğruluk + temsilî shape matrisi + ham süreler"],
+                ["1", "TABAN ÇİZGİSİ", "Doğruluk + temsili şekil matrisi + ham süreler"],
                 ["2", "SYSTEMS", "Kritik NVTX range, boşluklar, kopyalar, pahalı kernel"],
                 ["3", "COMPUTE", "Tek kernel, açık hipotez, seçili section, kök neden"],
                 ["4", "DEĞİŞİKLİK", "Bir seferde tek fikir; beklenen metriği önceden yaz"],
                 ["5", "YENİDEN ÖLÇ", "Aynı benchmark protokolü + doğruluk kapısı"],
-                ["6", "RAPORLA", "Medyan speedup, yayılım, şekiller, ortam, profiler kanıtı"],
+                ["6", "RAPORLA", "Medyan hızlanma, yayılım, şekiller, ortam, profil oluşturucu kanıtı"],
               ].map(([n, title, copy]) => <div key={n}><b>{n}</b><span>{title}</span><p>{copy}</p></div>)}
             </div>
 

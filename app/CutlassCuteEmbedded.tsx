@@ -4,7 +4,7 @@ import {useMemo,useState} from "react";
 
 const layers=[
  ["CUTLASS","Kütüphane","Üretim kalitesinde GEMM ve ilişkili işlemler için ayarlanabilir CUDA C++ şablonları."],
- ["CuTe","Layout cebiri","Shape + stride ile koordinat→adres eşlemesini, tensor bölümlemeyi, kopyalamayı ve MMA düzenini ifade eder."],
+ ["CuTe","Yerleşim cebiri","Şekil ve erişim aralığıyla koordinat→adres eşlemesini, tensör bölümlemeyi, kopyalamayı ve MMA düzenini ifade eder."],
  ["PTX","Sanal ISA","Derleyici ile hedefe özel makine kodu arasında taşınabilir ara seviye talimat dili."],
  ["Tensor Core","Donanım","Küçük matris fragment’lerinde D=A×B+C işlemini yüksek verimle yapan özel hesap birimleri."],
 ];
@@ -14,14 +14,14 @@ const codes={
  PTX:`mma.sync.aligned.m16n8k16\n  .row.col.f32.f16.f16.f32\n  {d0, d1, d2, d3},\n  {a0, a1, a2, a3},\n  {b0, b1},\n  {c0, c1, c2, c3};`,
  WMMA:`wmma::load_matrix_sync(a, A, lda);\nwmma::load_matrix_sync(b, B, ldb);\nwmma::mma_sync(c, a, b, c);\nwmma::store_matrix_sync(D, c, ldd,\n  wmma::mem_row_major);`,
 };
-const notes={CUTLASS:"Problemi ve politikaları tarif edersin; kütüphane mainloop, veri taşıma, MMA ve epilogue bileşenlerini toplar.",CuTe:"Layout yalnız boyut değildir. Mantıksal koordinatların bellekte nereye düştüğünü ve thread’lere nasıl paylaştırıldığını ifade eder.",PTX:"Bir warp kolektif çalışır; register fragment’leri çarpılır ve accumulator’lara eklenir. Son makine kodu yine SASS’tır.",WMMA:"CUDA C++ içinden warp seviyesinde Tensor Core erişimidir. Fragment’in thread’lere iç dağılımını elle varsaymamalısın."};
+const notes={CUTLASS:"Problemi ve politikaları tarif edersin; kütüphane ana döngü, veri taşıma, MMA ve son işlem bileşenlerini toplar.",CuTe:"Yerleşim yalnız boyut değildir. Mantıksal koordinatların bellekte nereye düştüğünü ve iş parçacıklarına nasıl paylaştırıldığını ifade eder.",PTX:"Bir warp toplu çalışır; yazmaç parçaları çarpılır ve birikimlere eklenir. Son makine kodu yine SASS'tır.",WMMA:"CUDA C++ içinden warp düzeyinde Tensor Core erişimidir. Parçanın iş parçacıklarına iç dağılımını elle varsaymamalısın."};
 const quiz=[
  ["Hangisi fiziksel donanımdır?",["CUTLASS","CuTe","PTX","Tensor Core"],3,"Tensor Core, SM içindeki özel hesap birimidir."],
- ["CuTe Layout en doğru nasıl düşünülür?",["Sadece boyut","Koordinat → adres eşlemesi","PTX opcode’u","Derleyici"],1,"Layout, shape ve stride ile mantıksal koordinatı fiziksel indekse bağlar."],
+ ["CuTe yerleşimi en doğru nasıl düşünülür?",["Yalnızca boyut","Koordinat → adres eşlemesi","PTX işlem kodu","Derleyici"],1,"Yerleşim, şekil ve erişim aralığıyla mantıksal koordinatı fiziksel indekse bağlar."],
  ["PTX neden son makine kodu değildir?",["CPU’da çalışır","Yalnız Python’dır","Hedef GPU için SASS’a çevrilir","Belleğe erişemez"],2,"PTX sanal ISA, SASS ise hedef mimarinin native talimatıdır."],
- ["İyi GEMM’in ana hedefi?",["Dev thread’ler","Veriyi tekrar kullanıp Tensor Core’u beslemek","Her şeyi register’a almak","Tüm sync’i silmek"],1,"Tiling ve pipeline, veri hareketini amorti edip hesap birimlerini dolu tutar."],
+ ["İyi GEMM'in ana hedefi?",["Dev iş parçacıkları","Veriyi yeniden kullanıp Tensor Core'u beslemek","Her şeyi yazmaca almak","Tüm eşzamanlamayı silmek"],1,"Döşeme ve yürütme hattı, veri hareketini amorti edip hesap birimlerini dolu tutar."],
 ];
-const glossary=[["GEMM","D=αAB+βC genel matris çarpımı."],["CTA","CUDA thread block."],["Warp","Birlikte yürütülen 32 thread."],["Tile","Problemin hiyerarşik küçük bloğu."],["Fragment","Warp register’larına dağılmış matris parçası."],["MMA","Multiply–accumulate, D=A×B+C."],["Epilogue","Ölçekleme, füzyon ve sonuç yazma aşaması."],["Occupancy","Aktif warp oranı; tek başına hız değildir."],["SASS","Hedef GPU’nun native talimatları."],["Arithmetic intensity","Taşınan byte başına hesap."]];
+const glossary=[["GEMM","D=αAB+βC genel matris çarpımı."],["CTA","CUDA iş parçacığı bloğu."],["Warp","Birlikte yürütülen 32 iş parçacığı."],["Döşeme","Problemin hiyerarşik küçük bloğu."],["Parça","Warp yazmaçlarına dağılmış matris parçası."],["MMA","Çarpma-biriktirme, D=A×B+C."],["Son işlem","Ölçekleme, füzyon ve sonuç yazma aşaması."],["Doluluk","Etkin warp oranı; tek başına hız değildir."],["SASS","Hedef GPU'nun yerel talimatları."],["Aritmetik yoğunluk","Taşınan bayt başına hesap."]];
 
 export const CUTLASS_ARCHITECTURE_IDS=["ada","hopper","blackwell","rubin"] as const;
 export const CUTLASS_IMPLEMENTATION_IDS=["cpp-templates","cute-dsl","legacy-generator"] as const;
@@ -29,8 +29,8 @@ type CutlassArchitectureId=typeof CUTLASS_ARCHITECTURE_IDS[number];
 type CutlassImplementationId=typeof CUTLASS_IMPLEMENTATION_IDS[number];
 const implementationEvidence:Record<CutlassImplementationId,{label:string;title:string;evidence:string;sourceId:string;maturity:"current"|"preview"}>={
  "cpp-templates":{label:"C++ şablonları",title:"CUTLASS C++ şablon yolu",evidence:"Üretim kernel’inde collective, mainloop, epilogue ve schedule politikalarını CUDA C++ şablonlarıyla birleştir.",sourceId:"cutlass-cpp-templates",maturity:"current"},
- "cute-dsl":{label:"CuTe DSL",title:"CuTe DSL, CuTe C++ kavramlarıyla tutarlı",evidence:"Python-native CuTe DSL layout, tensor, hardware atom ve thread/data hiyerarşisini doğrudan ifade eder; genel kullanıma açık beta olduğundan Önizleme yoludur ve eski üretecin kısaltması değildir.",sourceId:"cutlass-cute-dsl",maturity:"preview"},
- "legacy-generator":{label:"Eski Python üreteci",title:"Eski Python üreteci ayrı bir yoldur",evidence:"Legacy Python generator, CuTe DSL değildir: CMake’in çağırdığı procedural generator şablon instantiation kodu üretir; CuTe DSL ise CuTe kavramlarıyla kernel yazan Python-native DSL’dir.",sourceId:"cutlass-legacy-generator",maturity:"current"},
+ "cute-dsl":{label:"CuTe DSL",title:"CuTe DSL, CuTe C++ kavramlarıyla tutarlı",evidence:"Python tabanlı CuTe DSL; yerleşim, tensör, donanım atomu ve iş parçacığı/veri hiyerarşisini doğrudan ifade eder. Genel kullanıma açık beta olduğundan Önizleme yoludur ve eski üretecin kısaltması değildir.",sourceId:"cutlass-cute-dsl",maturity:"preview"},
+ "legacy-generator":{label:"Eski Python üreteci",title:"Eski Python üreteci ayrı bir yoldur",evidence:"Eski Python üreteci CuTe DSL değildir: CMake'in çağırdığı yordam tabanlı üreteç, şablon örnekleme kodu üretir; CuTe DSL ise CuTe kavramlarıyla kernel yazan Python tabanlı bir DSL'dir.",sourceId:"cutlass-legacy-generator",maturity:"current"},
 };
 const architectureEvidence:Record<CutlassArchitectureId,{label:string;sourceId:string;maturity:"current"|"preview";coreCompletion:boolean;evidence:string;evidenceSources:{sourceId:string;claim:string}[]}>={
  ada:{label:"Ada · SM89",sourceId:"cutlass-overview-4",maturity:"current",coreCompletion:true,evidence:"Ada için C++ template ve klasik Tensor Core yolu geçerlidir; Blackwell tcgen05.mma/TMEM yolu uygulanmaz.",evidenceSources:[]},

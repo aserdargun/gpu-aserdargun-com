@@ -110,7 +110,7 @@ test("curriculum registry exposes only real approved first-party source entries"
   for (const source of curriculumSources) {
     assert.equal(typeof source.id, "string");
     assert.equal(typeof source.title, "string");
-    assert.equal(source.verifiedAt, "2026-08-29");
+    assert.equal(source.verifiedAt, "2026-09-04");
     assert.ok(["core", "current", "preview"].includes(source.maturity), `${source.id} has an unsupported maturity`);
     const url = new URL(source.url);
     assert.equal(url.protocol, "https:", `${source.id} must use HTTPS`);
@@ -265,13 +265,13 @@ test("Task 3 source records preserve the audit date and separate maturity from h
   const { curriculumSources } = await loadCurriculumRegistry();
   const byId = (id) => curriculumSources.find((source) => source.id === id);
   const expected = {
-    "pytorch-triton-integration": ["triton", "current", "2026-08-29", "Using User-Defined Triton Kernels with torch.compile", "https://docs.pytorch.org/tutorials/recipes/torch_compile_user_defined_triton_kernel_tutorial.html"],
-    "triton-gluon": ["triton", "preview", "2026-08-29", "Introduction to Gluon", "https://triton-lang.org/main/getting-started/tutorials/gluon/intro.html"],
-    "triton-operator-tutorials": ["operators", "current", "2026-08-29", "Triton Operator Tutorials", "https://triton-lang.org/main/getting-started/tutorials/index.html"],
-    "triton-block-scaled": ["operators", "current", "2026-08-29", "Block Scaled Matrix Multiplication", "https://triton-lang.org/main/getting-started/tutorials/10-block-scaled-matmul.html"],
-    "vllm-paged-attention-design": ["operators", "current", "2026-08-29", "vLLM Paged Attention Design", "https://docs.vllm.ai/en/latest/design/paged_attention/"],
-    "pytorch-sdpa-gqa": ["operators", "preview", "2026-08-29", "PyTorch scaled_dot_product_attention", "https://docs.pytorch.org/docs/main/generated/torch.nn.functional.scaled_dot_product_attention.html"],
-    "compute-sanitizer-release": ["correctness", "current", "2026-08-29", "Compute Sanitizer Release Notes", "https://docs.nvidia.com/compute-sanitizer/ReleaseNotes/index.html"],
+    "pytorch-triton-integration": ["triton", "current", "2026-09-04", "Using User-Defined Triton Kernels with torch.compile", "https://docs.pytorch.org/tutorials/recipes/torch_compile_user_defined_triton_kernel_tutorial.html"],
+    "triton-gluon": ["triton", "preview", "2026-09-04", "Introduction to Gluon", "https://triton-lang.org/main/getting-started/tutorials/gluon/intro.html"],
+    "triton-operator-tutorials": ["operators", "current", "2026-09-04", "Triton Operator Tutorials", "https://triton-lang.org/main/getting-started/tutorials/index.html"],
+    "triton-block-scaled": ["operators", "current", "2026-09-04", "Block Scaled Matrix Multiplication", "https://triton-lang.org/main/getting-started/tutorials/10-block-scaled-matmul.html"],
+    "vllm-paged-attention-design": ["operators", "current", "2026-09-04", "vLLM Paged Attention Design", "https://docs.vllm.ai/en/latest/design/paged_attention/"],
+    "pytorch-sdpa-gqa": ["operators", "preview", "2026-09-04", "PyTorch scaled_dot_product_attention", "https://docs.pytorch.org/docs/main/generated/torch.nn.functional.scaled_dot_product_attention.html"],
+    "compute-sanitizer-release": ["correctness", "current", "2026-09-04", "Compute Sanitizer Release Notes", "https://docs.nvidia.com/compute-sanitizer/ReleaseNotes/index.html"],
   };
 
   assert.deepEqual(curriculumSources.filter(({ id }) => Object.hasOwn(expected, id)).map(({ id }) => id), Object.keys(expected));
@@ -500,7 +500,7 @@ test("Task 4 Nsight workflows expose five evidence states and a reproducible rep
     loadCurriculumRegistry(),
   ]);
   const expectedSources = {
-    "nsight-compute-2026-release": ["profiling", "current", "2026-08-29", "Nsight Compute Release Notes", "https://docs.nvidia.com/nsight-compute/ReleaseNotes/"],
+    "nsight-compute-2026-release": ["profiling", "current", "2026-09-04", "Nsight Compute Release Notes", "https://docs.nvidia.com/nsight-compute/ReleaseNotes/"],
   };
   const expectedWorkflowIds = ["report-merge", "clustering", "instruction-mix", "scoreboard", "graph-node"];
   const expectedArtifactFields = ["gpu", "driver", "cuda", "nsysVersion", "ncuVersion"];
@@ -553,14 +553,14 @@ test("Task 4 CUTLASS paths preserve direct source maturity and do not cross-asso
     loadCurriculumRegistry(),
   ]);
   const expectedSources = {
-    "cutlass-overview-4": ["cutlass", "current", "2026-08-29", "CUTLASS 4 Overview", "https://docs.nvidia.com/cutlass/latest/overview.html"],
-    "cutlass-cpp-templates": ["cutlass", "current", "2026-08-29", "CUTLASS 3.x GEMM API", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/gemm_api_3x.html"],
-    "cutlass-cute-dsl": ["cutlass", "preview", "2026-08-29", "CuTe DSL", "https://docs.nvidia.com/cutlass/latest/media/docs/pythonDSL/cute_dsl.html"],
-    "cutlass-legacy-generator": ["cutlass", "current", "2026-08-29", "CUTLASS Code Organization", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/code_organization.html"],
-    "cutlass-blackwell-sm100": ["cutlass", "current", "2026-08-29", "CUTLASS Blackwell SM100 GEMMs", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/blackwell_functionality.html"],
-    "cutlass-grouped-scheduler": ["cutlass", "current", "2026-08-29", "CUTLASS Grouped Kernel Schedulers", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/grouped_scheduler.html"],
-    "cutlass-blackwell-clc": ["cutlass", "current", "2026-08-29", "CUTLASS Blackwell Cluster Launch Control", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/blackwell_cluster_launch_control.html"],
-    "cutlass-rubin-sm107": ["cutlass", "preview", "2026-08-29", "CUTLASS Rubin SM107 Changelog", "https://docs.nvidia.com/cutlass/latest/CHANGELOG.html"],
+    "cutlass-overview-4": ["cutlass", "current", "2026-09-04", "CUTLASS 4 Overview", "https://docs.nvidia.com/cutlass/latest/overview.html"],
+    "cutlass-cpp-templates": ["cutlass", "current", "2026-09-04", "CUTLASS 3.x GEMM API", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/gemm_api_3x.html"],
+    "cutlass-cute-dsl": ["cutlass", "preview", "2026-09-04", "CuTe DSL", "https://docs.nvidia.com/cutlass/latest/media/docs/pythonDSL/cute_dsl.html"],
+    "cutlass-legacy-generator": ["cutlass", "current", "2026-09-04", "CUTLASS Code Organization", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/code_organization.html"],
+    "cutlass-blackwell-sm100": ["cutlass", "current", "2026-09-04", "CUTLASS Blackwell SM100 GEMMs", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/blackwell_functionality.html"],
+    "cutlass-grouped-scheduler": ["cutlass", "current", "2026-09-04", "CUTLASS Grouped Kernel Schedulers", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/grouped_scheduler.html"],
+    "cutlass-blackwell-clc": ["cutlass", "current", "2026-09-04", "CUTLASS Blackwell Cluster Launch Control", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/blackwell_cluster_launch_control.html"],
+    "cutlass-rubin-sm107": ["cutlass", "preview", "2026-09-04", "CUTLASS Rubin SM107 Changelog", "https://docs.nvidia.com/cutlass/latest/CHANGELOG.html"],
   };
   const expectedArchitectures = ["ada", "hopper", "blackwell", "rubin"];
 
@@ -689,7 +689,7 @@ test("Task 5 source records bind each systems claim to direct official evidence 
     assert.ok(source, `missing Task 5 source ${id}`);
     assert.deepEqual(
       [source.moduleId, source.maturity, source.verifiedAt, source.title, source.url],
-      [moduleId, maturity, "2026-08-29", title, url],
+      [moduleId, maturity, "2026-09-04", title, url],
       `${id} source contract drifted`,
     );
   }
@@ -743,6 +743,10 @@ test("Task 5 inference decision model separates diagnosis, graph, parallelism, a
       assert.ok(plan.qualityGuardrail.length > 10);
       assert.equal(plan.measuredHardwareEvidence, false);
     }
+    const mxfp4 = locale.exports.getInferencePrecisionPlan("mxfp4");
+    assert.equal(mxfp4.sourceId, "vllm-online-quantization");
+    assert.equal(mxfp4.maturity, "current");
+    assert.deepEqual(mxfp4.sourceIds, ["vllm-online-quantization", "cutlass-inference-formats", "vllm-quantization-hardware"]);
   }
 
   for (const locale of locales) {
@@ -962,7 +966,7 @@ test("Task 6 roadmap keeps the bilingual evidence cadence, twelve modules, and n
     assert.equal(roadmapByLocale[locale][11][0], "12");
   }
 
-  assert.equal(uiByLocale.tr.hero, "On iki etkileşimli atlas; görsel GPU temellerini, tile düzeyi programlamayı, Blackwell farkındalıklı optimizasyonu ve dağıtık çıkarımı, desteklenen mimari ve backend sınırlarını görünür kılan 12 haftalık kanıt rotasında birleştirir.");
+  assert.equal(uiByLocale.tr.hero, "On iki etkileşimli atlas; görsel GPU temellerini, döşeme düzeyi programlamayı, Blackwell farkındalıklı optimizasyonu ve dağıtık çıkarımı, desteklenen mimari ve arka uç sınırlarını görünür kılan 12 haftalık kanıt rotasında birleştirir.");
   assert.equal(uiByLocale.en.hero, "Twelve interactive atlases connect visual GPU foundations, tile-level programming, Blackwell-aware optimization, and distributed inference in a 12-week evidence route that makes supported architecture and backend boundaries visible.");
   assert.doesNotMatch(uiByLocale.tr.hero, /CUDA’nın ilk warp’ından/i);
   assert.doesNotMatch(uiByLocale.en.hero, /from your first CUDA warp/i);

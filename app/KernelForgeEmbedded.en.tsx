@@ -261,7 +261,7 @@ export default function KernelForgeEmbedded() {
           ))}
           <div className="sidebar-card">
             <span className="pulse-dot" />
-            <div><b>Version radar</b><p>It was confirmed by official sources on 09.08.2026.</p></div>
+            <div><b>Version radar</b><p>Verified against official sources on September 4, 2026.</p></div>
           </div>
         </aside>
 

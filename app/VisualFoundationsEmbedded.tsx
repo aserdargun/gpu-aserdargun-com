@@ -40,21 +40,21 @@ const knowledgeCards: Array<{
     badge: "ANALOJİ",
     type: "analogy",
     title: "Warp = 32 kişilik bir sınıf",
-    body: "Bir warp, 32 öğrencinin aynı sırayla aynı soruyu çözmesidir. Öğretmen (issue unit) tek bir komut verir; hepsi aynı anda aynı komutu çalıştırır. Farklı yola sapan = dallanma (divergence).",
+    body: "Bir warp, 32 öğrencinin aynı soruyu çözmesine benzer. Zamanlayıcı bir warp talimatını etkin şeritlere gönderir; etkin olmayan şeritler maskelenir. Farklı yollara ayrılma, dallanma sapmasıdır (divergence).",
     hook: "Sınıftaki herkes aynı sayfada olduğunda verim en yüksek; biri ileri biri geri gidince sınıf yavaşlar.",
   },
   {
     badge: "ANALOJİ",
     type: "analogy",
     title: "Koalesing = toplu taşıma",
-    body: "32 thread ayrı ayrı taksiyle şehre gitmek yerine, tek bir otobüse biniyor. 4 ayrı sektöre (32 B × 4) aynı anda varıyorlar. Bant genişliği aynı, yolcu sayısı 32.",
-    hook: "Stride 1 = otobüs, stride 8 = 8 ayrı taksi. Aynı yol, 8 kat yakıt.",
+    body: "Komşu iş parçacıkları yakın adreslere eriştiğinde donanım istekleri az sayıda bellek işleminde birleştirebilir. Dağınık erişim ise daha fazla sektör taşıyabilir.",
+    hook: "Adres düzenini sektör görünümünde incele; erişim aralığı büyüdükçe taşınan ama kullanılmayan veri artabilir.",
   },
   {
     badge: "KARŞILAŞTIR",
     type: "contrast",
     title: "Throughput vs Latency",
-    body: "CPU az iş yapar, az gecikmeyle bitirir. GPU çok iş yapar, gecikmeyi saklayerek (çok sayıda warp ile) throughput'u artırır. Felsefe: 'Bekleme değil, hattı doldurma'.",
+    body: "CPU tekil işlerde düşük gecikmeye odaklanır. GPU çok sayıda işi paralel yürütür ve hazır warplarla beklemeleri saklayarak iş hacmini artırır. Felsefe: 'Bekleme değil, hattı doldurma'.",
     hook: "Restoranda garson (CPU) tek müşteriye hızlı servis; aşçı (GPU) tüm siparişleri birlikte pişirir.",
   },
   {
@@ -77,8 +77,8 @@ const pitfalls: Array<{ topic: string; title: string; wrong: string; right: stri
   {
     topic: "Bellek erişimi",
     title: "'Strided erişim de olur' yanılgısı",
-    wrong: "Stride 8 erişimde sektörlerin sadece %12,5'i kullanılır; bant genişliği 8× israf olur.",
-    right: "Veriyi okumadan önce sor: 'Hangi sektöre düşüyorum?' Stride 1'i hedefle, gerekiyorsa shared memory ile yeniden paketle.",
+    wrong: "Stride büyüdükçe erişimler daha fazla sektöre yayılabilir; kullanılmayan baytlar iş yüküne ve hizalamaya göre artar.",
+    right: "Veriyi okumadan önce 'hangi sektörlere düşüyorum?' diye sor. Erişim düzenini ölç; gerekiyorsa paylaşımlı bellekle yeniden paketle.",
   },
   {
     topic: "Kernel başlatma",
@@ -90,13 +90,13 @@ const pitfalls: Array<{ topic: string; title: string; wrong: string; right: stri
     topic: "Profil çıkarma",
     title: "'Tek koşu yeterli' yanılgısı",
     wrong: "Tek bir çalıştırmadaki ortalama süre, GPU saatinin gürültüsünü ölçer; gerçek hız değil.",
-    right: "Warm-up + yüzdelik (p50/p95) + kontrollü baseline. 'Nsight çıktısı olmadan hız iddiası kurulmaz'.",
+    right: "Isınma + yüzdelikler (p50/p95) + kontrollü taban çizgisi. Profil oluşturucu kanıtı olmadan hız iddiası kurulmaz.",
   },
   {
     topic: "Doğruluk",
     title: "'allclose(default) yeterli' yanılgısı",
     wrong: "Varsayılan rtol=1e-05 atol=1e-08, FP16 veya büyük indirgemelerde anlamsız hale gelir.",
-    right: "Şekle ve dtipe göre tolerans matrisi yaz. FP16 için ~1e-2; büyük softmax indirgelerinde aralık denetimi.",
+    right: "Şekle, veri tipine ve operatörün hata birikimine göre tolerans matrisi yaz; büyük indirgemelerde ayrıca aralık denetimi uygula.",
   },
 ];
 
@@ -109,15 +109,15 @@ type QuizQuestion = {
 
 const quiz: QuizQuestion[] = [
   {
-    q: "Bir GPU neden CPU'dan farklı olarak yüzlerce küçük çekirdeğe sahiptir?",
+    q: "Bir GPU neden çok sayıda paralel yürütme birimi barındırır?",
     options: [
       "Daha az enerji harcadığı için",
-      "Paralel iş yükünde throughput'u artırmak için gecikmeyi saklamak amacıyla",
+      "Paralel iş yükünde iş hacmini artırmak ve beklemeleri başka warplarla örtmek için",
       "Saat hızını artırmak için",
       "Daha az ısı ürettiği için",
     ],
     correct: 1,
-    explain: "GPU; yüksek gecikmeyi saklayacak çok sayıda warp hazır bulundurarak bellek beklerken bile çalışabilir. Amaç throughput, gecikme değil.",
+    explain: "GPU, bazı warplar bellek beklerken diğer çalıştırılabilir warpları ilerleterek paralel iş hacmini yükseltir; ayrıntılar mimariye ve iş yüküne bağlıdır.",
   },
   {
     q: "32 thread'in aynı 128 byte'lık sektöre ardışık erişmesine ne denir?",
@@ -129,7 +129,7 @@ const quiz: QuizQuestion[] = [
     q: "Bellek hiyerarşisinde en hızlı katman hangisidir?",
     options: ["L2 önbellek", "DRAM (global bellek)", "Register", "Paylaşımlı bellek"],
     correct: 2,
-    explain: "Register, SM üzerinde skaler tutar; tek cycle erişim. Shared memory de çok hızlıdır ama programlanabilir ve bir blok içindeki tüm thread'lere aittir. Register en hızlıdır.",
+    explain: "Yazmaçlar SM üzerindeki iş parçacığına özel, en düşük gecikmeli depolama alanıdır. Paylaşımlı bellek de hızlıdır ancak bir blok içindeki iş parçacıkları arasında paylaşılır.",
   },
   {
     q: "Doğru sayılan bir kernel için aşağıdakilerden hangisi zorunludur?",
@@ -187,10 +187,10 @@ function CpuSvg() {
 
 function GpuSvg() {
   return (
-    <svg className="vf-compare-svg" viewBox="0 0 320 180" role="img" aria-label="GPU yüzlerce küçük çekirdek">
+    <svg className="vf-compare-svg" viewBox="0 0 320 180" role="img" aria-label="GPU paralel yürütme kaynakları">
       <rect x="0" y="0" width="320" height="180" fill="#f9e0ea" />
       <rect x="10" y="20" width="300" height="140" fill="#fbf8f1" stroke="#d8467c" strokeWidth="1.5" />
-      <text x="160" y="14" className="sub" textAnchor="middle" fill="#d8467c">GPU · yüzlerce küçük çekirdek (SM × lane)</text>
+      <text x="160" y="14" className="sub" textAnchor="middle" fill="#d8467c">GPU · paralel yürütme kaynakları (SM × şerit)</text>
       {Array.from({ length: 8 }).map((_, row) =>
         Array.from({ length: 16 }).map((_, col) => {
           const x = 22 + col * 18;
@@ -294,8 +294,8 @@ function CompareSection() {
     <section className="vf-section">
       <SectionHead
         label="BÖLÜM 01 · İLK BAKIŞ"
-        title={<>CPU <em>ile</em> GPU'nun farkı: <em>gecikme</em> değil, <em>throughput</em>.</>}
-        note="CPU bir uzman gibi çalışır: az iş, az gecikme. GPU bir ordu gibi: çok sayıda küçük asker, birlikte yüksek iş hacmi. İkisi farklı problemleri çözer."
+        title={<>CPU <em>ile</em> GPU’nun öncelikleri: <em>tekil gecikme</em> ve <em>paralel iş hacmi</em>.</>}
+        note="CPU karmaşık tekil işleri düşük gecikmeyle ilerletmeye, GPU ise çok sayıda benzer işi paralel yürütmeye odaklanır. Gerçek denge iş yüküne bağlıdır."
       />
       <div className="vf-compare">
         <article className="vf-compare-card cpu">
@@ -304,7 +304,7 @@ function CompareSection() {
           <p className="lede">Kontrol akışı ağır, dallanma tahmini ve sıralı iş yükleri için optimize. Tek bir iş parçacığını olabildiğince hızlı bitirmeye odaklanır.</p>
           <CpuSvg />
           <dl className="vf-compare-grid">
-            <dt>ÇEKİRDEK</dt><dd>4–16 büyük, karmaşık çekirdek</dd>
+            <dt>YÜRÜTME</dt><dd>Az sayıda güçlü, karmaşık genel amaçlı çekirdek</dd>
             <dt>CACHE</dt><dd>L1/L2/L3 derin; tahmin motorları</dd>
             <dt>GÜÇ</dt><dd>Yüksek saat × düşük çekirdek</dd>
             <dt>PARADİGMA</dt><dd>Gecikmeyi düşür, tekil işi hızlandır</dd>
@@ -312,11 +312,11 @@ function CompareSection() {
         </article>
         <article className="vf-compare-card gpu">
           <div className="tag">● GPU · Throughput-Optimizer</div>
-          <h3>Çok çekirdek, yüzlerce lane</h3>
-          <p className="lede">SM × yüzlerce lane paralel çalışır. Bellek beklerken bile diğer warplar hesap yapar. Veriyi parçala, her parçayı paralel çalıştır.</p>
+          <h3>Çok sayıda paralel yürütme kaynağı</h3>
+          <p className="lede">SM’ler içindeki şeritler warplar hâlinde çalışır. Bazı warplar beklerken zamanlayıcı başka hazır warpları ilerletebilir.</p>
           <GpuSvg />
           <dl className="vf-compare-grid">
-            <dt>ÇEKİRDEK</dt><dd>SM başına 128 lane (4 warp × 32)</dd>
+            <dt>YÜRÜTME</dt><dd>Şeritler 32 iş parçacıklı warplarda gruplanır; kaynak sayısı mimariye bağlıdır</dd>
             <dt>CACHE</dt><dd>L1/shared programlanabilir; L2 ortak</dd>
             <dt>PARADİGMA</dt><dd>Gecikmeyi sakla, throughput'u artır</dd>
             <dt>EN İYİSİ</dt><dd>SIMD iş yükleri, matris, evrişim, dikkat</dd>
@@ -433,7 +433,7 @@ const lifecycleSteps = [
     title: "Yürütme",
     where: "SM × warp × lane",
     time: "ns – μs",
-    desc: "Bloklar SM'lere atanır. SM, her cycle farklı bir warp'ın komutunu çalıştırır. Bellek bekleyen warp arka plana geçer; hazır warp ilerler. Gecikme saklama burada olur.",
+    desc: "Bloklar SM’lere atanır. Zamanlayıcı, çalıştırılabilir warplardan talimat gönderir; bellek bekleyen bir warp yerine başka bir hazır warp ilerleyebilir. Gecikme saklama burada oluşur.",
     glyph: (
       <svg viewBox="0 0 56 56" width="56" height="56" aria-hidden="true">
         <rect x="6" y="10" width="44" height="36" fill="var(--rose-soft)" stroke="var(--rose)" />
@@ -603,7 +603,7 @@ function QuizSection({ onScore }: { onScore: (s: number) => void }) {
         <div className="vf-quiz">
           <p className="vf-quiz-question">
             {finalScore === quiz.length
-              ? "Mükemmel. Bu beş sorunun arkasındaki kavramlar, atlasların %80'ini temsil eder. 1 hafta sonra yeniden dene."
+              ? "Mükemmel. Bu beş soru atlas boyunca tekrar kullanılan temel kavramları kapsıyor. Bir hafta sonra yeniden dene."
               : finalScore >= 3
               ? "İyi. Yanlış sorulara geri dön ve ilgili atlası yeniden aç. Tekrar etmeden kalıcı olmaz."
               : "Bunlar temel kavramlar. Atlasları sırayla aç ve her bölümün 'kalıcı bilgi' kartlarına geri dön."}
@@ -728,7 +728,7 @@ const conceptMapDetails: Record<string, { title: string; desc: string; prereq: s
   },
   operators: {
     title: "LLM Kernel Desenleri",
-    desc: "GEMM, indirgeme, softmax, RMSNorm, dikkat. Modern GPU kernel işinin %80'i burada.",
+    desc: "GEMM, indirgeme, softmax, RMSNorm ve dikkat gibi sık kullanılan operatör desenleri burada.",
     prereq: ["memory", "triton"],
     feeds: ["correctness", "cutlass"],
   },
@@ -889,7 +889,7 @@ function RecallSection() {
       <SectionHead
         label="BÖLÜM 08 · GERİ GETİRME"
         title={<>12 atlasın <em>tek cümlelik</em> özeti. Kartı çevir, hatırlamaya çalış.</>}
-        note="Aktif geri getirme, okumanın 3 katı daha etkilidir. Karta tıkla → cevabı gör → zihnindeki ile karşılaştır. Tüm kartları gözden geçirene kadar bölümü kapatma."
+        note="Aktif geri getirme, yalnızca yeniden okumak yerine bilgiyi hatırlamayı denetler. Karta tıkla → cevabı gör → zihnindekiyle karşılaştır. Tüm kartları gözden geçirene kadar bölümü kapatma."
       />
       <div className="vf-card-grid">
         {recallCards.map((card, i) => {
@@ -947,11 +947,11 @@ function RecallSection() {
 const glossaryTerms: Array<{ term: string; def: string; analogy: string; cat: string }> = [
   { term: "Kernel", def: "GPU'da binlerce thread tarafından paralel çalıştırılan fonksiyon. __global__ ile işaretlenir.", analogy: "Bir sahne yönetmeni (host) sahneye (GPU) tek bir senaryo (kernel) gönderir; yüzlerce oyuncu (thread) aynı senaryoyu canlandırır.", cat: "Architecture" },
   { term: "Thread", def: "Kernel'in bir örneğini çalıştıran en küçük iş parçacığı. Her thread'in kendi register'ı vardır.", analogy: "Sınıftaki tek bir öğrenci. Her biri kendi defterine (register) yazar.", cat: "Architecture" },
-  { term: "Warp", def: "32 thread'in birlikte çalıştığı yürütme birimi. SM her cycle bir warp komutunu issue eder.", analogy: "Sınıftaki 32 kişilik sıra. Hep birlikte aynı sayfayı çevirirler.", cat: "Architecture" },
+  { term: "Warp", def: "32 iş parçacığından oluşan SIMT yürütme grubudur. Zamanlayıcı, çalıştırılabilir warplardan talimat gönderir.", analogy: "Sınıftaki 32 kişilik sıra. Etkin öğrenciler aynı yönergeyi izler.", cat: "Architecture" },
   { term: "Block (CTA)", def: "Bir SM üzerinde birlikte çalışan thread grubu (max 1024). Shared memory'yi paylaşır.", analogy: "Bir sınıf (32 sıra = warp'lar, sınıf = block). Aynı tahtayı (shared memory) kullanırlar.", cat: "Architecture" },
   { term: "Grid", def: "Tüm block'ları içeren yapı. Bir kernel çağrısı = bir grid.", analogy: "Tüm okul. Her sınıf (block) kendi işini yapar; müdür (driver) sadece başlatır.", cat: "Architecture" },
-  { term: "SM (Streaming Multiprocessor)", def: "GPU'nun fiziksel çekirdeği. İçinde register, shared memory, lane'ler ve scheduler bulunur.", analogy: "Bir atölye: bir usta (scheduler) sırayla tezgâhlara (warp'lara) iş verir.", cat: "Architecture" },
-  { term: "Register", def: "SM üzerinde, tek cycle erişim. En hızlı ama en küçük katman.", analogy: "Cebindeki not kâğıdı. Anında bakarsın, ama az yazar.", cat: "Memory" },
+  { term: "SM (Streaming Multiprocessor)", def: "Warpları zamanlayan; yürütme birimlerini, yazmaç dosyasını ve paylaşımlı belleği barındıran çok işlemcili GPU bloğudur.", analogy: "Bir atölye: zamanlayıcı, hazır iş gruplarını uygun tezgâhlara yönlendirir.", cat: "Architecture" },
+  { term: "Register", def: "SM üzerindeki iş parçacığına özel, düşük gecikmeli ve kapasitesi sınırlı depolama alanıdır.", analogy: "Cebindeki not kâğıdı. Hızlıca bakarsın, ama az yer vardır.", cat: "Memory" },
   { term: "Shared Memory", def: "Bir block'un thread'lerinin ortak alanı. Bant genişliği yüksek, programlanabilir.", analogy: "Sınıf tahtası. Herkes yazıp silebilir; ortak kullanılır.", cat: "Memory" },
   { term: "L2 Cache", def: "Tüm SM'lerin paylaştığı önbellek. MB mertebesinde.", analogy: "Okul kütüphanesi. Herkes erişebilir; her sınıf ayrı kitap getirmez.", cat: "Memory" },
   { term: "HBM", def: "GPU DRAM. Yüksek bant genişliği, yüksek gecikme. Büyük tensörler burada yaşar.", analogy: "Şehir deposu. Büyük, uzak, ama toplu taşıma hızlı (otobüs = sektör).", cat: "Memory" },
@@ -968,7 +968,7 @@ const glossaryTerms: Array<{ term: string; def: string; analogy: string; cat: st
   { term: "Nsight Systems", def: "Zaman çizelgesi profili. Hangi kernel ne zaman çalışıyor, GPU-CPU arası bekleme.", analogy: "Bir günün saatlik planı. Hangi ders ne kadar sürüyor, teneffüste ne yapıyorsun.", cat: "Profiling" },
   { term: "Nsight Compute", def: "Tek bir kernel'in detaylı profili. Roofline, bellek analizi, occupancy.", analogy: "Tek bir sınavın analizi. Hangi soruda ne kadar süre harcadın, nerede zorlandın.", cat: "Profiling" },
   { term: "Roofline", def: "Performans tavan grafiği. Bellek ve compute sınırlarını gösterir.", analogy: "Bir arabanın tavan hızı. Gerçek hızını ölçüp tavana ne kadar yakın olduğuna bakarsın.", cat: "Profiling" },
-  { term: "Tensor Core", def: "Matris çarpımı için özel donanım. 4×4 FP16 matrisleri tek cycle'da çarpar.", analogy: "Matematik sınavında el ile çarpmak yerine hesap makinesi kullanmak. Aynı iş, çok daha hızlı.", cat: "Hardware" },
+  { term: "Tensor Core", def: "Desteklenen veri tipleri ve mimariye özgü döşeme şekilleri üzerinde matris çarpma-biriktirme işlemlerini hızlandıran özel yürütme birimidir.", analogy: "Genel amaçlı işlem yerine belirli matris işlemleri için tasarlanmış uzman bir hesap makinesi.", cat: "Hardware" },
   { term: "CUDA Graph", def: "Bir dizi kernel çağrısını kaydedip tekrar tekrar ucuza oynatma.", analogy: "Bir orkestra şefinin partisyonu kaydetmesi. Her çalış için baştan okumaya gerek yok.", cat: "Inference" },
   { term: "AllReduce", def: "Tüm GPU'lardaki tensörleri topla ve sonucu her birine dağıt.", analogy: "Sınıftaki notları topla, ortalamasını al, sonucu herkesle paylaş.", cat: "Multi-GPU" },
   { term: "NCCL", def: "NVIDIA Collective Communications Library. Çoklu GPU arası kolektifler için.", analogy: "Postane. Her şehir (GPU) paketi alır, birleştirir, geri yollar.", cat: "Multi-GPU" },
@@ -1017,9 +1017,9 @@ const cheatSheets: Array<{ idx: string; name: string; atlas: string; points: str
   {
     idx: "01", name: "Görsel & Kalıcı", atlas: "Görsel & Kalıcı Öğrenme",
     points: [
-      "GPU, latency'yi saklayarak throughput'u artırır (yüzlerce küçük çekirdek).",
+      "GPU, çok sayıda yürütme birimi ve hazır warplarla beklemeleri örterek paralel iş hacmini artırır.",
       "Bellek: Register → Shared → L2 → DRAM (HBM) → Host. Hız azalır, kapasite artar.",
-      "Coalesced = aynı sektöre düşen 32 thread. Stride 1 her zaman kazanır.",
+      "Birleşik erişim, komşu iş parçacıklarının isteklerini az sayıda bellek işleminde toplar; sonucu erişim düzeni ve hizalamayla ölç.",
       "Bir kernel doğru sayılır: referans + rtol/atol + sanitizer (R-T-S üçgeni).",
       "Roofline: bellek mi compute mu tavanlı? Önce sor, sonra optimize et.",
     ],
@@ -1040,7 +1040,7 @@ const cheatSheets: Array<{ idx: string; name: string; atlas: string; points: str
     idx: "03", name: "Mimari → SIMT", atlas: "Mimari → SIMT → CUDA",
     points: [
       "Grid → Block → Warp → Lane. 32 lane = 1 warp.",
-      "Block boyutu 32'nin katı olmalı; 1024'ten büyük olmamalı.",
+      "Warp hizalı blok boyutları sık kullanılan bir başlangıçtır; üst sınırı ve kaynak baskısını hedef aygıtta sorgula.",
       "Bir block = bir SM. SM, block'u parçalara ayırmaz; aynı anda birden fazla block tutabilir.",
       "Shared memory: block içi, programlanabilir. Hızlı ama sınırlı.",
       "Divergence: aynı warp farklı yol = seri yürütme. Veriyi branch öncesi ayır.",
@@ -1052,8 +1052,8 @@ const cheatSheets: Array<{ idx: string; name: string; atlas: string; points: str
     points: [
       "Bellek hiyerarşisi: Register > Shared > L2 > HBM > Host.",
       "Coalesced erişimde 128 B istek 4 sektöre düşer (32 B × 4).",
-      "Stride 8 = 8× bant genişliği israfı. Stride 1 hedefle.",
-      "Shared memory 32 bank. Aynı bank'a çakışma = bank conflict. tile[33] padding çözer.",
+      "Geniş stride daha fazla sektör taşıyabilir; erişim verimliliğini ve hizalamayı ölç.",
+      "Banka çakışması erişim düzenine ve bank genişliğine bağlıdır; transpoz döşemelerinde uygun padding bir çözüm olabilir.",
       "Occupancy = aktif warp / max warp. Yüksek olması gerekmez; latency saklamaya yeterli.",
     ],
     tag: "MEMORY",
@@ -1072,7 +1072,7 @@ const cheatSheets: Array<{ idx: string; name: string; atlas: string; points: str
   {
     idx: "06", name: "LLM Kernel Desenleri", atlas: "LLM Kernel Desenleri",
     points: [
-      "GEMM: M×K × K×N = M×N. Tensor Core ile 4×4×4 küpler halinde çarp.",
+      "GEMM: M×K × K×N = M×N. Tensor Core talimat şekilleri veri tipine ve GPU mimarisine bağlıdır.",
       "Softmax: x - max(x) ile taşmayı önle. Online softmax = tek geçiş.",
       "RMSNorm: ortalama yerine RMS. LayerNorm'un hafif versiyonu.",
       "FlashAttention: dikkat için füzyon. Bellek O(N) yerine O(N²) değil.",
@@ -1084,7 +1084,7 @@ const cheatSheets: Array<{ idx: string; name: string; atlas: string; points: str
     idx: "07", name: "Doğruluk", atlas: "Kernel Doğruluğu ve Güvenliği",
     points: [
       "R-T-S üçgeni: Reference, Tolerance, Sanitizer.",
-      "allclose(rtol=1e-5, atol=1e-8) FP32 için, FP16 için ~1e-2.",
+      "rtol/atol bütçesini veri tipi, şekil, değer aralığı ve indirgeme derinliğine göre belirle.",
       "Edge case matrisi: boş, tek eleman, NaN/Inf, büyük/düşük batch.",
       "Compute Sanitizer: memcheck (sızıntı), racecheck (veri yarışı).",
       "Bitwise deterministic değilse seed'leri sabitle. Bf16'da atomik toplam sırası önemli.",
@@ -1094,8 +1094,8 @@ const cheatSheets: Array<{ idx: string; name: string; atlas: string; points: str
   {
     idx: "08", name: "Nsight & Kıyaslama", atlas: "Nsight ve Kıyaslama Rehberi",
     points: [
-      "Warm-up: en az 10 iterasyon. Cache + clock artık kararlı.",
-      "Quantile (p50/p95), mean değil. p95 tail'i yakalar.",
+      "Isınmayı kararlı duruma ulaşana kadar sürdür ve durdurma ölçütünü raporla.",
+      "Medyanı, kuyruk yüzdeliklerini ve dağılımı birlikte raporla.",
       "Nsight Systems: önce zaman çizelgesi. Hangi kernel ne kadar sürüyor?",
       "Nsight Compute: tek kernel. Roofline + bottleneck görselleştirmesi.",
       "Baseline: aynı şekil/dtype, aynı donanım, aynı sürücü. Aksi halde iddia zayıf.",
@@ -1109,18 +1109,18 @@ const cheatSheets: Array<{ idx: string; name: string; atlas: string; points: str
       "CuTe: yerleşim (layout) cebiri. make_layout, local_partition.",
       "Tensor Core: 16×8×16 (mma.m16n8k16) FP16, BF16, TF32 seçenekleri.",
       "PTX: mma.sync komutu. SASS: SASS'ı kontrol et, sürücü beklenmedik şey yapabilir.",
-      "Fusion: bir kernel'da 3-5 operatör birleştir. Bellek trafiği yarıya düşer.",
+      "Füzyon ara bellek trafiğini azaltabilir; kayıt baskısı ve yeniden hesaplama maliyetini ölç.",
     ],
     tag: "DEEP",
   },
   {
     idx: "10", name: "Çıkarım", atlas: "Çıkarım Sistemleri Laboratuvarı",
     points: [
-      "vLLM: PagedAttention ile KV-cache bellek parçalanmasını çözer.",
-      "Continuous batching: dinamik batch. Throughput'u 5-10× artırır.",
-      "CUDA Graph: sabit şekillerde tekrarlanan çağrılar için 2-3× hızlanma.",
-      "Nicemleme (quantization): FP32 → FP16 (1.5×), → INT8 (2-3×), → INT4 (4×).",
-      "TTFT vs ITL: chat'te TTFT, batch'ta ITL önemli. İkisi farklı bottleneck.",
+      "vLLM PagedAttention, KV önbelleğinin bloklu yönetimiyle parçalanmayı azaltmayı hedefler.",
+      "Sürekli toplu işleme, istekleri dinamik planlar; kazancı gerçek trafik ve taban çizgisiyle ölç.",
+      "CUDA Graph, uygun sabit akışlarda başlatma ek yükünü azaltabilir; hızlanma iş yüküne bağlıdır.",
+      "Nicemleme bellek ve veri hareketini azaltabilir; hız ve kalite donanım ile kernel desteğine bağlıdır.",
+      "TTFT, ITL ve iş hacmini aynı deney tanımıyla birlikte raporla; her biri farklı darboğazları gösterebilir.",
     ],
     tag: "INFERENCE",
   },
@@ -1142,7 +1142,7 @@ const cheatSheets: Array<{ idx: string; name: string; atlas: string; points: str
       "HIP: kaynak taşınabilirliği. Aynı kod, iki platformda derlenir.",
       "MLIR: çok seviyeli IR. Triton, IREE, JAX hepsi MLIR kullanır.",
       "TensorRT: NVIDIA inference motoru. Tactic seçimi + kalibrasyon.",
-      "Taşınabilirlik: %80 HIP. Kalan %20 mimari-spesifik (warp özellikleri, async copy).",
+      "HIP kaynak taşınabilirliği desteklenen API kümesine bağlıdır; mimariye özgü warp ve eşzamansız kopya yollarını ayrıca doğrula.",
     ],
     tag: "STACK",
   },
@@ -1211,7 +1211,7 @@ const codePatterns = [
     ],
     annotations: [
       "float4 (16 byte) oku: 32 thread × 16 B = 512 B = 4 sektör. Tam coalesced.",
-      "Hata: stride 2 veya rastgele indeks kullanma. Bant genişliği 2-8× düşer.",
+      "Erişim aralığı veya rastgele indeksleme sektör kullanımını düşürebilir; gerçek verimliliği profiler ile ölç.",
     ],
   },
   {
@@ -1229,7 +1229,7 @@ const codePatterns = [
       { type: "cm", text: "  // 33 = padding, bank conflict'i önler" },
     ],
     annotations: [
-      "Padding 33 (32 yerine) bank conflict'i kırar. Doğal 32'de aynı sütuna düşen thread'ler aynı bank'a giderdi.",
+      "Bu transpoz örneğinde 32 yerine 33 sütunlu padding, aynı sütuna erişen iş parçacıklarının bank eşlemesini dağıtır; sonuç veri tipi ve bank düzenine bağlıdır.",
       "__syncthreads() her yazmadan sonra. Tüm thread'ler paylaşıma yazmayı bitirmeden okumaya geçmesin.",
     ],
   },
@@ -1288,7 +1288,7 @@ function CodeSection() {
       <SectionHead
         label="BÖLÜM 11 · KOD ÖRNEKLERİ"
         title={<>4 <em>kalıp</em>, 4 kritik performans numarası.</>}
-        note="Modern GPU kernel'larının %80'i bu kalıplardan birini kullanır. Her kalıbın yanında 'neden bu şekilde?' açıklaması var."
+        note="Bu dört kalıp, atlas boyunca tekrar kullanılan temel yapı taşlarını gösterir. Her kalıbın yanında 'neden bu şekilde?' açıklaması var."
       />
       <div className="vf-code-grid">
         {codePatterns.map((p, i) => (
@@ -1367,7 +1367,7 @@ function AnimSection() {
   };
 
   const currentStep = cycle < 8
-    ? "ISSUE: Scheduler bir warp'ın komutunu alır ve yürütme birimine gönderir. Bu adım cycle başına olur."
+    ? "ISSUE: Zamanlayıcı, çalıştırılabilir bir warptan talimat seçip uygun yürütme birimine gönderir. Gönderim kapasitesi mimariye bağlıdır."
     : cycle < 16
     ? "EXECUTE: ALU veya Tensor Core, 32 lane üzerinde komutu çalıştırır. Tek cycle'da biter."
     : cycle < 24

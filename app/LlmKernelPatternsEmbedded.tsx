@@ -45,20 +45,20 @@ const topicCopy: Record<TopicId, { kicker: string; title: string; lead: string; 
   },
   softmax: {
     kicker: "BÖLÜM 03 · SKORDAN OLASILIĞA",
-    title: "Softmax: kararlı, çevrimiçi ve fuse edilebilir",
+    title: "Softmax: kararlı, çevrimiçi ve birleştirilebilir",
     lead: "Softmax skorları pozitif ve toplamı 1 olan bir dağılıma dönüştürür. Naif exp(x) büyük girdilerde taşabilir; doğru kernel önce satır maksimumunu çıkarır, sonra üstel toplamı hesaplar.",
     formula: "pᵢ = exp(xᵢ − m) / Σⱼ exp(xⱼ − m)",
   },
   normalization: {
     kicker: "BÖLÜM 04 · ÖLÇEĞİ KONTROL ET",
-    title: "Normalization: aktivasyonları çalışılabilir aralıkta tut",
-    lead: "LayerNorm ortalama ve varyansı, RMSNorm ise yalnızca kareler ortalamasını kullanır. Kernel açısından ikisi de reduction, yayınlama ve eleman-bazlı dönüşümün iyi bir füzyon adayıdır.",
+    title: "Normalleştirme: aktivasyonları çalışılabilir aralıkta tut",
+    lead: "LayerNorm ortalama ve varyansı, RMSNorm ise yalnızca kareler ortalamasını kullanır. Kernel açısından ikisi de indirgeme, yayınlama ve eleman bazlı dönüşümün iyi bir füzyon adayıdır.",
     formula: "RMSNorm(x) = γ ⊙ x / √(mean(x²) + ε)",
   },
   attention: {
     kicker: "BÖLÜM 05 · BAĞLAMI EŞLEŞTİR",
-    title: "Attention: matris çarpımı ile online softmax’ı birleştir",
-    lead: "Attention; QKᵀ skorları, ölçekleme, maskeleme, softmax ve V ile ağırlıklı toplamdan oluşur. Flash tarzı kernel’lar, dev skor matrisini belleğe yazmadan tile’lar üzerinde çevrimiçi softmax yürütür.",
+    title: "Dikkat: matris çarpımı ile çevrimiçi softmax'ı birleştir",
+    lead: "Dikkat; QKᵀ skorlarını, ölçeklemeyi, maskelemeyi, softmax'ı ve V ile ağırlıklı toplamı birleştirir. Flash tarzı kerneller, tam skor matrisini belleğe yazmadan döşemeler üzerinde çevrimiçi softmax yürütür.",
     formula: "O = softmax(QKᵀ / √d + mask) · V",
   },
   grouped: { kicker: "BÖLÜM 06 · UZMAN YÖNLENDİRME", title: "Gruplu GEMM / MoE: düzensiz işi tek başlatmada topla", lead: "Grouped GEMM değişken boyutlu uzman matrislerini toplu çalıştırır; persistent matmul çalışma döngüsünü GPU üzerinde tutarak başlatma ve planlama maliyetini azaltır.", formula: "Yₑ = XₑWₑ · e ∈ selected experts" },
@@ -66,11 +66,11 @@ const topicCopy: Record<TopicId, { kicker: string; title: string; lead: string; 
 };
 
 const quiz: Record<TopicId, { q: string; options: string[]; answer: number; note: string }> = {
-  gemm: { q: "GEMM’de tiling’in ana kazancı nedir?", options: ["Daha fazla thread başlatmak", "Global bellek verisini tekrar kullanmak", "K boyutunu kaldırmak"], answer: 1, note: "Bir tile shared memory/register içinde kaldığı sürece birçok FMA tarafından yeniden kullanılabilir." },
+  gemm: { q: "GEMM'de döşemenin ana kazancı nedir?", options: ["Daha fazla iş parçacığı başlatmak", "Global bellekten yüklenen veriyi yeniden kullanmak", "K boyutunu kaldırmak"], answer: 1, note: "Bir döşeme paylaşımlı bellek veya yazmaçlarda kaldığı sürece birçok FMA'yı besleyebilir." },
   reduction: { q: "16 elemanlı dengeli bir reduction ağacı kaç birleşim aşaması ister?", options: ["4", "8", "16"], answer: 0, note: "Her aşama aktif değer sayısını yarıya indirir: log₂(16) = 4." },
   softmax: { q: "max(x) neden üstel işlemden önce çıkarılır?", options: ["Toplamı sıfırlamak için", "Sıralamayı değiştirmek için", "Taşmayı önlemek için"], answer: 2, note: "Sabit bir değeri tüm skorlardan çıkarmak dağılımı değiştirmez; en büyük üstel değeri 1 yapar." },
   normalization: { q: "RMSNorm, LayerNorm’dan hangi istatistiği çıkarır?", options: ["Ortalama merkezleme", "Kareler ortalaması", "Öğrenilen γ"], answer: 0, note: "RMSNorm girdiyi merkezlemez; RMS ölçeğini hesaplar ve öğrenilen γ ile çarpar." },
-  attention: { q: "Flash tarzı attention’ın temel bellek avantajı nedir?", options: ["Q, K, V’yi silmek", "S×S skor matrisini HBM’e yazmamak", "Softmax’ı atlamak"], answer: 1, note: "Skor tile’ları çevrimiçi softmax ile işlenir; ara skor matrisi global bellekte materialize edilmez." },
+  attention: { q: "Flash tarzı dikkatin temel bellek avantajı nedir?", options: ["Q, K ve V'yi silmek", "S×S skor matrisini HBM'e yazmamak", "Softmax'ı atlamak"], answer: 1, note: "Skor döşemeleri çevrimiçi softmax ile işlenir; ara skor matrisi global bellekte oluşturulmaz." },
   grouped: { q: "Grouped GEMM MoE iş yükünde neyi korur?", options: ["Değişken uzman boyutlarını tek plan içinde", "Her uzmana aynı token sayısını", "Yalnız tek bir matrisi"], answer: 0, note: "Gruplu başlatma, farklı uzman matrislerini ve token gruplarını tek plan içinde taşır." },
   precision: { q: "Block-scaled FP4 / FP8 yolunda hangi sözleşme zorunludur?", options: ["Ölçek metaverisi düzeni", "Yalnız çıktı rengi", "Sabit GQA grup sayısı"], answer: 0, note: "Ölçek metaverisi, operand blokları ve daha yüksek hassasiyetli birikim birlikte doğrulanır." },
 };
@@ -109,7 +109,7 @@ function GemmLab() {
           <strong>=</strong>
           <div><small>C · M×N</small><DotGrid active={16} /></div>
         </div>
-        <p className="visual-caption"><i /> Her blok A ve B tile’larını hızlı belleğe alır; thread’ler K ekseni boyunca register akümülatörlerini günceller.</p>
+        <p className="visual-caption"><i /> Her blok A ve B döşemelerini hızlı belleğe alır; iş parçacıkları K ekseni boyunca yazmaç birikimlerini günceller.</p>
       </section>
       <section className="panel controls-panel">
         <div className="panel-label"><span>Roofline sezgisi</span><b>FP32</b></div>
@@ -257,9 +257,9 @@ const labs: Record<TopicId, () => React.ReactNode> = { gemm: GemmLab, reduction:
 
 function KernelPattern({ topic }: { topic: TopicId }) {
   const content: Record<TopicId, { title: string; items: { n: string; h: string; p: string }[]; code: string[] }> = {
-    gemm: { title: "Tiled GEMM veri yolu", items: [{ n: "01", h: "Birleşik yükleme", p: "Komşu thread’ler komşu A/B adreslerini okur." }, { n: "02", h: "Paylaşılan döşeme", p: "Blok, yüklediği parçayı bütün warp’larla paylaşır." }, { n: "03", h: "Yazmaçta biriktirme", p: "Her thread küçük bir C parçasını FMA ile biriktirir." }], code: ["for k_tile in range(0, K, BK):", "  a = load(A[m, k_tile:k_tile+BK])", "  b = load(B[k_tile:k_tile+BK, n])", "  acc += dot(a, b)", "store(C[m, n], acc)"] },
-    reduction: { title: "Hiyerarşik reduction", items: [{ n: "01", h: "Thread-local", p: "Her thread strided girdilerden yerel bir sonuç üretir." }, { n: "02", h: "Warp birleştirmesi", p: "Shuffle ile register’lar arası birleşim yapılır." }, { n: "03", h: "Blok sonlandırma", p: "Warp sonuçları küçük shared alanda sonlandırılır." }], code: ["acc = identity", "for i in thread_strided_indices:", "  acc = op(acc, x[i])", "acc = warp_reduce(acc)", "if lane == 0: partial[warp] = acc"] },
-    softmax: { title: "Üç geçişten tek kernela", items: [{ n: "01", h: "Satır maksimumu", p: "Satırın maksimumu paralel reduction ile bulunur." }, { n: "02", h: "Üstel + toplam", p: "Kaydırılmış üsteller ve toplam aynı tile’da üretilir." }, { n: "03", h: "Normalleştir + yaz", p: "Register’daki değerler paydaya bölünüp yazılır." }], code: ["x = load(row, mask=cols < N)", "m = max(x, axis=0)", "z = exp(x - m)", "l = sum(z, axis=0)", "store(out, z / l)"] },
+    gemm: { title: "Döşemeli GEMM veri yolu", items: [{ n: "01", h: "Birleşik yükleme", p: "Komşu iş parçacıkları komşu A/B adreslerini okur." }, { n: "02", h: "Paylaşılan döşeme", p: "Blok, yüklediği parçayı bütün warplarla paylaşır." }, { n: "03", h: "Yazmaçta biriktirme", p: "Her iş parçacığı küçük bir C parçasını FMA ile biriktirir." }], code: ["for k_tile in range(0, K, BK):", "  a = load(A[m, k_tile:k_tile+BK])", "  b = load(B[k_tile:k_tile+BK, n])", "  acc += dot(a, b)", "store(C[m, n], acc)"] },
+    reduction: { title: "Hiyerarşik indirgeme", items: [{ n: "01", h: "İş parçacığına özel", p: "Her iş parçacığı aralıklı girdilerden yerel bir sonuç üretir." }, { n: "02", h: "Warp birleştirmesi", p: "Karıştırma işlemleriyle yazmaçlar arası birleşim yapılır." }, { n: "03", h: "Blok sonlandırma", p: "Warp sonuçları küçük bir paylaşımlı bellek alanında birleştirilir." }], code: ["acc = identity", "for i in thread_strided_indices:", "  acc = op(acc, x[i])", "acc = warp_reduce(acc)", "if lane == 0: partial[warp] = acc"] },
+    softmax: { title: "Üç geçişten tek kernele", items: [{ n: "01", h: "Satır maksimumu", p: "Satırın maksimumu paralel indirgemeyle bulunur." }, { n: "02", h: "Üstel + toplam", p: "Kaydırılmış üsteller ve toplam aynı döşemede üretilir." }, { n: "03", h: "Normalleştir + yaz", p: "Yazmaçlardaki değerler paydaya bölünüp yazılır." }], code: ["x = load(row, mask=cols < N)", "m = max(x, axis=0)", "z = exp(x - m)", "l = sum(z, axis=0)", "store(out, z / l)"] },
     normalization: { title: "Reduction + pointwise füzyonu", items: [{ n: "01", h: "Bir kez yükle", p: "Aktivasyon satırı coalesced olarak bir kez yüklenir." }, { n: "02", h: "İstatistikleri hesapla", p: "μ/σ² veya RMS ölçeği blok içinde hesaplanır." }, { n: "03", h: "Doğrusal dönüşüm + artık bağlantı", p: "γ, β ve residual mümkünse aynı yazımda birleşir." }], code: ["x = load(row)", "rms = sqrt(mean(x * x) + eps)", "y = x * rsqrt(rms * rms)", "y = y * gamma", "store(out, y)"] },
     attention: { title: "IO-aware attention", items: [{ n: "01", h: "Q tile sabit", p: "Q parçası register/shared memory’de tutulur." }, { n: "02", h: "K/V akışı", p: "K ve V blokları sırayla hızlı bellekten geçirilir." }, { n: "03", h: "Online softmax", p: "Koşan max ve toplam, yeni tile geldikçe yeniden ölçeklenir." }], code: ["for kv_tile in sequence:", "  scores = dot(q, k.T) * scale", "  m_new = max(m, max(scores))", "  l = l * exp(m-m_new) + sum(exp(scores-m_new))", "  out = rescale(out) + exp(scores-m_new) @ v"] },
     grouped: { title: "Grouped GEMM ve persistent matmul", items: [{ n: "01", h: "Token grupları", p: "MoE router çıktısını uzman başına kompaktlaştır." }, { n: "02", h: "Düzensiz matrisler", p: "Her uzman için bağımsız M/N/K ve stride sözleşmesi taşı." }, { n: "03", h: "Persistent kuyruk", p: "Programları birden fazla döşeme boyunca GPU üzerinde tut." }], code: ["for tile in persistent_queue:", "  expert = routing[tile]", "  x = load(grouped_x[expert])", "  w = load(grouped_w[expert])", "  store(y, dot(x, w))"] },

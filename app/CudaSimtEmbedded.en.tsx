@@ -384,7 +384,7 @@ export default function CudaSimtEmbedded() {
             <span><i className="busy" /> SM busy</span>
             <span><i className="idle" /> SM idle</span>
           </div>
-          <Lesson title="Critical threshold" copy={warps >= neededWarps ? "Enough warps (" + warps + " ≥ " + neededWarps + "): memory latency is fully hidden and the SM stays busy every cycle." : "Not enough warps (" + warps + " < " + neededWarps + "): the SM idles while all warps wait on memory. Full hiding needs ceil((C+L)/C) = " + neededWarps + " warps."} />
+          <Lesson title="Critical threshold" copy={warps >= neededWarps ? "This simplified model has enough warps (" + warps + " ≥ " + neededWarps + ") for the scheduler to find eligible work while other warps wait on memory." : "This simplified model has too few warps (" + warps + " < " + neededWarps + "), so the SM may idle while every warp waits on memory. Its threshold is ceil((C+L)/C) = " + neededWarps + "; real behavior depends on the instruction mix and hardware."} />
         </section>
       )}
       {tab === "occupancy" && (

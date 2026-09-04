@@ -15,9 +15,9 @@ export const PYTORCH_INTEGRATION_DECISIONS = [
 export const PYTORCH_ACCEPTANCE_ROWS = [
   { id: "dynamic-shape", label: "Dinamik şekil", detail: "Asal ve blok sınırı ±1 şekillerde maske ve sembolik boyutları doğrula." },
   { id: "mutation-alias", label: "Mutasyon / alias", detail: "Şema, gerçekten değişen girdileri ve çıktı alias davranışını birebir açıklamalı." },
-  { id: "faketensor", label: "FakeTensor", detail: "Meta yürütme çıktı şekli, dtype ve cihaz semantiğini gerçek tahsis olmadan üretmeli." },
+  { id: "faketensor", label: "FakeTensor", detail: "Meta yürütme; çıktı şeklini, veri tipini ve aygıt semantiğini gerçek tahsis olmadan üretmeli." },
   { id: "autograd", label: "Autograd", detail: "İleri ve geri yolları ayrı gradyan karşılaştırmasıyla kabul et." },
-  { id: "aotinductor", label: "AOTInductor", detail: "Derleme, dışa aktarma ve yeniden yükleme yolunu temsilî şekillerde sınırla." },
+  { id: "aotinductor", label: "AOTInductor", detail: "Derleme, dışa aktarma ve yeniden yükleme yolunu temsili şekillerle sına." },
 ] as const;
 
 export const TRITON_AUTOTUNE_CONFIGS = [
@@ -132,16 +132,16 @@ def vector_add(x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
 }
 
 const weeks = [
-  { id: 1, title: "Tensor anatomisi", eyebrow: "Temel", desc: "Stride, layout ve eager yürütmeyi çıplak gözle gör.", status: "done", minutes: 90, skills: ["stride", "broadcast", "profiling"] },
+  { id: 1, title: "Tensör anatomisi", eyebrow: "Temel", desc: "Erişim aralığını, düzeni ve anlık yürütmeyi çıplak gözle gör.", status: "done", minutes: 90, skills: ["stride", "broadcast", "profiling"] },
   { id: 2, title: "Özel operatör", eyebrow: "PyTorch", desc: "torch.library ile şema, CPU referansı ve fake kernel kur.", status: "active", minutes: 120, skills: ["torch.library", "FakeTensor", "opcheck"] },
   { id: 3, title: "İlk Triton kernel", eyebrow: "Triton", desc: "Program ID, bloklar, maske ve coalesced erişim.", status: "next", minutes: 150, skills: ["tl.program_id", "mask", "BLOCK_SIZE"] },
-  { id: 4, title: "Otomatik türev + derleme", eyebrow: "Entegrasyon", desc: "Geri yayılımı kaydet; torch.compile ile graph break avla.", status: "locked", minutes: 150, skills: ["register_autograd", "torch.compile", "AOT"] },
+  { id: 4, title: "Otomatik türev + derleme", eyebrow: "Entegrasyon", desc: "Geri yayılımı kaydet; torch.compile ile grafik kesintilerini bul.", status: "locked", minutes: 150, skills: ["register_autograd", "torch.compile", "AOT"] },
   { id: 5, title: "RMSNorm", eyebrow: "Operatör 01", desc: "Referanstan fused Triton kernel'e, üç şekil üzerinde ölç.", status: "locked", minutes: 180, skills: ["reduction", "numerics", "fusion"] },
   { id: 6, title: "RoPE", eyebrow: "Operatör 02", desc: "Half-split rotary embedding ve stride-aware indeksleme.", status: "locked", minutes: 180, skills: ["indexing", "vectorization", "backward"] },
   { id: 7, title: "SwiGLU", eyebrow: "Operatör 03", desc: "Aktivasyon ve çarpımı tek kernel'de birleştir.", status: "locked", minutes: 180, skills: ["fusion", "occupancy", "precision"] },
   { id: 8, title: "Maskeli softmax", eyebrow: "Operatör 04", desc: "Stabil reduction, maskeleme ve sınır durumları.", status: "locked", minutes: 210, skills: ["online softmax", "masking", "NaN"] },
   { id: 9, title: "KV-cache güncellemesi", eyebrow: "Operatör 05", desc: "Paged bellek düzenine güvenli ve hızlı yazma.", status: "locked", minutes: 210, skills: ["scatter", "cache", "race"] },
-  { id: 10, title: "Kıyaslama bilimi", eyebrow: "Performans", desc: "Isınma, quantile ve roofline ile dürüst kıyaslama.", status: "locked", minutes: 150, skills: ["triton.testing", "roofline", "Nsight"] },
+  { id: 10, title: "Kıyaslama bilimi", eyebrow: "Performans", desc: "Isınma, yüzdelikler ve roofline ile dürüst kıyaslama.", status: "locked", minutes: 150, skills: ["triton.testing", "roofline", "Nsight"] },
   { id: 11, title: "Füzyon stüdyosu", eyebrow: "Optimizasyon", desc: "İki fused kernel'de en az %15 medyan iyileşme hedefle.", status: "locked", minutes: 240, skills: ["fusion", "register pressure", "autotune"] },
   { id: 12, title: "Çıkarım bitirme projesi", eyebrow: "Mezuniyet", desc: "vLLM iş yükünde TTFT, ITL ve throughput raporu üret.", status: "locked", minutes: 300, skills: ["vLLM", "TTFT", "portfolio"] },
 ];
@@ -360,7 +360,7 @@ export default function PyTorchTritonEmbedded() {
 
           <div className={`console ${runState}`} aria-live="polite">
             <div className="console-title"><span>TEST KONSOLU</span><span>{runState === "passed" ? "4/4 GEÇTİ" : runState === "running" ? "ÇALIŞIYOR" : "HAZIR"}</span></div>
-            {runState === "idle" && <p><span className="prompt">$</span> opcheck ve correctness matrisini başlatmaya hazır.</p>}
+            {runState === "idle" && <p><span className="prompt">$</span> opcheck ve doğruluk matrisini başlatmaya hazır.</p>}
             {runState === "running" && <p><span className="prompt">›</span> n ∈ [1, 257, 65_537] · fp32/fp16 karşılaştırılıyor…</p>}
             {runState === "passed" && <div className="test-results"><p><b>✓</b> {runSnapshot?.boundaries.opcheck === "registration" ? "opcheck: kayıt + şema" : "opcheck: bu dalın dışında"}</p><p><b>✓</b> sayısal: ayrı referans</p><p><b>✓</b> gradyan: ayrı kanıt</p><p><b>✓</b> maskeli n=257 sınırı</p></div>}
             <p className="run-context" data-branch={runSnapshot?.branch ?? ""}>{runSnapshot ? `${runSnapshot.runLabel} · ${runSnapshot.configEffect}` : ""}</p>
@@ -368,17 +368,17 @@ export default function PyTorchTritonEmbedded() {
         </div>
 
         <div className="evidence-strip">
-          <div><span>DOĞRULUK</span><strong>{runState === "passed" ? "4 / 4" : "— / 4"}</strong><small>şekil × dtype</small></div>
+          <div><span>DOĞRULUK</span><strong>{runState === "passed" ? "4 / 4" : "— / 4"}</strong><small>şekil × veri tipi</small></div>
           <div><span>MEDYAN</span><strong>{runState === "passed" ? "18.7 µs" : "— µs"}</strong><small>100 tekrar</small></div>
-          <div><span>BANT GENİŞLİĞİ</span><strong>{runState === "passed" ? "612 GB/s" : "— GB/s"}</strong><small>temsili sonuç</small></div>
-          <div className="proof-note"><i>!</i><p>Performans sayıları öğretim amaçlıdır. Kendi GPU’nda ölçmeden portföy kanıtı sayılmaz.</p></div>
+          <div><span>BANT GENİŞLİĞİ</span><strong>{runState === "passed" ? "612 GB/s" : "— GB/s"}</strong><small>temsili simülasyon</small></div>
+          <div className="proof-note"><i>!</i><p>Temsili simülasyon çıktısıdır; cihazınızda ölçülmemiştir. Kendi GPU’nuzda ölçmeden portföy kanıtı sayılmaz.</p></div>
         </div>
       </section>
 
       <section className="section model-section" id="model">
         <div className="section-heading">
           <div><span className="section-number">03</span><p className="eyebrow">ZİHİNSEL MODEL</p><h2>Bir kernel nasıl<br /><em>düşünür?</em></h2></div>
-          <p>Parametreyi oynat; grid, program ve bellek erişimi arasındaki ilişkiyi gör.</p>
+          <p>Parametreyi değiştir; ızgara, program ve bellek erişimi arasındaki ilişkiyi gör.</p>
         </div>
 
         <div className="model-grid">
@@ -398,13 +398,13 @@ export default function PyTorchTritonEmbedded() {
                 {Array.from({ length: Math.max(2, 1024 / blockSize) }).slice(0, 8).map((_, index) => <div key={index} className={index === 0 ? "active" : ""}><span>PID {index}</span><b>{index * blockSize}…{Math.min(1023, (index + 1) * blockSize - 1)}</b></div>)}
               </div>
             </div>
-            <div className="sim-caption"><span>{1024 / blockSize} program</span><span>{blockSize / 32} warp / program</span><span>coalesced erişim</span></div>
+            <div className="sim-caption"><span>{1024 / blockSize} program</span><span>{blockSize / 32} warp / program</span><span>birleşik erişim</span></div>
           </div>
 
           <div className="explanation">
             <p className="eyebrow">KENDİ CÜMLELERİNLE</p>
             <h3>Program ≠ iş parçacığı</h3>
-            <p>Triton’da tek bir program, bir veri bloğu üzerinde vektör halinde çalışır. <code>tl.arange</code> tek tek thread numarası değil, programın işleyeceği offset vektörüdür.</p>
+            <p>Triton’da tek bir program, bir veri bloğu üzerinde vektör hâlinde çalışır. <code>tl.arange</code> tek tek iş parçacığı numarası değil, programın işleyeceği ofset vektörüdür.</p>
             <ol>
               <li><b>Grid</b><span>Kaç program örneği çalışacak?</span></li>
               <li><b>Program ID</b><span>Bu örnek hangi bloğu sahipleniyor?</span></li>

@@ -80,14 +80,14 @@ const strategies: Record<Parallelism, { title: string; description: string; comm
   },
   PP: {
     title: "Pipeline Parallel",
-    description: "Katman grupları aşamalara ayrılır; mikro-batch'ler boru hattından akar.",
+    description: "Katman grupları aşamalara ayrılır; mikro-batchler boru hattından akar.",
     comm: "Komşu aşamalar arası P2P",
     best: "Derin model, birden fazla düğüme yayılacaksa",
     caution: "Pipeline bubble ve dengesiz aşamalar verimi düşürür.",
   },
   EP: {
     title: "Expert Parallel",
-    description: "MoE uzmanları GPU'lara dağıtılır; token'lar uygun uzmana yönlendirilir.",
+    description: "MoE uzmanları GPU'lara dağıtılır; tokenlar uygun uzmana yönlendirilir.",
     comm: "All-to-All",
     best: "Seyrek Mixture-of-Experts modellerinde",
     caution: "Token dengesizliği ve ağ tıkanması kritik hale gelir.",
@@ -169,7 +169,7 @@ export default function NcclMultiGpuEmbedded() {
           <span className="section-index">01 / NCCL</span>
           <div>
             <h2>Kolektif iletişim,<br />tek bir API.</h2>
-            <p>NCCL bir “ağ protokolü” değildir. CUDA çekirdekleri, GPU belleği ve mevcut bağlantıları kullanarak rank’ler arasında en uygun iletişim yolunu kurar.</p>
+            <p>NCCL bir “ağ protokolü” değildir. CUDA kernelleri, GPU belleği ve mevcut bağlantıları kullanarak rankler arasında uygun iletişim yollarını seçer.</p>
           </div>
         </div>
 
@@ -210,7 +210,7 @@ export default function NcclMultiGpuEmbedded() {
           <span className="section-index">02 / PARALLELISM</span>
           <div>
             <h2>Modeli değil,<br />darboğazı böl.</h2>
-            <p>Doğru strateji model boyutuna, batch’e, topolojiye ve iletişim sıklığına bağlıdır. Büyük eğitimler genellikle bu boyutları 3D olarak birleştirir.</p>
+            <p>Doğru strateji model boyutuna, batch politikasına, topolojiye ve iletişim sıklığına bağlıdır. Büyük eğitimler genellikle bu boyutları birlikte kullanır.</p>
           </div>
         </div>
 

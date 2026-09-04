@@ -1143,7 +1143,7 @@ for (const task5Case of task5InteractionCases) {
       await expect(precisionEvidence).toContainText(/quality|kalite/i);
       await expect(precisionEvidence).toContainText(/accumulation|birikim/i);
       await expect(precisionEvidence).toHaveAttribute("data-source-ids", /vllm-|cutlass-/);
-      await expect(precisionEvidence).toHaveAttribute("data-maturity", index < 2 ? "current" : "preview");
+      await expect(precisionEvidence).toHaveAttribute("data-maturity", index < 3 ? "current" : "preview");
     }
     await expect(evidence.locator('[data-source-id="vllm-speculative-acceptance"]')).toHaveAttribute("data-maturity", "preview");
     await expect(evidence.locator('[data-source-id="vllm-speculative-acceptance"]')).toContainText(/acceptance rate|kabul oranı/i);
@@ -2105,3 +2105,11 @@ for (const { locale, firstTitle, nextTitle } of [
     await expect(page.evaluate(() => window.localStorage.getItem("kernel-atlas-completed"))).resolves.toBe('["toolchain"]');
   });
 }
+
+test("programmatic module heading focus does not draw a cosmetic outline", async ({ page }) => {
+  await gotoAtlas(page, "en");
+  await page.getByTestId("atlas-module-triton").click();
+  const title = page.getByTestId("atlas-module-title");
+  await expect(title).toBeFocused();
+  await expect.poll(() => title.evaluate((node) => getComputedStyle(node).outlineStyle)).toBe("none");
+});

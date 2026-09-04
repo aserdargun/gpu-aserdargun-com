@@ -29,7 +29,7 @@ const architecturesById: Record<ModuleId, readonly ArchitectureId[]> = {
 const trModules = [
   {
     id: "visual", index: "01", title: "Görsel & Kalıcı Öğrenme", short: "GPU 101 · Mnemonics · Bilgi testi", phase: "Giriş",
-    description: "Üniversite öğrencisi için GPU'nun ne olduğunu, içinde nelerin bulunduğunu ve bir kernel'in nasıl yaşadığını görsel olarak öğren. Kalıcı bilgi kartları, sık yapılan hatalar ve bilgi testi.",
+    description: "Üniversite öğrencisi için GPU'nun ne olduğunu, içinde nelerin bulunduğunu ve bir kernelin nasıl yaşadığını görsel olarak öğren. Kalıcı bilgi kartları, sık yapılan hatalar ve bilgi testi.",
     concepts: ["CPU vs GPU farkı", "GPU anatomisi (SM, L2, HBM)", "Kernel yaşam döngüsü ve kalıcı öğrenme"],
     outcome: "GPU kavramlarını görsel bir zihinsel modele oturt ve uzun süre hatırlayacağın mnemonics kazan.", tags: ["GPU 101", "görsel", "mnemonic", "quiz"], accent: "rose",
   },
@@ -53,7 +53,7 @@ const trModules = [
   },
   {
     id: "triton", index: "05", title: "PyTorch + Triton Kernel Laboratuvarı", short: "Özel operatör · Otomatik türev · Derleme", phase: "Uygulama",
-    description: "PyTorch referansından torch.library kararına, triton_op + wrap_triton sınırına ve maskeli Triton kernel’e ilerle.",
+    description: "PyTorch referansından torch.library kararına, triton_op + wrap_triton sınırına ve maskeli Triton kerneline ilerle.",
     concepts: ["torch.library sözleşmesi ve mask", "triton_op, wrap_triton ve autotune", "Otomatik türev, FakeTensor ve AOTInductor"],
     outcome: "Bir operatörü referans, Triton uygulaması, autograd ve dinamik şekil kabul testleriyle paketle.", tags: ["PyTorch", "Triton", "opcheck", "autotune", "derleme"], accent: "violet",
   },

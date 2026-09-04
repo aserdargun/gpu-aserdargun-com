@@ -28,13 +28,13 @@ const tracks = {
         label: "Grid",
         code: "dim3",
         detail:
-          "İş, block'lardan oluşan bir grid'e bölünür. Problem boyutu ile yürütme geometrisini ayrı düşün.",
+          "İş, bloklardan oluşan bir ızgaraya bölünür. Problem boyutu ile yürütme geometrisini ayrı düşün.",
       },
       {
         label: "Kernel",
         code: "__global__",
         detail:
-          "Her thread aynı kernel kodunu farklı indekslerle yürütür; sınır kontrolü doğruluğun ilk kapısıdır.",
+          "Her iş parçacığı aynı kernel kodunu farklı indekslerle yürütür; sınır kontrolü doğruluğun ilk kapısıdır.",
       },
       {
         label: "Bellek",
@@ -46,7 +46,7 @@ const tracks = {
         label: "Senkron",
         code: "barrier",
         detail:
-          "Block içindeki bağımlılıkları bariyerlerle yönet; block'lar arası global senkronizasyonu kernel sınırında düşün.",
+          "Blok içindeki bağımlılıkları bariyerlerle yönet; bloklar arası global senkronizasyonu kernel sınırında düşün.",
       },
     ],
     code: `__global__ void saxpy(float a, const float* x,
@@ -65,7 +65,7 @@ hipLaunchKernelGGL(saxpy, dim3(blocks), dim3(256),
     eyebrow: "02 / DERLEYİCİ ALTYAPISI",
     title: "Compiler & MLIR",
     intro:
-      "Yüksek seviyeli tensor niyetini, yeniden yazılabilir dialect'ler ve pass pipeline'larıyla hedef koda indir.",
+      "Yüksek seviyeli tensör niyetini, yeniden yazılabilir lehçeler ve geçiş zincirleriyle hedef koda indir.",
     accent: "#b7f000",
     stats: [
       ["Soyutlama", "Çok seviyeli IR"],
@@ -89,7 +89,7 @@ hipLaunchKernelGGL(saxpy, dim3(blocks), dim3(256),
         label: "Transform",
         code: "tile + fuse",
         detail:
-          "Tiling, fusion, canonicalization ve vectorization gibi pass'ler IR üzerinde kontrollü dönüşümler yapar.",
+          "Döşeme, füzyon, standartlaştırma ve vektörleştirme gibi geçişler IR üzerinde kontrollü dönüşümler yapar.",
       },
       {
         label: "Lowering",
@@ -115,14 +115,14 @@ hipLaunchKernelGGL(saxpy, dim3(blocks), dim3(256),
     return %c : tensor<128x128xf32>
   }
 }`, 
-    note: "MLIR tek bir IR değildir; dialect'ler arası aşamalı dönüşümü yöneten bir altyapıdır. Pass sırası, hem legality hem performans için tasarım kararıdır.",
+    note: "MLIR tek bir IR değildir; lehçeler arası aşamalı dönüşümü yöneten bir altyapıdır. Geçiş sırası, hem geçerlilik hem performans için tasarım kararıdır.",
     pitfalls: ["Çok erken lowering", "Belirsiz pass sözleşmesi", "IR doğrulamasını atlamak", "Hedef maliyet modelini yok saymak"],
   },
   tensorrt: {
     eyebrow: "03 / ÇIKARIM OPTİMİZASYONU",
     title: "TensorRT",
     intro:
-      "Eğitilmiş modeli NVIDIA GPU üzerinde düşük gecikme ve yüksek throughput için optimize edilmiş bir engine'e dönüştür.",
+      "Eğitilmiş modeli NVIDIA GPU üzerinde düşük gecikme ve yüksek iş hacmi için optimize edilmiş bir motora dönüştür.",
     accent: "#7c8cff",
     stats: [
       ["Soyutlama", "Model graph + runtime"],
@@ -152,7 +152,7 @@ hipLaunchKernelGGL(saxpy, dim3(blocks), dim3(256),
         label: "Build",
         code: "engine.plan",
         detail:
-          "Seçimler serileştirilmiş engine'e dönüşür. Engine'i hedef ortam ve sürümle birlikte yönet.",
+          "Seçimler serileştirilmiş bir motora dönüşür. Motoru hedef ortam ve sürümle birlikte yönet.",
       },
       {
         label: "Execute",
@@ -197,12 +197,12 @@ const choiceMap = {
   compiler: {
     tag: "Başlangıç noktası: MLIR",
     title: "Dönüşümü IR seviyesinde tasarla",
-    body: "Kaynak semantiğini uygun dialect'te tut, pass sözleşmelerini belirle ve lowering sınırlarını hedef maliyet modeliyle birlikte yönet.",
+    body: "Kaynak semantiğini uygun lehçede tut, geçiş sözleşmelerini belirle ve alt gösterime indirme sınırlarını hedef maliyet modeliyle birlikte yönet.",
   },
   inference: {
     tag: "Başlangıç noktası: TensorRT",
     title: "Servis SLO'sundan geriye çalış",
-    body: "Gerçek shape dağılımını, batch politikasını ve kabul edilen doğruluk toleransını sabitle; engine'i bu sözleşmeye göre üret ve ölç.",
+    body: "Gerçek şekil dağılımını, batch politikasını ve kabul edilen doğruluk toleransını sabitle; motoru bu sözleşmeye göre üret ve ölç.",
   },
 } as const;
 
@@ -210,9 +210,9 @@ export const GPU_STACK_LAYER_IDS = ["graph-compiler", "kernel-dsl", "kernel-libr
 export const GPU_STACK_PATH_IDS = ["rocm10", "cuda-tile", "triton-tileir", "rubin"] as const;
 export const GPU_STACK_TECHNOLOGIES = [
   { name: "MLIR", layer: "graph-compiler", role: "Çok seviyeli dönüştürme altyapısı", sourceId: "mlir-dialect-conversion", maturity: "current" },
-  { name: "CUDA Tile IR", layer: "graph-compiler", role: "Derleyici IR ve CUDA backend hedefi", sourceId: "cuda-tile-ir", maturity: "current" },
+  { name: "CUDA Tile IR", layer: "graph-compiler", role: "Derleyici IR'si ve CUDA arka uç hedefi", sourceId: "cuda-tile-ir", maturity: "current" },
   { name: "cuTile", layer: "kernel-dsl", role: "Python döşeme düzeyi kernel DSL", sourceId: "cutile-tileir", maturity: "current" },
-  { name: "CuTe DSL", layer: "kernel-dsl", role: "Kernel yazımı için public-beta DSL", sourceId: "cute-dsl-stack", maturity: "preview" },
+  { name: "CuTe DSL", layer: "kernel-dsl", role: "Kernel yazımı için herkese açık beta DSL", sourceId: "cute-dsl-stack", maturity: "preview" },
   { name: "CUTLASS", layer: "kernel-library", role: "Yeniden kullanılabilir CUDA kernel kütüphanesi", sourceId: "cutlass-kernel-library", maturity: "current" },
   { name: "ROCm 10", layer: "runtime", role: "AMD hesap çalışma zamanı SDK'sı", sourceId: "rocm-10-core", maturity: "current" },
   { name: "ROCprofiler-SDK", layer: "runtime", role: "ROCm performans gözlemlenebilirlik SDK'sı", sourceId: "rocprofiler-sdk-rocm10", maturity: "current" },

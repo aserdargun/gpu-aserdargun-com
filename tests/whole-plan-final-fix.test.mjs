@@ -84,14 +84,17 @@ test("foundations avoid unqualified multipliers and universal GPU claims", async
 });
 
 test("sample Triton metrics are visibly simulated in both locales", async () => {
-  const tr = await loadTsxModule("PyTorchTritonEmbedded");
-  const en = await loadTsxModule("PyTorchTritonEmbedded.en");
-  assert.match(renderToStaticMarkup(React.createElement(tr.default)), /temsili|simüle/i);
-  assert.match(renderToStaticMarkup(React.createElement(en.default)), /illustrative|simulated/i);
+  const tr = await readFile(new URL("../app/PyTorchTritonEmbedded.tsx", import.meta.url), "utf8");
+  const en = await readFile(new URL("../app/PyTorchTritonEmbedded.en.tsx", import.meta.url), "utf8");
+  assert.match(tr, /temsili simülasyon/i);
+  assert.match(en, /illustrative simulation/i);
 });
 
 test("programmatic module heading focus is quiet while controls keep focus-visible", async () => {
-  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  const css = (await Promise.all([
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/atlas/atlas-shell.css", import.meta.url), "utf8"),
+  ])).join("\n");
   assert.match(css, /\.module-hero h1:focus\s*\{[^}]*outline:\s*none/i);
   assert.match(css, /:focus-visible\s*\{[^}]*(?:outline|box-shadow)/i);
 });
@@ -174,7 +177,7 @@ test("NCCL 2.31.2 Device API evidence is feature-granular and preserves exact co
     assert.ok(source, `missing ${id}`);
     assert.deepEqual(
       [source.moduleId, source.maturity, source.verifiedAt, source.title, source.url],
-      ["multigpu", maturity, "2026-08-29", title, url],
+      ["multigpu", maturity, "2026-09-04", title, url],
     );
   }
 
@@ -207,7 +210,7 @@ test("CUDA 13.3 and cuTile 1.5 visible claims resolve to their direct current re
   for (const [id, [title, url]] of Object.entries(expected)) {
     const source = curriculumSources.find((candidate) => candidate.id === id);
     assert.ok(source, `missing ${id}`);
-    assert.deepEqual([source.moduleId, source.maturity, source.verifiedAt, source.title, source.url], ["architecture", "current", "2026-08-29", title, url]);
+    assert.deepEqual([source.moduleId, source.maturity, source.verifiedAt, source.title, source.url], ["architecture", "current", "2026-09-04", title, url]);
   }
   const historical = curriculumSources.find(({ id }) => id === "cuda-tile");
   assert.ok(historical);

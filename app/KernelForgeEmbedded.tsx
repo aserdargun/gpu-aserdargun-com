@@ -261,7 +261,7 @@ export default function KernelForgeEmbedded() {
           ))}
           <div className="sidebar-card">
             <span className="pulse-dot" />
-            <div><b>Sürüm radarı</b><p>Resmî kaynaklarla 09.08.2026 tarihinde doğrulandı.</p></div>
+            <div><b>Sürüm radarı</b><p>Resmî kaynaklarla 04.09.2026 tarihinde doğrulandı.</p></div>
           </div>
         </aside>
 

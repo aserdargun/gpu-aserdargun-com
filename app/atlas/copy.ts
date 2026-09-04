@@ -1,14 +1,14 @@
 export const uiByLocale = {
   tr: {
     home: "GPU Kernel Atlas ana sayfa", mainNav: "Ana navigasyon", weeks: "12 hafta",
-    progress: "İlerleme yüzde", menu: "Atlas menüsünü aç", search: "Atlas içinde ara", command: "Komuta merkezi",
+    progress: "İlerleme oranı", menu: "Atlas menüsünü aç", search: "Atlas içinde ara", command: "Komuta merkezi",
     unified: "12 BİRLEŞİK ATLAS", learningAtlases: "Öğrenme atlasları", localProgress: "YEREL İLERLEME", stored: "Bu cihazda saklanır.",
     eyebrow: "BİRLEŞİK ÖĞRENME SİSTEMİ · 2026", headlineA: "Kernel’i yaz.", headlineB: "Sistemi anla.", headlineC: "Kanıtla.",
-    hero: "On iki etkileşimli atlas; görsel GPU temellerini, tile düzeyi programlamayı, Blackwell farkındalıklı optimizasyonu ve dağıtık çıkarımı, desteklenen mimari ve backend sınırlarını görünür kılan 12 haftalık kanıt rotasında birleştirir.",
+    hero: "On iki etkileşimli atlas; görsel GPU temellerini, döşeme düzeyi programlamayı, Blackwell farkındalıklı optimizasyonu ve dağıtık çıkarımı, desteklenen mimari ve arka uç sınırlarını görünür kılan 12 haftalık kanıt rotasında birleştirir.",
     start: "Öğrenmeye başla", viewWeeks: "12 haftayı gör", atlasStat: "birleşik atlas", weekStat: "yoğun hafta", operatorStat: "LLM operatörü", gateStat: "kanıt kapısı",
     graph: "ÖĞRENME GRAFİĞİ", online: "ÇEVRİM İÇİ", correctness: "DOĞRULUK", measurement: "ÖLÇÜM", integration: "ENTEGRASYON",
-    principle1: "Referans, şekil/dtype matrisi ve sanitizer temizliği olmadan kernel tamamlanmış sayılmaz.", principle2: "Warm-up, quantile, profiler ve kontrollü baseline olmadan hız iddiası kurulmaz.", principle3: "Gerçek hedef; PyTorch, compile ve serving iş yükü içinde çalışan portföy kalitesinde operatördür.",
-    map: "ATLAS HARİTASI", mapA: "Tek uygulama.", mapB: "On iki uzmanlık alanı.", mapNote: "Görsel temellerden capstone’a ilerleyen rota. Her atlas kendi etkileşimli laboratuvarını, Concept Studio’sunu, karar modelini ve kabul çıktısını içerir.", done: "TAMAMLANDI", completionStatus: "Tamamlandı",
+    principle1: "Referans, şekil/veri tipi matrisi ve sanitizer temizliği olmadan kernel tamamlanmış sayılmaz.", principle2: "Isınma, yüzdelik dağılımları, profil oluşturucu kanıtı ve kontrollü bir taban çizgisi olmadan hız iddiası kurulmaz.", principle3: "Gerçek hedef; PyTorch, derleme ve hizmet iş yükleri içinde çalışan, portföy kalitesinde bir operatördür.",
+    map: "ATLAS HARİTASI", mapA: "Tek uygulama.", mapB: "On iki uzmanlık alanı.", mapNote: "Görsel temellerden bitirme projesine ilerleyen rota. Her atlas kendi etkileşimli laboratuvarını, Kavram Stüdyosu’nu, karar modelini ve kabul çıktısını içerir.", done: "TAMAMLANDI", completionStatus: "Tamamlandı",
     route: "12 HAFTALIK YOĞUN ROTA", routeA: "Okuma listesi değil.", routeB: "Üretim sistemi.", routeNote: "Haftada 14–16 saat. Her hafta çalışan kod, doğruluk kanıtı veya ölçüm raporu üretir.",
     graduation: "MEZUNİYET KAPISI", dual: "CUDA/Triton\nçift uygulama", gain: "iki fused kernel\nmedyan kazanç", studies: "Nsight\nincelemesi", report: "vLLM TTFT/ITL/\nthroughput raporu", interview: "mülakat\nsavunması",
     interactive: "ETKİLEŞİMLİ ATLAS", evidence: "ÇIKIŞ KANITI", learned: "Öğrendin mi?", record: "Kanıtını kaydet.", complete: "Atlası tamamla", completed: "✓ Tamamlandı", next: "Sonraki atlas →",

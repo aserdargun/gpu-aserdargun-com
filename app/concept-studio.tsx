@@ -33,7 +33,7 @@ const scenarioMeta: Record<StudioKind, Scenario> = {
     tr: {
       label: "GPU 101 · Görsel",
       headline: "CPU ile GPU farkı, gözünün önünde",
-      intro: "Aynı işi iki farklı mimari nasıl yapar: birkaç güçlü çekirdek mi, binlerce küçük çekirdek mi? Anatomiyi ve kernel'in yaşam döngüsünü adım adım izle.",
+      intro: "Aynı işi iki farklı mimari nasıl yapar: birkaç güçlü genel amaçlı çekirdek mi, çok sayıda paralel yürütme birimi mi? Anatomiyi ve kernelin yaşam döngüsünü adım adım izle.",
       why: "CPU gecikme, GPU iş hacmi için tasarlanır; bu tek fark, bu atlasta göreceğin her kernel deseninin nedenini açıklar.",
     },
     en: {
@@ -60,9 +60,9 @@ const scenarioMeta: Record<StudioKind, Scenario> = {
   architecture: {
     tr: {
       label: "Mimari · SIMT",
-      headline: "Izgaradan warp'a: GPU kodu nasıl çalıştırır?",
-      intro: "Tek bir kernel çağrısı binlerce thread'e dönüşür. Izgara, blok, warp ve şerit hiyerarşisini adım adım izle.",
-      why: "Kernel'in hızını, donanımın thread'lerinizi nasıl gruplayıp zamanladığını anlamadan açıklayamazsın.",
+      headline: "Izgaradan warpa: GPU kodu nasıl çalıştırır?",
+      intro: "Tek bir kernel çağrısı çok sayıda iş parçacığına dönüşür. Izgara, blok, warp ve şerit hiyerarşisini adım adım izle.",
+      why: "Kernelin hızını, donanımın iş parçacıklarını nasıl gruplayıp zamanladığını anlamadan açıklayamazsın.",
     },
     en: {
       label: "Architecture · SIMT",
@@ -75,7 +75,7 @@ const scenarioMeta: Record<StudioKind, Scenario> = {
     tr: {
       label: "GPU belleği",
       headline: "Birleşik erişim: 32 baytluk sektörler",
-      intro: "32 lane'in okuduğu 128 baytlık veri, erişim desenine göre 4 ya da 16 sektörü hareket ettirebilir. Farkı canlı gör.",
+      intro: "32 şeridin okuduğu 128 baytlık veri, erişim desenine göre 4 ya da 16 sektörün taşınmasına yol açabilir. Farkı canlı gör.",
       why: "Aynı veriyi taşıyan bir warp, erişim desenine göre 4 ya da 16 sektör okuyabilir — aradaki fark doğrudan bant genişliğidir.",
     },
     en: {
@@ -89,8 +89,8 @@ const scenarioMeta: Record<StudioKind, Scenario> = {
     tr: {
       label: "PyTorch · Triton",
       headline: "PyTorch operatöründen Triton kernel'ına",
-      intro: "Bir operatör fikri nasıl GPU'da çalışan maskelemeli bir kernel'a dönüşür? Python tarafı ile GPU tarafı yan yana akar.",
-      why: "Triton, CUDA C++ yazmadan GPU'a inen özel operatörler yazmanın en hızlı yoludur; maskeleme ve program kimliği iki temel fikirdir.",
+      intro: "Bir operatör fikri nasıl GPU'da çalışan maskeli bir kernele dönüşür? Python ve GPU taraflarını yan yana izle.",
+      why: "Triton, CUDA C++ yazmadan GPU'ya özel operatör geliştirmek için verimli bir yoldur; maskeleme ve program kimliği iki temel fikirdir.",
     },
     en: {
       label: "PyTorch · Triton",
@@ -159,8 +159,8 @@ const scenarioMeta: Record<StudioKind, Scenario> = {
     tr: {
       label: "Çıkarım sistemleri",
       headline: "Bir LLM sunucusunda token'ların yolculuğu",
-      intro: "Prefill, decode, KV-cache ve sürekli toplu işleme: bir isteğin sunucudaki yaşamını izle.",
-      why: "TTFT ve ITL metrikleri kullanıcı deneyimini, KV-cache bütçesi ise sunucunun kapasitesini belirler.",
+      intro: "Ön doldurma, kod çözme, KV önbelleği ve sürekli toplu işleme: bir isteğin sunucudaki yaşamını izle.",
+      why: "TTFT ve ITL ölçümleri kullanıcı deneyimini, KV önbelleği bütçesi ise sunucunun kapasitesini belirler.",
     },
     en: {
       label: "Inference systems",
@@ -187,7 +187,7 @@ const scenarioMeta: Record<StudioKind, Scenario> = {
     tr: {
       label: "Yazılım yığını",
       headline: "Kodun gerçekten nerede çalışır?",
-      intro: "model(x) satırı framework'ten sürücüye ve donanıma uzanan katmanlardan geçer. İşi katman katman izle.",
+      intro: "model(x) satırı çatı katmanından sürücüye ve donanıma uzanan katmanlardan geçer. İşi katman katman izle.",
       why: "Aynı GPU problemi farklı yazılım katmanlarında çözülebilir; doğru katmanı seçmek zaman ve taşınabilirlik kazandırır.",
     },
     en: {
@@ -206,9 +206,9 @@ const stepCopy: Record<StudioKind, Record<Locale, StepCopy[]>> = {
       { title: "CPU yolu", caption: "4 güçlü çekirdek görevi sıraya dizip yüksek hızla tek tek bitirir: az çekirdek, yüksek saat hızı, büyük önbellek — gecikme odaklı." },
       { title: "GPU yolu", caption: "Binlerce basit çekirdek küçük parçaları aynı anda işler: çok çekirdek, düşük saat — iş hacmi odaklı. Görev büyüdükçe fark açılır." },
       { title: "İçinde ne var?", caption: "SM hesap birimidir, L2 tüm SM'lerin ortak önbelleğidir, HBM ise geniş ve hızlı ana bellektir. Veri HBM'den L2'ye, oradan SM'lere akar." },
-      { title: "Kernel'in hayatı", caption: "Yaz → derle → başlat (<<<blocks, threads>>>) → bloklar SM'lere dağılır → sonuç HBM'ye yazılır → host'a kopyalanır." },
-      { title: "SIMT fikri", caption: "Aynı komut, farklı veri: her lane kendi i indeksini işler. Dizi ne kadar büyükse GPU o kadar verimli; iş küçükse CPU kazanır." },
-      { title: "Akılda kalsın", caption: "Izgara → bloklar → 32'lik warp'lar → lane'ler. Bu zinciri hatırla; bu atlastaki her laboratuvar bu zincirin üzerine kurulur." },
+      { title: "Kernelin yaşamı", caption: "Yaz → derle → başlat (<<<bloklar, iş parçacıkları>>>) → bloklar SM'lere dağılır → sonuç HBM'ye yazılır → ana sisteme kopyalanır." },
+      { title: "SIMT fikri", caption: "Aynı talimat, farklı veri: her şerit kendi i indeksini işler. Uygun paralellik arttıkça GPU kaynakları daha iyi kullanılabilir; küçük işler başlatma ek yüküne takılabilir." },
+      { title: "Akılda kalsın", caption: "Izgara → bloklar → 32'lik warplar → şeritler. Bu zinciri hatırla; bu atlastaki her laboratuvar bu zincirin üzerine kurulur." },
     ],
     en: [
       { title: "The task", caption: "128 pieces of data to process. Watch how a CPU and then a GPU solve the same job: two machines, two philosophies." },
@@ -242,14 +242,14 @@ const stepCopy: Record<StudioKind, Record<Locale, StepCopy[]>> = {
   },
   architecture: {
     tr: [
-      { title: "Problem", caption: "N = 1000 elemanlı bir dizinin her elemanı işlenecek. CPU bunu döngüyle yapar; GPU binlerce thread ile yapar." },
-      { title: "Kernel başlatma", caption: "myKernel<<<blok_sayısı, blok_boyutu>>>(…) çağrısı GPU'a iş verir: bloklardan oluşan bir ızgara (grid) yaratılır." },
+      { title: "Problem", caption: "N = 1000 elemanlı bir dizinin her elemanı işlenecek. CPU bunu döngüyle yapar; GPU çok sayıda iş parçacığıyla yapar." },
+      { title: "Kernel başlatma", caption: "myKernel<<<blok_sayısı, blok_boyutu>>>(…) çağrısı GPU'ya iş verir: bloklardan oluşan bir ızgara yaratılır." },
       { title: "Bloklar SM'lere dağılır", caption: "1000 / 256 = 4 blok (ceil). Her blok tek bir SM'e atanır ve ömrü boyunca orada kalır; bloklar dalga dalga işlenir." },
-      { title: "Warp'lara bölünme", caption: "256 thread'lik her blok 32'lik warp'lara bölünür (8 warp). Warp, GPU'un zamanlama birimidir: 32 lane birden ilerler." },
-      { title: "Global indeks", caption: "i = blockIdx.x · blockDim.x + threadIdx.x her thread'e benzersiz bir eleman verir. Aynı kod, farklı veri — SIMT'in özü." },
-      { title: "Sınır kontrolü", caption: "1000, 256'nın tam katı değil: son blokta 24 thread boşa düşer. if (i < N) koruması olmayan kernel bellek dışına yazar." },
-      { title: "Dallanma (divergence)", caption: "Aynı warp'ta koşul lane'lere göre farklıysa donanım yolları maskeleyerek arka arkaya koşturur: iki yol ≈ iki kat süre." },
-      { title: "Yeniden birleşme", caption: "Yollar birleşir. İpucu: bir warp'ın thread'leri aynı yolu alsın ki maskelenmiş (boşta) lane kalmasın." },
+      { title: "Warplara bölünme", caption: "256 iş parçacıklı her blok, 32 iş parçacıklı warplara bölünür (8 warp). Warp, GPU'nun temel SIMT yürütme grubudur." },
+      { title: "Global indeks", caption: "i = blockIdx.x · blockDim.x + threadIdx.x her iş parçacığına benzersiz bir eleman verir. Aynı kod, farklı veri — SIMT'in özü." },
+      { title: "Sınır kontrolü", caption: "1000, 256'nın tam katı değil: son blokta 24 iş parçacığı boşa düşer. if (i < N) koruması olmayan kernel bellek dışına yazar." },
+      { title: "Dallanma sapması", caption: "Aynı warpta koşul şeritlere göre farklıysa donanım yolları etkinlik maskeleriyle ayrı ayrı yürütebilir. Maliyet, yol uzunluklarına ve derleyiciye bağlıdır." },
+      { title: "Yeniden birleşme", caption: "Yollar birleşir. İpucu: bir warptaki iş parçacıkları aynı yolu aldığında daha az şerit maskelenir." },
     ],
     en: [
       { title: "The problem", caption: "We must process each of N = 1000 elements. A CPU loops; a GPU launches thousands of threads." },
@@ -258,7 +258,7 @@ const stepCopy: Record<StudioKind, Record<Locale, StepCopy[]>> = {
       { title: "Split into warps", caption: "Each 256-thread block splits into warps of 32 (8 warps). The warp is the GPU's scheduling unit: 32 lanes advance together." },
       { title: "Global index", caption: "i = blockIdx.x · blockDim.x + threadIdx.x gives each thread its own element. Same code, different data — the essence of SIMT." },
       { title: "Bounds check", caption: "1000 is not a multiple of 256: the last block has 24 idle threads. Without if (i < N), the kernel writes out of bounds." },
-      { title: "Divergence", caption: "If a condition differs across lanes of one warp, hardware serializes the paths with masks: two paths ≈ twice the time." },
+      { title: "Divergence", caption: "If a condition differs across lanes of one warp, hardware may execute masked paths separately. Cost depends on path length and compiler decisions." },
       { title: "Reconvergence", caption: "The paths merge. Rule of thumb: keep a warp's threads on the same path so no lane sits masked and idle." },
     ],
   },
@@ -284,9 +284,9 @@ const stepCopy: Record<StudioKind, Record<Locale, StepCopy[]>> = {
     tr: [
       { title: "Referans", caption: "Önce PyTorch ile yavaş ama kesin doğru bir referans yaz: torch_out = x + y. Bu satır, doğruluğun tanımıdır." },
       { title: "Özel operatör", caption: "torch.library ile operatörü kaydet: PyTorch dispatcher artık add_custom(x, y) çağrısını senin kernel'ına yönlendirir." },
-      { title: "Triton kernel'ı", caption: "@triton.jit ile Python sözdiziminde GPU kernel'ı yazarsın; Triton onu senin GPU'un için CUDA'ya derler." },
-      { title: "Program kimliği", caption: "GPU aynı kernel'ı yüzlerce programla çalıştırır. pid = tl.program_id(0) her programa kendi dilimini (blok) verir." },
-      { title: "İlk çağrı: derleme", caption: "İlk çağrıda Triton kernel'ı hedef GPU için derler (JIT). Aynı şekil tekrar geldiğinde önbellekten gelir." },
+      { title: "Triton kerneli", caption: "@triton.jit ile Python sözdiziminde GPU kerneli yazarsın; Triton onu hedef GPU için derler." },
+      { title: "Program kimliği", caption: "GPU aynı kerneli çok sayıda program örneğiyle çalıştırır. pid = tl.program_id(0) her programa kendi dilimini (blok) verir." },
+      { title: "İlk çağrı: derleme", caption: "İlk çağrıda Triton kerneli hedef GPU için derler (JIT). Aynı şekil tekrar geldiğinde önbellekten gelir." },
       { title: "Maskeleme", caption: "offs < n koşulu, son bloğun dizinin dışına taşan elemanlarını korur. Maske, Triton'un güvenlik kemeridir." },
       { title: "Autograd + compile", caption: "backward kaydıyla operatör autograd'a katılır; torch.compile onu daha büyük grafiklerde eritip birleştirebilir." },
     ],
@@ -304,10 +304,10 @@ const stepCopy: Record<StudioKind, Record<Locale, StepCopy[]>> = {
     tr: [
       { title: "Naif GEMM", caption: "C = A×B'nin naif hali her çıktı için A'nın bir satırını ve B'nin bir sütununu yeniden okur: K = 4'te bile eleman başına 8 okuma." },
       { title: "Döşeme (tiling)", caption: "Matrisleri örneğin 3×3'lük karolara böl. Artık veriyi karolar halinde taşıyıp paylaşabiliriz." },
-      { title: "Paylaşılan belleğe", caption: "Bir A-karosu ve bir B-karosu kooperatif olarak shared memory'ye kopyalanır: blok içi tüm thread'ler aynı veriye erişir." },
+      { title: "Paylaşımlı belleğe", caption: "Bir A karosu ve bir B karosu birlikte paylaşımlı belleğe kopyalanır; blok içindeki bütün iş parçacıkları aynı veriye erişir." },
       { title: "Yazmaçlarda birikim", caption: "Her thread kendi C parçasını yazmaçta tutar ve K boyunca sadece ekler: bir kez oku, çok kez çarp." },
       { title: "Yeniden kullanım", caption: "Bir A-karosu 3 farklı çıktı satırıyla, bir B-karosu da 3 farklı çıktı sütunuyla kullanılır: okuma başına hesap katlanır." },
-      { title: "Epilogue füzyonu", caption: "Sonuç yazılırken bias veya aktivasyonu aynı kernel'da birleştir (fuse): ayrı bir kernel'ın bellek turu ortadan kalkar." },
+      { title: "Son işlem füzyonu", caption: "Sonuç yazılırken bias veya aktivasyonu aynı kernelde birleştir; böylece ayrı bir kernelin ara bellek turu ortadan kalkabilir." },
       { title: "Aynı fikir her yerde", caption: "Attention, convolution, RMSNorm… hepsi aynı kalıptır: taşı → yeniden kullan → birleştir." },
     ],
     en: [
@@ -322,12 +322,12 @@ const stepCopy: Record<StudioKind, Record<Locale, StepCopy[]>> = {
   },
   correctness: {
     tr: [
-      { title: "Referans sözleşmesi", caption: "Doğruluk kernel'ın kendisinden değil referanstan gelir: torch referansı + rastgele girdiler + sabit tohum (seed)." },
+      { title: "Referans sözleşmesi", caption: "Doğruluk kernelin kendisinden değil referanstan gelir: PyTorch referansı + rastgele girdiler + sabit tohum." },
       { title: "Karşılaştır", caption: "Kernel çıktısı ile referansı yan yana koy. Float aritmetiği birleşmeli değildir: toplama sırası bile bit'leri değiştirir." },
       { title: "Tolerans", caption: "|x − y| ≤ atol + rtol·|y| bütçesi kabul eşiğini tanımlar. allclose(rtol, atol) bu sözleşmenin kod halidir." },
       { title: "Uç durumlar", caption: "Boş tensör, 1 eleman, 65537 gibi tek boyutlar, ±inf, sıfıra yakın değerler: hataların çoğu kenarlarda saklanır." },
       { title: "memcheck", caption: "Compute Sanitizer memcheck, dizinin dışına yazan erişimi yakalar: kernel 'çalışıyor' ama sessizce belleği bozuyor olabilir." },
-      { title: "racecheck", caption: "racecheck, senkronizasyonsuz aynı adrese yazan thread'leri bulur: __syncthreads() eksikse sonuç makineden makineye değişir." },
+      { title: "racecheck", caption: "racecheck, senkronizasyonsuz aynı adrese yazan iş parçacıklarını bulur: __syncthreads() eksikse sonuç çalıştırmadan çalıştırmaya değişebilir." },
       { title: "Kabul kapısı", caption: "Referans + tolerans + uç durum + sanitizer hepsi yeşilse kernel 'tamam'dır. Bu zincir CI'da her commit'te koşar." },
     ],
     en: [
@@ -344,9 +344,9 @@ const stepCopy: Record<StudioKind, Record<Locale, StepCopy[]>> = {
     tr: [
       { title: "Naif zamanlama", caption: "time.time() ile tek ölçüm: JIT, önbellek ve saat hızı gürültüsü sonucu saptırır. Tek sayı = tek yanılgı." },
       { title: "Isınma", caption: "Önce birkaç kez çalıştır: derleme biter, önbellek dolar, GPU saat hızı oturur. Ölçüm ancak şimdi anlamlıdır." },
-      { title: "Zaman çizelgesi", caption: "Nsight Systems tüm akışı gösterir: kopyalar, kernel'lar ve aralarındaki boşluklar. Önce nereye bakacağını burada seçersin." },
-      { title: "Boşluk = bedava hız", caption: "Çizelgedeki boşluklar GPU'un beklediği yerlerdir. Kopyaları kernel ile üst üste getirirsen matematik değişmeden hızlanırsın." },
-      { title: "Sıcak kernel", caption: "En çok zaman harcayan kernel'ı Nsight Compute ile aç: SM mi, bellek mi sınır? Cevap, optimizasyonun yönünü belirler." },
+      { title: "Zaman çizelgesi", caption: "Nsight Systems tüm akışı gösterir: kopyalar, kerneller ve aralarındaki boşluklar. Önce nereye bakacağını burada seçersin." },
+      { title: "Boşlukları incele", caption: "Çizelgedeki bazı boşluklar GPU'nun iş beklediği yerleri gösterebilir. Bağımlılıklar izin veriyorsa kopya ile hesabı örtüştürmek bu ek yükü azaltabilir." },
+      { title: "Sıcak kernel", caption: "En çok zaman harcayan kerneli Nsight Compute ile aç: sınır SM kaynakları mı, bellek mi? Cevap, optimizasyonun yönünü belirler." },
       { title: "Çatı çizgisi", caption: "Roofline, iş yoğunluğuna (FLOP/bayt) karşı elde edilen hızı çizer; noktanın çatıya uzaklığı geri kazanılabilir payı gösterir." },
       { title: "Dağılım raporu", caption: "Birkaç koşunun ortalamasını değil; yüzlerce koşunun medyanı ve p99'unu raporla. Varyantları aynı koşullarda karşılaştır." },
     ],
@@ -364,8 +364,8 @@ const stepCopy: Record<StudioKind, Record<Locale, StepCopy[]>> = {
     tr: [
       { title: "Problem", caption: "D = α·A×B + β·C. Tek satır gibi görünür; bu animasyon, bu çarpımın donanıma inen yolculuğunu izler." },
       { title: "CUTLASS politikası", caption: "CUTLASS şablonları döşeme planını, veri tiplerini ve mainloop bileşenlerini seçer; parçaları bir araya getirir." },
-      { title: "CuTe yerleşimi", caption: "CuTe, (m, n, k) koordinatlarını shape + stride ile bellek adresine bağlar: 'hangi veri nerede duruyor' sorusunun cebiri." },
-      { title: "Veri inişi", caption: "Karolar global bellekten shared memory'ye (cp.async), oradan yazmaçlara (ldmatrix) akar; hesap sürerken sonraki karolar yoldadır." },
+      { title: "CuTe yerleşimi", caption: "CuTe, (m, n, k) koordinatlarını şekil ve erişim aralığıyla bellek adresine bağlar: 'hangi veri nerede duruyor' sorusunun cebiri." },
+      { title: "Veri inişi", caption: "Döşemeler global bellekten paylaşımlı belleğe (cp.async), oradan yazmaçlara (ldmatrix) akar; hesap sürerken sonraki döşemeler yoldadır." },
       { title: "PTX mma.sync", caption: "Warp, yazmaçlardaki fragment'larla mma.sync talimatını verir: küçük matris çarpımları birikimli olarak işlenir." },
       { title: "PTX → SASS", caption: "Sürücü, PTX'i hedef mimarinin gerçek talimatlarına (SASS) çevirir. Profilcide gördüğün son kod SASS'tır." },
       { title: "Tensor Core", caption: "Talimat, SM içindeki Tensor Core'da D = A×B + C'yi tek adımda işler; kernel tasarımının amacı onu aralıksız beslemektir." },
@@ -382,12 +382,12 @@ const stepCopy: Record<StudioKind, Record<Locale, StepCopy[]>> = {
   },
   inference: {
     tr: [
-      { title: "İstek gelir", caption: "Kullanıcı sunucuya bir prompt yollar: 'GPU'ları anlat'. Amaç: yanıtın her token'ını sırayla üretmek." },
+      { title: "İstek gelir", caption: "Kullanıcı sunucuya bir istem yollar: 'GPU'ları anlat'. Amaç, yanıtın her belirtecini sırayla üretmektir." },
       { title: "Prefill", caption: "Prompt'un tamamı tek geçişte paralel işlenir; her token'ın anahtar/değer (KV) vektörleri önbelleğe yazılır." },
       { title: "İlk token → TTFT", caption: "İlk yanıt token'ı üretilir. Kullanıcının beklediği süre TTFT'dir: prefill ne kadar uzunsa bekleme o kadar fazla." },
       { title: "Decode döngüsü", caption: "Bundan sonrası tek yönlüdür: her adımda yalnız son token işlenir ve bir yeni token üretilir." },
-      { title: "Ağırlık darboğazı", caption: "Her adımda modelin tüm ağırlıkları okunur ama hesap azdır: decode, bellek bant genişliğine bağımlıdır (memory-bound)." },
-      { title: "KV-cache büyür", caption: "Her yeni token KV-cache'e eklenir ve VRAM dolmaya başlar; cache dolunca yeni istekler kuyruğa girer." },
+      { title: "Ağırlık darboğazı", caption: "Her adımda model ağırlıklarının önemli bir bölümü okunurken belirteç başına hesap sınırlı kalabilir; kod çözme çoğu yapılandırmada bellek bant genişliğine takılır." },
+      { title: "KV önbelleği büyür", caption: "Her yeni token KV önbelleğine eklenir ve VRAM dolmaya başlar; kapasite dolunca yeni istekler kuyruğa girer." },
       { title: "Sürekli toplu işleme", caption: "Continuous batching: biten isteğin yuvasına hemen yeni istek alınır; GPU dolu tutulur." },
       { title: "Ölçütler", caption: "TTFT bekleme hissini, ITL akıcılığı, iş hacmi maliyeti anlatır; üçünü birlikte yönetirsin." },
     ],
@@ -427,7 +427,7 @@ const stepCopy: Record<StudioKind, Record<Locale, StepCopy[]>> = {
   systems: {
     tr: [
       { title: "Python'dan", caption: "model(x) yazarsın. Bu satır, uzun bir yazılım zincirinin yalnızca ilk halkasıdır." },
-      { title: "Framework katmanı", caption: "PyTorch operatörü dispatcher ile çözümlenir: hazır CUDA kernel'ı mı, Triton mu, yoksa CPU yolu mu çalışacak?" },
+      { title: "Çatı katmanı", caption: "PyTorch operatörü dağıtıcı tarafından çözümlenir: hazır CUDA kerneli mi, Triton mu, yoksa CPU yolu mu çalışacak?" },
       { title: "Derleyici katmanı", caption: "torch.compile grafı yakalar, derleyici ara gösterimlerinden geçirdikten sonra Triton veya CUDA üretir ve PTX'e derler." },
       { title: "Çalışma zamanı", caption: "CUDA çalışma zamanı ve sürücü, işleri GPU komut kuyruklarına dizer; akışlar (stream) eşzamanlılığı yönetir." },
       { title: "Alternatif yığınlar", caption: "Aynı fikir başka yığınlarda da vardır: ROCm/HIP (AMD), TensorRT (çıkarım motoru), MLIR tabanlı derleyiciler." },
@@ -630,7 +630,7 @@ function StageMemory({ step, locale }: StageProps) {
       </div>
       <div className="st-row-label">
         <span>{tr ? "GLOBAL BELLEK · 32 B SEKTÖRLER" : "GLOBAL MEMORY · 32 B SECTORS"}</span>
-        <span>{tr ? "bir sektör tamamen taşınır" : "a sector always moves in full"}</span>
+        <span>{tr ? "modelde erişilen sektör bütünüyle taşınır" : "the model transfers each accessed sector in full"}</span>
       </div>
       <div className="st-sectors">
         {sectors.map((sector) => (
@@ -720,7 +720,7 @@ function StageTriton({ step, locale }: StageProps) {
         </div>
         {step === 4 && (
           <p className="st-note">
-            {tr ? "İlk çağrı: Triton bu GPU için kernel'ı derliyor (JIT)…" : "First call: Triton is compiling the kernel for this GPU (JIT)…"}
+            {tr ? "İlk çağrı: Triton bu GPU için kerneli derliyor (JIT)…" : "First call: Triton is compiling the kernel for this GPU (JIT)…"}
           </p>
         )}
         {step === 6 && (
@@ -886,7 +886,7 @@ function StageCorrectness({ step, locale }: StageProps) {
         <p className="st-note">{tr ? "memcheck: a[N + 17] adresine yazma yakalandı — 'çalışıyor' ama belleği bozuyor." : "memcheck: write to a[N + 17] caught — it 'works' but corrupts memory."}</p>
       )}
       {step === 5 && (
-        <p className="st-note">{tr ? "racecheck: iki thread aynı adrese __syncthreads() olmadan yazıyor." : "racecheck: two threads write the same address without __syncthreads()."}</p>
+        <p className="st-note">{tr ? "racecheck: iki iş parçacığı aynı adrese __syncthreads() olmadan yazıyor." : "racecheck: two threads write the same address without __syncthreads()."}</p>
       )}
       {step === 6 && (
         <p className="st-note">{tr ? "Hatalar düzeltildi; tüm kapılar yeşil. Zincir artık her commit'te otomatik koşar." : "Bugs fixed; every gate is green. The chain now runs automatically on every commit."}</p>
@@ -966,7 +966,7 @@ function StageProfiling({ step, locale }: StageProps) {
             <text x="4" y="18" className="lbl">{tr ? "hız" : "speed"}</text>
             <g className={`pt${roofOn ? " show" : ""}`} style={{ transform: step >= 5 ? "translate(78px, 66px)" : "translate(16px, 100px)" }}>
               <circle r="5" />
-              <text x="10" y="4">{step >= 6 ? (tr ? "iyileştirildi" : "improved") : tr ? "senin kernel'ın" : "your kernel"}</text>
+              <text x="10" y="4">{step >= 6 ? (tr ? "iyileştirildi" : "improved") : tr ? "senin kernelin" : "your kernel"}</text>
             </g>
           </svg>
         </div>
@@ -1027,7 +1027,7 @@ function StageCutlass({ step, locale }: StageProps) {
         <p className="st-note">{tr ? "D = α·A×B + β·C — veri paketiyle birlikte altı katmana iniyoruz." : "D = α·A×B + β·C — we descend six layers together with the data packet."}</p>
       )}
       {step === 6 && (
-        <p className="st-note">{tr ? "Tensor Core talimatı beslenmeyi bekliyor: işi iyi kernel'da yapmak onu doyurmaktır." : "The Tensor Core waits to be fed: a good kernel is one that keeps it busy."}</p>
+        <p className="st-note">{tr ? "Tensor Core talimatı veri bekliyor; iyi bir kernel, veri yolunu ve hesap birimlerini dengeli besler." : "The Tensor Core waits to be fed: a good kernel is one that keeps it busy."}</p>
       )}
     </div>
   );
@@ -1257,7 +1257,7 @@ function StageVisual({ step, locale }: StageProps) {
         </div>
         <em>VS</em>
         <div className={`st-duel-side gpu${gpuOn ? " on" : ""}`}>
-          <small>GPU · {tr ? "binlerce basit çekirdek" : "thousands of simple cores"}</small>
+          <small>GPU · {tr ? "çok sayıda paralel yürütme birimi" : "many parallel execution units"}</small>
           <div className="st-smgrid">
             {Array.from({ length: 64 }, (_, index) => (
               <i key={index} style={{ animationDelay: `${(index % 8) * 90 + Math.floor(index / 8) * 45}ms` }} />
@@ -1294,7 +1294,7 @@ function StageVisual({ step, locale }: StageProps) {
       {step === 6 && (
         <p className="st-note">
           {tr
-            ? "Izgara → Bloklar → Warp (32 lane) → Sen'in thread'in. Zinciri hatırla; her şey bundan büyür."
+            ? "Izgara → Bloklar → Warp (32 şerit) → Senin iş parçacığın. Zinciri hatırla; her şey buradan büyür."
             : "Grid → Blocks → Warps (32 lanes) → your thread. Remember the chain; everything grows from it."}
         </p>
       )}

@@ -15,8 +15,8 @@ export const MEMORY_ARCHITECTURES: ReadonlyArray<{ id: MemoryArchitecture; label
 
 const memoryArchitectureFeatures: ReadonlyArray<{ id: MemoryFeatureId; label: string; detail: string; introduced: MemoryArchitecture }> = [
   { id: "asyncBulk", label: "Asenkron bulk tensor kopyası", detail: "TMA ile büyük 1D veya çok boyutlu aktarımlar; tamamlanma bariyer/proxy kurallarıyla izlenir.", introduced: "hopper" },
-  { id: "tensorDescriptor", label: "Tensor descriptor / tensör tanımlayıcı", detail: "Çok boyutlu bulk tensor kopyasında tensor map; şekil, stride ve düzen bilgisini adres üretiminden ayırır.", introduced: "hopper" },
-  { id: "dsmem", label: "DSMEM", detail: "Aynı thread-block cluster içindeki blokların paylaşılan bellek bölümlerine cluster kapsamlı erişim.", introduced: "hopper" },
+  { id: "tensorDescriptor", label: "Tensör tanımlayıcı", detail: "Çok boyutlu toplu tensör kopyasında tensör haritası; şekil, erişim aralığı ve düzen bilgisini adres üretiminden ayırır.", introduced: "hopper" },
+  { id: "dsmem", label: "DSMEM", detail: "Aynı iş parçacığı bloğu kümesindeki blokların paylaşımlı bellek bölümlerine küme kapsamlı erişimi.", introduced: "hopper" },
   { id: "tmem", label: "TMEM · Tensor Memory", detail: "Blackwell beşinci nesil Tensor Core işlemlerinin akümülatör yolu için uzmanlaşmış on-chip alan.", introduced: "blackwell" },
 ];
 
@@ -47,7 +47,7 @@ const hierarchyLayers = [
     speed: "En düşük gecikme",
     capacity: "Çok küçük",
     color: "violet",
-    note: "Derleyici skalerleri ve kısa ömürlü ara değerleri register'larda tutar. Fazla register kullanımı aynı SM'de kalabilen warp sayısını azaltabilir; taşma olursa veri, adına rağmen fiziksel olarak global bellekte bulunan local memory'ye gider.",
+    note: "Derleyici skalerleri ve kısa ömürlü ara değerleri yazmaçlarda tutar. Fazla yazmaç kullanımı aynı SM'de kalabilen warp sayısını azaltabilir; taşma olursa veri, adına rağmen fiziksel olarak global bellekte bulunan yerel bellek alanına gider.",
   },
   {
     id: "shared",
@@ -57,7 +57,7 @@ const hierarchyLayers = [
     speed: "Çok düşük gecikme",
     capacity: "Küçük, programlanabilir",
     color: "blue",
-    note: "Bir block içindeki thread'lerin açıkça yönettiği ortak çalışma alanıdır. Veri tekrar kullanılacaksa global bellek trafiğini azaltır. Ancak senkronizasyon, bank conflict ve block başına kapasite maliyeti vardır.",
+    note: "Bir blok içindeki iş parçacıklarının açıkça yönettiği ortak çalışma alanıdır. Veri tekrar kullanılacaksa global bellek trafiğini azaltır. Ancak senkronizasyon, banka çakışması ve blok başına kapasite maliyeti vardır.",
   },
   {
     id: "l2",
@@ -77,7 +77,7 @@ const hierarchyLayers = [
     speed: "Yüksek gecikme",
     capacity: "En büyük",
     color: "orange",
-    note: "Büyük tensörlerin ana evidir. Bant genişliği yüksektir fakat tek erişimin gecikmesi büyüktür. Performans; coalescing, cache kullanımı, veri tekrarı ve gecikmeyi saklayacak hazır warp bulunmasına bağlıdır.",
+    note: "Büyük tensörlerin ana evidir. Bant genişliği yüksektir fakat tek erişimin gecikmesi büyüktür. Performans; birleşik erişim, önbellek kullanımı, veri tekrarı ve gecikmeyi saklayacak hazır warp bulunmasına bağlıdır.",
   },
   {
     id: "host",
@@ -87,7 +87,7 @@ const hierarchyLayers = [
     speed: "Bağlantı ile sınırlı",
     capacity: "Çok büyük",
     color: "slate",
-    note: "Ayrık GPU'da PCIe veya benzeri bir bağlantının arkasındadır. Kernel'in sık sık host belleğine dönmesi pahalıdır. Toplu aktarım, pinned memory ve kopya–hesap örtüşmesi bu sınırı yönetmeye yardım eder.",
+    note: "Ayrık GPU'da PCIe veya benzeri bir bağlantının arkasındadır. Kernelin sık sık ana sistem belleğine dönmesi pahalıdır. Toplu aktarım, sabitlenmiş bellek ve kopya–hesap örtüşmesi bu sınırı yönetmeye yardım eder.",
   },
 ] as const;
 
@@ -238,7 +238,7 @@ function CoalescingLab() {
       </ModuleIntro>
       <div className="lab-surface coalescing-lab">
         <div className="surface-heading">
-          <div><span>WARP ERİŞİM SİMÜLATÖRÜ</span><h2>32 thread, kaç bellek işlemi?</h2></div>
+          <div><span>WARP ERİŞİM SİMÜLATÖRÜ</span><h2>32 iş parçacığı, kaç bellek işlemi?</h2></div>
           <div className={`result-stamp ${result.efficiency === 100 ? "good" : result.efficiency >= 50 ? "mid" : "bad"}`}><strong>{result.efficiency}%</strong><span>{rating}</span></div>
         </div>
         <div className="segmented-control" role="group" aria-label="Erişim deseni">
@@ -260,7 +260,7 @@ function CoalescingLab() {
             ))}
           </div>
         </div>
-        <p className="lab-caption"><b>Oku:</b> {pattern === "aligned" ? "Ardışık 32 float tam dört sektöre oturur. Bu, klasik coalesced erişimdir." : pattern === "offset" ? "Yalnızca 4 byte kayma, erişimi beş sektöre yayar. Komşu warp cache nedeniyle bir miktar yeniden kullanım görebilir; ilk erişim yine fazladan sektör ister." : pattern === "stride2" ? "Her ikinci float okununca her sektördeki byte'ların yarısı kullanılır. İşlem sayısı iki katına çıkar." : "Her thread farklı 32-byte sektöre düşer. 128 byte veri için 1 KB trafik oluşur; erişim düzeni bant genişliğini sekizde bire düşürür."}</p>
+        <p className="lab-caption"><b>Oku:</b> {pattern === "aligned" ? "Ardışık 32 float tam dört sektöre oturur. Bu, klasik birleşik erişimdir." : pattern === "offset" ? "Yalnızca 4 bayt kayma, erişimi beş sektöre yayar. Komşu warp önbellek nedeniyle bir miktar yeniden kullanım görebilir; ilk erişim yine fazladan sektör ister." : pattern === "stride2" ? "Her ikinci float okununca her sektördeki baytların yarısı kullanılır. Bu basitleştirilmiş modelde işlem sayısı iki katına çıkar." : "Her iş parçacığı farklı 32 baytlık sektöre düşer. Modelde 128 bayt yararlı veri için 1 KB trafik oluşur; erişim düzeni bant genişliği kullanımını sekizde bire indirir."}</p>
       </div>
     </section>
   );
@@ -279,32 +279,32 @@ function BankConflictLab() {
   }, [pattern]);
   return (
     <section className="module-layout">
-      <ModuleIntro eyebrow="MODÜL 03 · SHARED MEMORY" title="Bank conflict" lead="Shared memory 32 bağımsız bank'a bölünür. Aynı warp farklı adreslerle aynı bank'a yığılırsa istekler seri hâle gelir.">
+      <ModuleIntro eyebrow="MODÜL 03 · PAYLAŞIMLI BELLEK" title="Banka çakışması" lead="Paylaşımlı bellek 32 bağımsız bankaya bölünür. Aynı warp farklı adreslerle aynı bankaya yığılırsa istekler ardışık hâle gelebilir.">
         <Fact label="EŞLEME KURALI">32-bit kelimeler için basitleştirilmiş eşleme: <code>bank = word_index mod 32</code>.</Fact>
-        <Fact label="ÖZEL DURUM">Birden çok thread aynı adresi okuyorsa çatışma yerine broadcast yapılır. Aynı bank ama farklı adresler ise çatışmadır.</Fact>
+        <Fact label="ÖZEL DURUM">Birden çok iş parçacığı aynı adresi okuyorsa çatışma yerine yayın yapılır. Aynı bankaya ait farklı adreslere erişim ise çakışma yaratabilir.</Fact>
         <div className="code-note"><span>Klasik çözüm</span><code>tile[32][32] → tile[32][33]</code></div>
       </ModuleIntro>
       <div className="lab-surface banks-lab">
         <div className="surface-heading">
-          <div><span>BANK EŞLEME DENEYİ</span><h2>Stride değişince bank'lar nasıl dolar?</h2></div>
+          <div><span>BANKA EŞLEME DENEYİ</span><h2>Erişim aralığı değişince bankalar nasıl dolar?</h2></div>
           <div className={`result-stamp ${result.degree === 1 ? "good" : result.degree <= 4 ? "mid" : "bad"}`}><strong>{result.degree}×</strong><span>{pattern === "broadcast" ? "Broadcast" : result.degree === 1 ? "Çatışmasız" : "Serileşme"}</span></div>
         </div>
-        <div className="stride-control" role="group" aria-label="Shared memory erişim stride değeri" tabIndex={0}>
+        <div className="stride-control" role="group" aria-label="Paylaşımlı bellek erişim aralığı" tabIndex={0}>
           {(["1", "2", "4", "8", "16", "32", "broadcast"] as BankPattern[]).map((value) => <button key={value} onClick={() => setPattern(value)} className={pattern === value ? "active" : ""} aria-pressed={pattern === value}>{value === "broadcast" ? "Aynı adres" : `Stride ${value}`}</button>)}
         </div>
         <div className="mapping-equation"><span>İŞ PARÇACIĞI <b>t</b></span><i>→</i><code>word[{pattern === "broadcast" ? "0" : `t × ${pattern}`}]</code><i>→</i><span>BANK <b>{pattern === "broadcast" ? "0" : `(t × ${pattern}) % 32`}</b></span></div>
-        <div className="bank-grid" aria-label="32 shared memory bank doluluk haritası">
+        <div className="bank-grid" aria-label="32 paylaşımlı bellek bankasının doluluk haritası">
           {result.counts.map((count, bank) => (
             <div key={bank} className={count === 0 ? "empty" : count === 1 ? "single" : count <= 4 ? "warm" : "hot"}>
               <span>B{String(bank).padStart(2, "0")}</span>
               <strong>{count || "·"}</strong>
-              {count > 0 && <small>{count === 1 ? `T${String(result.banks.indexOf(bank)).padStart(2, "0")}` : `${count} thread`}</small>}
+              {count > 0 && <small>{count === 1 ? `T${String(result.banks.indexOf(bank)).padStart(2, "0")}` : `${count} iş parçacığı`}</small>}
             </div>
           ))}
         </div>
         <div className="bank-explanation" aria-live="polite">
           <div><span>AKTİF BANK</span><strong>{result.counts.filter(Boolean).length} / 32</strong></div>
-          <p>{pattern === "broadcast" ? "Tüm thread'ler aynı kelimeyi okuyor: donanım değeri warp'a yayınlar, bank conflict oluşmaz." : result.degree === 1 ? "Her thread ayrı bir bank'a düşüyor. Warp isteği paralel olarak servis edilebilir." : `Her aktif bank ${result.degree} farklı adres isteği alıyor. Donanım erişimi yaklaşık ${result.degree} çatışmasız adıma böler.`}</p>
+          <p>{pattern === "broadcast" ? "Tüm iş parçacıkları aynı kelimeyi okuyor: donanım değeri warpa yayınlar ve banka çakışması oluşmaz." : result.degree === 1 ? "Her iş parçacığı ayrı bir bankaya düşüyor. Warp isteği paralel olarak karşılanabilir." : `Her etkin banka ${result.degree} farklı adres isteği alıyor. Donanım erişimi yaklaşık ${result.degree} çakışmasız adıma böler.`}</p>
         </div>
       </div>
     </section>
@@ -343,10 +343,10 @@ function OccupancyLab() {
   }, [threads, registers, shared]);
   return (
     <section className="module-layout">
-      <ModuleIntro eyebrow="MODÜL 04 · GECİKMEYİ SAKLAMAK" title="Occupancy" lead="Occupancy, bir SM'deki aktif warp sayısının donanımın desteklediği azami aktif warp sayısına oranıdır.">
-        <Fact label="AMAÇ DEĞİL, ARAÇ">Daha çok hazır warp, bellek gecikmesini saklayabilir. Fakat daha yüksek occupancy tek başına daha yüksek performans garantisi değildir.</Fact>
-        <Fact label="SINIRLAYICILAR">Block boyutu, thread başına register, block başına shared memory ve mimari block sınırı birlikte kaç block'un yerleşeceğini belirler.</Fact>
-        <div className="model-note"><span>ÖĞRETİM MODELİ</span><p>1 SM · 1.536 thread · 48 warp · 65.536 register · 100 KB shared · 24 block. Tahsis yuvarlamaları hesaba katılmaz.</p></div>
+      <ModuleIntro eyebrow="MODÜL 04 · GECİKMEYİ SAKLAMAK" title="Doluluk" lead="Doluluk, bir SM'deki etkin warp sayısının donanımın desteklediği azami etkin warp sayısına oranıdır.">
+        <Fact label="AMAÇ DEĞİL, ARAÇ">Daha çok hazır warp, bellek gecikmesini saklayabilir. Fakat daha yüksek doluluk tek başına daha yüksek performans garantisi değildir.</Fact>
+        <Fact label="SINIRLAYICILAR">Blok boyutu, iş parçacığı başına yazmaç, blok başına paylaşımlı bellek ve mimari blok sınırı birlikte kaç bloğun yerleşeceğini belirler.</Fact>
+        <div className="model-note"><span>ÖĞRETİM MODELİ</span><p>1 SM · 1.536 iş parçacığı · 48 warp · 65.536 yazmaç · 100 KB paylaşımlı bellek · 24 blok. Tahsis yuvarlamaları hesaba katılmaz.</p></div>
       </ModuleIntro>
       <div className="lab-surface occupancy-lab">
         <div className="surface-heading">
@@ -360,19 +360,19 @@ function OccupancyLab() {
             <Slider label="Paylaşılan bellek / blok" value={shared} min={0} max={100} step={4} unit=" KB" onChange={setShared} />
           </div>
           <div className="sm-visual">
-            <div className="sm-label"><span>AKIŞ ÇOKLU İŞLEMCİSİ</span><strong>{result.activeBlocks} aktif block · {result.activeWarps} aktif warp</strong></div>
+            <div className="sm-label"><span>AKIŞ ÇOKLU İŞLEMCİSİ</span><strong>{result.activeBlocks} etkin blok · {result.activeWarps} etkin warp</strong></div>
             <div className="block-slots">
               {Array.from({ length: 12 }, (_, index) => <div key={index} className={index < Math.min(result.activeBlocks, 12) ? "filled" : ""}><span>{index < result.activeBlocks ? `B${index}` : ""}</span></div>)}
             </div>
-            {result.activeBlocks > 12 && <p className="more-blocks">+ {result.activeBlocks - 12} block daha</p>}
+            {result.activeBlocks > 12 && <p className="more-blocks">+ {result.activeBlocks - 12} blok daha</p>}
           </div>
         </div>
         <div className="limit-table">
           {Object.entries(result.limits).map(([name, limit]) => (
-            <div key={name} className={result.bottlenecks.includes(name) ? "limiting" : ""}><span>{name}</span><strong>{limit} block</strong><i>{result.bottlenecks.includes(name) ? "SINIRLIYOR" : ""}</i></div>
+            <div key={name} className={result.bottlenecks.includes(name) ? "limiting" : ""}><span>{name}</span><strong>{limit} blok</strong><i>{result.bottlenecks.includes(name) ? "SINIRLIYOR" : ""}</i></div>
           ))}
         </div>
-        <p className="lab-caption"><b>Yorum:</b> Bu ayarda sınır, <strong>{result.bottlenecks.join(" + ")}</strong> kaynağı. {result.occupancy === 100 ? "Tüm teorik warp yuvaları dolu; şimdi gerçek performansı profiler ile doğrula." : result.occupancy === 0 ? "Bir block bile kaynak havuzuna sığmıyor; konfigürasyon geçersiz." : "Daha yüksek occupancy için sınırlayan kaynağı azaltabilirsin; fakat register taşması veya daha az veri tekrarı performansı tersine çevirebilir."}</p>
+        <p className="lab-caption"><b>Yorum:</b> Bu ayarda sınır, <strong>{result.bottlenecks.join(" + ")}</strong> kaynağı. {result.occupancy === 100 ? "Tüm teorik warp yuvaları dolu; şimdi gerçek performansı profil oluşturucuyla doğrula." : result.occupancy === 0 ? "Bir blok bile kaynak havuzuna sığmıyor; yapılandırma geçersiz." : "Daha yüksek doluluk için sınırlayan kaynağı azaltabilirsin; fakat yazmaç taşması veya daha az veri tekrarı performansı tersine çevirebilir."}</p>
       </div>
     </section>
   );

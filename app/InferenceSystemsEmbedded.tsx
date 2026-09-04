@@ -16,9 +16,9 @@ type InferenceParallelismId = typeof INFERENCE_PARALLELISM_IDS[number];
 type InferencePrecisionId = typeof INFERENCE_PRECISION_IDS[number];
 
 const inferenceDiagnosis = {
-  scheduler: { label: "Zamanlayıcı", bottleneck: "Zamanlayıcı kuyruğu", signals: ["queue time / bekleyen istek", "batch doluluğu / token bütçesi"], action: "İstek gelişini, token bütçesini ve preemption olaylarını birlikte incele." },
-  "kv-cache": { label: "KV cache", bottleneck: "KV-cache kapasitesi ve hareketi", signals: ["blok doluluğu / cache hit rate", "KV dtype / transfer süresi"], action: "Ağırlık belleğini KV blok kapasitesiyle karıştırma; prefix hit ve KV transferini ayrı ölç." },
-  kernel: { label: "Kernel", bottleneck: "Kernel ve launch yolu", signals: ["GPU kernel süresi / occupancy", "launch boşlukları / graph kapsamı"], action: "Attention, GEMM ve graph kapsamını backend ve shape dağılımıyla eşleştir." },
+  scheduler: { label: "Zamanlayıcı", bottleneck: "Zamanlayıcı kuyruğu", signals: ["kuyruk süresi / bekleyen istek", "toplu iş doluluğu / belirteç bütçesi"], action: "İstek gelişini, belirteç bütçesini ve öncelik kesme olaylarını birlikte incele." },
+  "kv-cache": { label: "KV önbelleği", bottleneck: "KV önbelleği kapasitesi ve hareketi", signals: ["blok doluluğu / önbellek isabet oranı", "KV veri tipi / aktarım süresi"], action: "Ağırlık belleğini KV blok kapasitesiyle karıştırma; önek isabetini ve KV aktarımını ayrı ölç." },
+  kernel: { label: "Kernel", bottleneck: "Kernel ve başlatma yolu", signals: ["GPU kernel süresi / doluluk", "başlatma boşlukları / grafik kapsamı"], action: "Dikkat, GEMM ve grafik kapsamını arka uç ile şekil dağılımına göre eşleştir." },
   network: { label: "Ağ", bottleneck: "Ağ ve KV aktarım yolu", signals: ["KV connector gecikmesi", "NIC/rail kullanımı ve kuyruk"], action: "Ayrıştırılmış encode → prefill → decode sınırlarında aktarım süresini ayrıca kaydet." },
 } as const;
 
@@ -30,14 +30,14 @@ const inferenceGraphs = {
 } as const;
 
 const inferenceParallelism = {
-  expert: { label: "Uzman paralelliği", sourceId: "vllm-expert-parallel", maturity: "current", coreCompletion: true, note: "MoE uzmanlarını rank'lere dağıtır; all-to-all/backend ve topoloji maliyeti planın parçasıdır." },
+  expert: { label: "Uzman paralelliği", sourceId: "vllm-expert-parallel", maturity: "current", coreCompletion: true, note: "MoE uzmanlarını sıralara dağıtır; tümden tüme iletişim, arka uç ve topoloji maliyeti planın parçasıdır." },
   context: { label: "Bağlam paralelliği", sourceId: "vllm-context-parallel", maturity: "preview", coreCompletion: false, note: "Uzun bağlamı prefill ve decode için farklı biçimde böler; resmi belgede bazı prefill yolları hâlâ etkin geliştirmededir." },
 } as const;
 
 const inferencePrecisions = {
-  fp8: { label: "FP8", hardware: "vLLM'nin desteklenen donanım/quantization matrisiyle doğrulanacak GPU yolu", backend: "vLLM FP8 W8A8 / seçilen linear-MoE kernel", scaleRepresentation: "E4M3 veri; statik veya dinamik ölçek", accumulation: "Backend'in belgelenen birikim dtype'ını seçilen kernel için ayrıca doğrula.", qualityGuardrail: "Eğitsel güvence: BF16 taban çizgisine karşı görev metriği ve duyarlı katman kontrolü.", sourceId: "vllm-online-quantization", sourceIds: ["vllm-online-quantization", "vllm-quantization-hardware"], maturity: "current" },
-  mxfp8: { label: "MXFP8", hardware: "W8A8 için SM100+; diğer GPU'larda W8A16 fallback olabilir", backend: "Platformun seçtiği MXFP8 linear/MoE backend'i", scaleRepresentation: "32 elemanlık blok başına E8M0 ölçek", accumulation: "Seçilen CUTLASS/vLLM backend'inin birikim yolunu doğrula.", qualityGuardrail: "Eğitsel güvence: fallback dtype ve kalibrasyon/çıktı sapmasını raporla.", sourceId: "vllm-online-quantization", sourceIds: ["vllm-online-quantization", "cutlass-inference-formats"], maturity: "current" },
-  mxfp4: { label: "MXFP4", hardware: "Backend bazında Blackwell hızlandırması; platform fallback'ini doğrula", backend: "Linear ve MoE backend'i aynı activation dtype'ını garanti etmez", scaleRepresentation: "OCP MX FP4 E2M1 + 32 elemanlık blok başına E8M0", accumulation: "Yüksek hassasiyetli birikim seçeneğini seçilen backend belgesiyle doğrula.", qualityGuardrail: "Eğitsel güvence: ignored layer ve kalite kaybı sınırını görev metriğiyle kontrol et.", sourceId: "cutlass-inference-formats", sourceIds: ["cutlass-inference-formats", "vllm-quantization-hardware"], maturity: "preview" },
+  fp8: { label: "FP8", hardware: "vLLM'nin desteklenen donanım ve nicemleme matrisiyle doğrulanacak GPU yolu", backend: "vLLM FP8 W8A8 / seçilen doğrusal veya MoE kerneli", scaleRepresentation: "E4M3 veri; statik veya dinamik ölçek", accumulation: "Arka ucun belgelediği birikim veri tipini seçilen kernel için ayrıca doğrula.", qualityGuardrail: "Eğitsel güvence: BF16 taban çizgisine karşı görev metriği ve duyarlı katman kontrolü.", sourceId: "vllm-online-quantization", sourceIds: ["vllm-online-quantization", "vllm-quantization-hardware"], maturity: "current" },
+  mxfp8: { label: "MXFP8", hardware: "W8A8 için SM100+; diğer GPU'larda W8A16 yedek yolu kullanılabilir", backend: "Platformun seçtiği MXFP8 doğrusal veya MoE arka ucu", scaleRepresentation: "32 elemanlık blok başına E8M0 ölçek", accumulation: "Seçilen CUTLASS/vLLM arka ucunun birikim yolunu doğrula.", qualityGuardrail: "Eğitsel güvence: yedek veri tipini ve kalibrasyon ya da çıktı sapmasını raporla.", sourceId: "vllm-online-quantization", sourceIds: ["vllm-online-quantization", "cutlass-inference-formats"], maturity: "current" },
+  mxfp4: { label: "MXFP4", hardware: "Arka uca bağlı Blackwell hızlandırması; platformun yedek veri tipi yolunu doğrula", backend: "Doğrusal ve MoE arka uçları aynı aktivasyon veri tipini garanti etmez", scaleRepresentation: "OCP MX FP4 E2M1 + 32 elemanlık blok başına E8M0", accumulation: "Yüksek hassasiyetli birikim seçeneğini seçilen arka uç belgesiyle doğrula.", qualityGuardrail: "Eğitsel güvence: dışarıda bırakılan katmanları ve kalite kaybı sınırını görev metriğiyle kontrol et.", sourceId: "vllm-online-quantization", sourceIds: ["vllm-online-quantization", "cutlass-inference-formats", "vllm-quantization-hardware"], maturity: "current" },
   nvfp4: { label: "NVFP4", hardware: "Blackwell SM100 özel hızlandırılmış yol", backend: "FlashInfer/TRTLLM veya uyumlu CUTLASS tabanlı kernel", scaleRepresentation: "NV FP4 E2M1 + 16 elemanlık blok ve UE4M3 ölçek", accumulation: "FP32 birikim desteğini yalnız seçilen backend belgeliyorsa kullan.", qualityGuardrail: "Eğitsel güvence: per-token activation ölçeği ve BF16 kalite karşılaştırması yap.", sourceId: "cutlass-inference-formats", sourceIds: ["cutlass-inference-formats", "vllm-quantization-hardware"], maturity: "preview" },
 } as const;
 
@@ -81,23 +81,23 @@ const quantData = {
 const bottlenecks: Record<Bottleneck, { label: string; diagnosis: string; actions: string[] }> = {
   ttft: {
     label: "TTFT yüksek",
-    diagnosis: "Prefill, kuyruk veya uzun prompt yolu baskın olabilir.",
-    actions: ["Prompt uzunluğunu ve queue time'ı ayır", "Prefix cache isabetini ölç", "Chunked prefill bütçesini süpür"],
+    diagnosis: "Ön doldurma, kuyruk veya uzun istem yolu baskın olabilir.",
+    actions: ["İstem uzunluğunu ve kuyruk süresini ayır", "Önek önbelleği isabetini ölç", "Parçalı ön doldurma bütçesini tara"],
   },
   itl: {
     label: "ITL yüksek",
-    diagnosis: "Decode adımları bellek bant genişliğine veya küçük-batch launch maliyetine takılıyor olabilir.",
-    actions: ["CUDA Graphs kapsamını kontrol et", "Decode batch dağılımını ölç", "KV cache dtype ve attention backend'i karşılaştır"],
+    diagnosis: "Kod çözme adımları bellek bant genişliğine veya küçük toplu işlerin başlatma maliyetine takılıyor olabilir.",
+    actions: ["CUDA Graphs kapsamını kontrol et", "Kod çözme toplu iş dağılımını ölç", "KV önbelleği veri tipini ve dikkat arka ucunu karşılaştır"],
   },
   oom: {
     label: "KV cache OOM",
     diagnosis: "Ağırlıklar değil, eşzamanlı token sayısı ve KV blokları sınır olabilir.",
-    actions: ["max_model_len ve max_num_seqs'i düşür", "KV cache kapasitesini blok bazında izle", "KV cache quantization uygunluğunu doğrula"],
+    actions: ["max_model_len ve max_num_seqs değerlerini düşür", "KV önbelleği kapasitesini blok bazında izle", "KV önbelleği nicemleme uygunluğunu doğrula"],
   },
   gpu: {
     label: "GPU düşük kullanım",
-    diagnosis: "İstek gelişi, CPU scheduling, ağ veya küçük batch GPU'yu aç bırakıyor olabilir.",
-    actions: ["Concurrency süpürmesi yap", "CPU ve tokenizer zamanını profile et", "Continuous batching ve async scheduling'i incele"],
+    diagnosis: "İstek gelişi, CPU zamanlaması, ağ veya küçük toplu işler GPU'yu aç bırakıyor olabilir.",
+    actions: ["Eşzamanlılık taraması yap", "CPU ve belirteçleştirici süresini profille", "Sürekli toplu işleme ile eşzamansız zamanlamayı incele"],
   },
 };
 
@@ -168,7 +168,7 @@ export default function InferenceSystemsEmbedded() {
         <div className="hero-copy">
           <div className="kicker"><span>GPU INFERENCE / 2026</span><span>ETKİLEŞİMLİ REHBER</span></div>
           <h2>DAHA ÇOK<br />TOKEN.<br /><em>DAHA AZ</em><br />BEKLEME.</h2>
-          <p className="hero-intro">vLLM'in scheduler'ından CUDA Graphs replay'e, 4-bit ağırlıklardan üretim benchmark'ına kadar modern LLM serving sistemini katman katman keşfet.</p>
+          <p className="hero-intro">vLLM zamanlayıcısından CUDA Graphs yeniden oynatmasına, 4 bit ağırlıklardan üretim kıyaslamasına kadar modern LLM sunum sistemini katman katman keşfet.</p>
           <div className="hero-actions">
             <a className="primary-cta" href="#vllm">SİSTEMİ AÇ <span>↓</span></a>
             <span className="read-time">≈ 25 dk okuma<br />4 interaktif lab</span>
@@ -206,7 +206,7 @@ export default function InferenceSystemsEmbedded() {
             <div className="section-index">01 / VLLM MOTORU</div>
             <div className="section-heading">
               <h2>Serving, bir model çağrısından fazlasıdır.</h2>
-              <p>vLLM, değişken uzunluktaki istekleri sürekli bir GPU iş akışına dönüştürür. Kazanç tek bir kernel'dan değil; scheduling, KV cache ve execution katmanlarının birlikte çalışmasından gelir.</p>
+              <p>vLLM, değişken uzunluktaki istekleri sürekli bir GPU iş akışına dönüştürür. Kazanç tek bir kernelden değil; zamanlama, KV önbelleği ve yürütme katmanlarının birlikte çalışmasından gelir.</p>
             </div>
 
             <div className="pipeline" tabIndex={0} aria-label="İstek işleme hattı">
@@ -222,8 +222,8 @@ export default function InferenceSystemsEmbedded() {
             <div className="concept-grid">
               <article><span className="concept-tag">PAGED ATTENTION</span><h3>KV cache'i bloklara ayırır</h3><p>Her isteğe büyük ve bitişik alan ayırmak yerine sabit boyutlu bloklarla çalışır. Böylece parçalanma azalır, istekler büyüdükçe bloklar eklenebilir.</p><div className="block-viz">{Array.from({ length: 18 }).map((_, i) => <i className={i % 5 === 4 ? "gap" : i < 13 ? "used" : ""} key={i} />)}</div></article>
               <article><span className="concept-tag">SÜREKLİ TOPLU İŞLEME</span><h3>Batch, istek bitmesini beklemez</h3><p>Her decode adımında tamamlanan istek çıkar, bekleyen istek girebilir. Statik batch'in “en yavaşı bekle” maliyetini azaltır.</p><div className="timeline-viz"><i style={{ width: "82%" }} /><i style={{ width: "48%" }} /><i style={{ width: "68%" }} /><i className="new" style={{ width: "31%" }} /></div></article>
-              <article><span className="concept-tag">PARÇALI ÖN DOLDURMA</span><h3>Uzun prompt'u dilimler</h3><p>Compute-ağırlıklı prefill parçalarını memory-ağırlıklı decode işleriyle aynı adımda planlayabilir. Token bütçesi, TTFT–ITL dengesinin ana düğmelerinden biridir.</p><div className="chunk-viz"><i /><i /><i /><b>D</b><b>D</b><i /></div></article>
-              <article><span className="concept-tag">ÖNEK ÖNBELLEĞİ</span><h3>Ortak başlangıcı yeniden kullanır</h3><p>Aynı sistem prompt'u veya paylaşılan bağlam tekrar geldiğinde eşleşen KV blokları yeniden hesaplanmaz. En büyük değer tekrarlı prefix iş yüklerinde oluşur.</p><div className="prefix-viz"><span>SYSTEM</span><span>POLICY</span><b>USER A</b><b>USER B</b></div></article>
+              <article><span className="concept-tag">PARÇALI ÖN DOLDURMA</span><h3>Uzun istemi dilimler</h3><p>Hesap ağırlıklı ön doldurma parçalarını bellek ağırlıklı kod çözme işleriyle aynı adımda planlayabilir. Belirteç bütçesi, TTFT–ITL dengesinin ana düğmelerinden biridir.</p><div className="chunk-viz"><i /><i /><i /><b>D</b><b>D</b><i /></div></article>
+              <article><span className="concept-tag">ÖNEK ÖNBELLEĞİ</span><h3>Ortak başlangıcı yeniden kullanır</h3><p>Aynı sistem istemi veya paylaşılan bağlam tekrar geldiğinde eşleşen KV blokları yeniden hesaplanmaz. En büyük değer tekrarlanan öneklere sahip iş yüklerinde oluşur.</p><div className="prefix-viz"><span>SYSTEM</span><span>POLICY</span><b>USER A</b><b>USER B</b></div></article>
             </div>
           </section>
 
@@ -242,7 +242,7 @@ export default function InferenceSystemsEmbedded() {
                 ))}
               </div>
               <div className="result-board">
-                <div className="result-metric"><span>TAHMİNİ THROUGHPUT</span><b>{serving.throughput}</b><small>tok/s</small></div>
+                <div className="result-metric"><span>TAHMİNİ İŞ HACMİ</span><b>{serving.throughput}</b><small>belirteç/sn</small></div>
                 <div className="result-metric"><span>TAHMİNİ TTFT</span><b>{serving.ttft}</b><small>ms</small></div>
                 <div className="mini-bars"><span style={{ height: `${Math.min(100, serving.throughput)}%` }} /><span style={{ height: `${Math.min(100, serving.ttft / 12)}%` }} /></div>
                 <p>Bu sonuç yalnızca yönü anlatır. Gerçek değer; model, GPU, prompt dağılımı, concurrency ve sürümle değişir.</p>
@@ -252,7 +252,7 @@ export default function InferenceSystemsEmbedded() {
 
           <section className="inference-decision-lab" aria-labelledby="inference-decision-title">
             <div className="section-index">01.5 / KANITA BAĞLI KARAR LAB'I</div>
-            <div className="section-heading"><h2 id="inference-decision-title">Encode → prefill → decode hattında katmanı seç.</h2><p>Ayrıştırılmış sunum, graph, paralellik ve düşük hassasiyet kararları aynı şey değildir. Her seçim kaynak olgunluğunu, backend'i ve donanım uygulanabilirliğini ayrı gösterir.</p></div>
+            <div className="section-heading"><h2 id="inference-decision-title">Kodlama → ön doldurma → kod çözme hattında katmanı seç.</h2><p>Ayrıştırılmış sunum, grafik, paralellik ve düşük hassasiyet kararları aynı şey değildir. Her seçim kaynak olgunluğunu, arka ucu ve donanım uygulanabilirliğini ayrı gösterir.</p></div>
             <div className="inference-decision-controls">
               <div data-control="diagnosis" role="group" aria-label="Darboğaz tanısı"><b>DARBOĞAZ</b>{INFERENCE_DIAGNOSIS_IDS.map((id) => <button type="button" aria-pressed={diagnosisId === id} onClick={() => setDiagnosisId(id)} key={id}>{inferenceDiagnosis[id].label}</button>)}</div>
               <div data-control="graph" role="group" aria-label="Graph backend ve kapsam"><b>GRAPH YOLU</b>{INFERENCE_GRAPH_IDS.map((id) => <button type="button" aria-pressed={graphId === id} onClick={() => setGraphId(id)} key={id}>{inferenceGraphs[id].label}</button>)}</div>
@@ -266,7 +266,7 @@ export default function InferenceSystemsEmbedded() {
               <div data-claim="precision" data-source-id={getInferencePrecisionPlan(precisionId).sourceId} data-source-ids={getInferencePrecisionPlan(precisionId).sourceIds.join(" ")} data-maturity={getInferencePrecisionPlan(precisionId).maturity}><small>DONANIM · BACKEND · ÖLÇEK · BİRİKİM · KALİTE</small><p><b>Donanım:</b> {getInferencePrecisionPlan(precisionId).hardware}</p><p><b>Backend:</b> {getInferencePrecisionPlan(precisionId).backend}</p><p><b>Ölçek:</b> {getInferencePrecisionPlan(precisionId).scaleRepresentation}</p><p><b>Birikim:</b> {getInferencePrecisionPlan(precisionId).accumulation}</p><p><b>Kalite:</b> {getInferencePrecisionPlan(precisionId).qualityGuardrail}</p></div>
               <div data-source-id="vllm-disaggregated-encoder" data-maturity="current"><small>AYRIŞTIRILMIŞ SUNUM</small><p>Encode, prefill ve decode ayrı instance'larda ölçeklenebilir; KV/encoder aktarım süresi ağ tanısına aittir.</p></div>
               <div data-claim="speculative-acceptance" data-source-id={getInferenceSpeculativeBoundary().acceptanceSourceId} data-maturity="preview"><small>ÖNİZLEME · METRİK ŞEMASI DENEYSEL</small><p>Kabul oranı: {getInferenceSpeculativeBoundary().acceptanceRate}.</p></div><div data-claim="draft-cost" data-evidence-kind={getInferenceSpeculativeBoundary().draftCostEvidenceKind}><small>EĞİTSEL KARAR GİRDİSİ</small><p>Taslak maliyeti: {getInferenceSpeculativeBoundary().draftCost}</p></div>
-            <p className="inference-evidence-caveat"><b>Bu karar modeli ölçülmüş donanım kanıtı değildir.</b> TTFT, ITL, throughput ve VRAM sonuçlarını gerçek iş yüküyle yeniden ölç.</p>
+            <p className="inference-evidence-caveat"><b>Bu karar modeli ölçülmüş donanım kanıtı değildir.</b> TTFT, ITL, iş hacmi ve VRAM sonuçlarını gerçek iş yüküyle yeniden ölç.</p>
           </article>
           <aside data-source-id="vllm-context-parallel" data-maturity="preview">Bağlam paralelliği · ÖNİZLEME · temel tamamlanma koşulu değildir.</aside>
         </section>
@@ -295,7 +295,7 @@ export default function InferenceSystemsEmbedded() {
 
           <section className="lesson" id="quantization">
             <div className="section-index">03 / QUANTIZATION</div>
-            <div className="section-heading"><h2>Az bit, tek başına hızlı demek değildir.</h2><p>Quantization ağırlıkların, aktivasyonların veya KV cache'in sayısal temsilini daraltır. Sonuç; daha az bellek ve veri hareketi olabilir. Hız ancak donanımın ve kernel yolunun bu formatı verimli çalıştırmasıyla gelir.</p></div>
+            <div className="section-heading"><h2>Az bit, tek başına hızlı demek değildir.</h2><p>Nicemleme; ağırlıkların, aktivasyonların veya KV önbelleğinin sayısal temsilini daraltır. Sonuç, daha az bellek ve veri hareketi olabilir. Hız ancak donanımın ve kernel yolunun bu biçimi verimli çalıştırmasıyla gelir.</p></div>
 
             <div className="precision-stack">
               <div className="precision-head"><span>FORMAT</span><span>YAKLAŞIK WEIGHT BOYUTU*</span><span>ANA ÖDÜNLEŞİM</span></div>
@@ -305,7 +305,7 @@ export default function InferenceSystemsEmbedded() {
                 ["INT8", "8 bit", "0.50×", "Kernel desteğine bağlı", "50%"],
                 ["INT4", "4 bit", "0.25×", "Kalite ve dequant maliyeti", "25%"],
               ].map(([name, bit, ratio, note, width]) => <div className="precision-row" key={name}><b>{name}<small>{bit}</small></b><div><i style={{ width }} /></div><strong>{ratio}</strong><span>{note}</span></div>)}
-              <small className="footnote">* Yalnızca ağırlıkların teorik ham boyutu; metadata, scale, padding, KV cache ve runtime workspace hariç.</small>
+              <small className="footnote">* Yalnızca ağırlıkların teorik ham boyutu; metaveri, ölçek, dolgu, KV önbelleği ve çalışma zamanı alanı hariç.</small>
             </div>
 
             <div className="quant-tools">
@@ -325,7 +325,7 @@ export default function InferenceSystemsEmbedded() {
 
           <section className="lesson optimization" id="optimization">
             <div className="section-index">04 / INFERENCE OPTİMİZASYONU</div>
-            <div className="section-heading"><h2>Önce darboğaz.<br />Sonra kaldıraç.</h2><p>En hızlı konfigürasyon evrensel değildir. Prefill compute-bound, decode memory-bound olabilir; düşük trafikte latency, yüksek trafikte throughput baskınlaşır. Her değişikliği hedef metriğe bağla.</p></div>
+            <div className="section-heading"><h2>Önce darboğaz.<br />Sonra kaldıraç.</h2><p>En hızlı yapılandırma evrensel değildir. Ön doldurma hesaba, kod çözme belleğe takılabilir; düşük trafikte gecikme, yüksek trafikte iş hacmi baskınlaşır. Her değişikliği hedef ölçüme bağla.</p></div>
 
             <div className="roofline-card">
               <div className="roof-copy"><span>SİSTEM HARİTASI</span><h3>İki farklı sıcak yol</h3><p><b>Prefill</b> çok token'ı paralel işler; büyük matris çarpımları compute kapasitesini kullanabilir. <b>Decode</b> her adımda ağırlıkları okuyup az token üretir; veri hareketi baskın olabilir.</p></div>
@@ -355,7 +355,7 @@ export default function InferenceSystemsEmbedded() {
             <div className="section-heading"><h2>Kıyaslama, tek sayı değildir.</h2><p>Gecikme ve iş hacmi aynı deneyde bile farklı hikâyeler anlatır. Isınma, eşzamanlılık, istem/çıktı uzunluğu ve yüzdelikleri raporlanmayan sonuçlar taşınabilir değildir.</p></div>
             <div className="metric-grid">
               <article><span>TTFT</span><h3>İlk Belirtece Kadar Süre</h3><p>Kuyruk + prefill + ilk decode. Kullanıcının “cevap başladı” algısı.</p></article>
-              <article><span>ITL</span><h3>Belirteçler Arası Gecikme</h3><p>Streaming sırasında ardışık token'lar arasındaki süre.</p></article>
+              <article><span>ITL</span><h3>Belirteçler Arası Gecikme</h3><p>Akış sırasında ardışık belirteçler arasındaki süre.</p></article>
               <article><span>TPOT</span><h3>Çıktı Belirteci Başına Süre</h3><p>İlk belirteç sonrası üretim süresinin çıktı belirteci sayısına oranı.</p></article>
               <article><span>TOK/S</span><h3>İş hacmi</h3><p>Birim zamanda sistemin tamamladığı girdi ve çıktı belirteci miktarı.</p></article>
             </div>
