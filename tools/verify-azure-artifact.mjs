@@ -14,11 +14,13 @@ async function filesUnder(directory) {
   return groups.flat();
 }
 
-const [html, englishHtml, configText, favicon, trCard, enCard, files] = await Promise.all([
+const [html, englishHtml, configText, favicon, appIcon, appleIcon, trCard, enCard, files] = await Promise.all([
   readFile(resolve(out, "index.html"), "utf8"),
   readFile(resolve(out, "en/index.html"), "utf8"),
   readFile(resolve(out, "staticwebapp.config.json"), "utf8"),
   readFile(resolve(out, "favicon.svg"), "utf8"),
+  stat(resolve(out, "icon.png")),
+  stat(resolve(out, "apple-icon.png")),
   stat(resolve(out, "og.png")),
   stat(resolve(out, "og-en.png")),
   filesUnder(resolve(out, "_next/static")),
@@ -32,6 +34,7 @@ const checks = [
   [html.includes("_next/static/chunks/"), "client chunks"],
   [!/localhost(?::\d+)?/i.test(html), "production URLs"],
   [favicon.includes("#c8ff36") && favicon.includes("#121310"), "favicon"],
+  [appIcon.size > 1_000 && appleIcon.size > 1_000, "app icons"],
   [trCard.size > 100_000 && enCard.size > 100_000, "social cards"],
   [files.some((path) => path.endsWith(".js")), "JavaScript assets"],
   [files.some((path) => path.endsWith(".css")), "CSS assets"],
@@ -40,4 +43,4 @@ const checks = [
 
 const failed = checks.filter(([passed]) => !passed).map(([, name]) => name);
 if (failed.length > 0) throw new Error(`Azure artifact checks failed: ${failed.join(", ")}`);
-console.log(`Azure artifact valid: ${files.length} versioned assets plus localized HTML, favicon, and social cards`);
+console.log(`Azure artifact valid: ${files.length} versioned assets plus localized HTML, icons, and social cards`);

@@ -8,6 +8,10 @@ const out = resolve(root, "out");
 
 await rm(out, { recursive: true, force: true });
 await cp(client, out, { recursive: true });
+await Promise.all([
+  cp(resolve(root, "app/icon.png"), resolve(out, "icon.png")),
+  cp(resolve(root, "app/apple-icon.png"), resolve(out, "apple-icon.png")),
+]);
 
 const workerUrl = pathToFileURL(resolve(root, "dist/server/index.js"));
 workerUrl.searchParams.set("azure-static-build", `${process.pid}-${Date.now()}`);
