@@ -23,6 +23,10 @@
 
   .atlas-workspace { display: grid; grid-template-columns: 296px minmax(0, 1fr); min-height: calc(100vh - 74px); }
   .atlas-sidebar { position: sticky; top: 74px; height: calc(100vh - 74px); display: flex; flex-direction: column; padding: 18px 14px; border-right: 1px solid var(--line); background: #090e10; overflow: auto; }
+  .atlas-sidebar, .atlas-drawer { scrollbar-color: #3a484e #090e10; scrollbar-width: thin; }
+  :is(.atlas-sidebar, .atlas-drawer)::-webkit-scrollbar { width: 10px; }
+  :is(.atlas-sidebar, .atlas-drawer)::-webkit-scrollbar-track { background: #090e10; }
+  :is(.atlas-sidebar, .atlas-drawer)::-webkit-scrollbar-thumb { border: 2px solid #090e10; border-radius: 999px; background: #3a484e; }
   .atlas-search { position: relative; display: flex; align-items: center; gap: 8px; min-height: 44px; border: 1px solid var(--line); background: #0e1518; padding: 0 12px; margin-bottom: 10px; }
   .atlas-search > span:first-child { color: var(--lime); }
   .atlas-search input { min-width: 0; width: 100%; border: 0; outline: 0; color: var(--text); background: transparent; font-size: 12px; }

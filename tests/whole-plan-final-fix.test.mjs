@@ -99,6 +99,13 @@ test("programmatic module heading focus is quiet while controls keep focus-visib
   assert.match(css, /:focus-visible\s*\{[^}]*(?:outline|box-shadow)/i);
 });
 
+test("atlas navigation scrollers keep the dark interface scrollbar treatment", async () => {
+  const css = await readFile(new URL("../app/atlas/atlas-shell.css", import.meta.url), "utf8");
+  assert.match(css, /\.atlas-sidebar\s*,\s*\.atlas-drawer\s*\{[^}]*scrollbar-color:\s*#[0-9a-f]{6}\s+#[0-9a-f]{6}/i);
+  assert.match(css, /:is\(\.atlas-sidebar,\s*\.atlas-drawer\)::?-webkit-scrollbar-track\s*\{[^}]*background:\s*#[0-9a-f]{6}/i);
+  assert.match(css, /:is\(\.atlas-sidebar,\s*\.atlas-drawer\)::?-webkit-scrollbar-thumb\s*\{[^}]*background:\s*#[0-9a-f]{6}/i);
+});
+
 test("bare root is Turkish while /en/ emits English document and social metadata inside head before hydration", async () => {
   const english = await render("https://gpu.aserdargun.com/en/", "tr-TR,tr;q=0.9");
   assert.equal(english.status, 200);
