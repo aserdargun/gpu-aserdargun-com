@@ -126,3 +126,12 @@ test("Codex environment delegates ordered actions to package scripts", async () 
   assert.doesNotMatch(runner, /"--host"/);
   assert.match(viteConfig, /strictPort: true/);
 });
+
+test("lint excludes repository-owned worktrees and generated output", async () => {
+  const packageJson = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
+  const lintScript = packageJson.scripts.lint;
+
+  assert.match(lintScript, /--ignore-pattern (?:\.\/)?\.worktrees(?:\/\*\*)?/);
+  assert.match(lintScript, /--ignore-pattern dist/);
+  assert.match(lintScript, /--ignore-pattern \.next/);
+});
