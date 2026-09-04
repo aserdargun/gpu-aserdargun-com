@@ -58,6 +58,44 @@ function documentHead(html) {
   return head;
 }
 
+test("quality refresh uses one current evidence date and removes known Turkish defects", async () => {
+  const { curriculumSources } = await loadCurriculumRegistry();
+  assert.ok(curriculumSources.length > 0);
+  assert.deepEqual(new Set(curriculumSources.map(({ verifiedAt }) => verifiedAt)), new Set(["2026-09-04"]));
+
+  const files = [
+    "atlas/copy.ts",
+    "CudaSimtEmbedded.tsx",
+    "VisualFoundationsEmbedded.tsx",
+    "NsightBenchmarkEmbedded.tsx",
+    "KernelForgeEmbedded.tsx",
+  ];
+  const text = (await Promise.all(files.map((file) => readFile(new URL(`../app/${file}`, import.meta.url), "utf8")))).join("\n");
+  assert.doesNotMatch(text, /saklayerek|çalıştırma’ın|İlerleme yüzde|%1\.9|09\.08\.2026/);
+});
+
+test("foundations avoid unqualified multipliers and universal GPU claims", async () => {
+  const text = (await Promise.all([
+    readFile(new URL("../app/VisualFoundationsEmbedded.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/VisualFoundationsEmbedded.en.tsx", import.meta.url), "utf8"),
+  ])).join("\n");
+  assert.doesNotMatch(text, /5[–-]10×|2[–-]3×|~80%|%80(?:'|’)?i|never use stride 2|stride 2 veya rastgele indeks kullanma/i);
+  assert.doesNotMatch(text, /SM[^\n]{0,80}(?:fiziksel GPU çekirdeği|physical GPU core)/i);
+});
+
+test("sample Triton metrics are visibly simulated in both locales", async () => {
+  const tr = await loadTsxModule("PyTorchTritonEmbedded");
+  const en = await loadTsxModule("PyTorchTritonEmbedded.en");
+  assert.match(renderToStaticMarkup(React.createElement(tr.default)), /temsili|simüle/i);
+  assert.match(renderToStaticMarkup(React.createElement(en.default)), /illustrative|simulated/i);
+});
+
+test("programmatic module heading focus is quiet while controls keep focus-visible", async () => {
+  const css = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.match(css, /\.module-hero h1:focus\s*\{[^}]*outline:\s*none/i);
+  assert.match(css, /:focus-visible\s*\{[^}]*(?:outline|box-shadow)/i);
+});
+
 test("bare root is Turkish while /en/ emits English document and social metadata inside head before hydration", async () => {
   const english = await render("https://gpu.aserdargun.com/en/", "tr-TR,tr;q=0.9");
   assert.equal(english.status, 200);
