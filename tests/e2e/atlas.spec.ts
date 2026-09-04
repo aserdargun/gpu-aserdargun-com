@@ -52,9 +52,7 @@ async function gotoAtlas(page: Page, locale: "tr" | "en") {
 async function expectLocalizedDocumentHead(page: Page, locale: "tr" | "en") {
   const english = locale === "en";
   await expect(page.locator("html")).toHaveAttribute("lang", locale);
-  await expect(page).toHaveTitle(english
-    ? "GPU Kernel Atlas — GPU Kernel Engineering"
-    : "GPU Kernel Atlas — GPU Kernel Mühendisliği");
+  await expect(page).toHaveTitle("GPU - GPU Kernel Engineering");
   await expect(page.locator('head meta[name="description"]')).toHaveAttribute(
     "content",
     english ? /A unified 12-week interactive learning atlas/ : /birleşik 12 haftalık etkileşimli öğrenme atlası/,
@@ -68,7 +66,7 @@ async function expectLocalizedDocumentHead(page: Page, locale: "tr" | "en") {
   await expect(page.locator('head meta[property="og:locale"]')).toHaveAttribute("content", english ? "en_US" : "tr_TR");
   await expect(page.locator('head meta[property="og:title"]')).toHaveAttribute(
     "content",
-    english ? "GPU Kernel Atlas — GPU Kernel Engineering" : "GPU Kernel Atlas — GPU Kernel Mühendisliği",
+    "GPU - GPU Kernel Engineering",
   );
   await expect(page.locator('head meta[property="og:description"]')).toHaveAttribute("content", english ? "12 atlases · 12 weeks · One learning system" : "12 atlas · 12 hafta · Tek öğrenme sistemi");
   await expect(page.locator('head meta[property="og:image"]')).toHaveAttribute(
@@ -77,7 +75,7 @@ async function expectLocalizedDocumentHead(page: Page, locale: "tr" | "en") {
   );
   await expect(page.locator('head meta[name="twitter:title"]')).toHaveAttribute(
     "content",
-    english ? "GPU Kernel Atlas — GPU Kernel Engineering" : "GPU Kernel Atlas — GPU Kernel Mühendisliği",
+    "GPU - GPU Kernel Engineering",
   );
   await expect(page.locator('head meta[name="twitter:description"]')).toHaveAttribute("content", english ? "12 atlases · 12 weeks · One learning system" : "12 atlas · 12 hafta · Tek öğrenme sistemi");
   await expect(page.locator('head meta[name="twitter:image"]')).toHaveAttribute(

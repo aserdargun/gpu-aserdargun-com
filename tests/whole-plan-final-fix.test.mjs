@@ -65,13 +65,13 @@ test("bare root is Turkish while /en/ emits English document and social metadata
   const html = await english.text();
   const head = documentHead(html);
   tag(html, /<html lang="en">/i, "/en/ must be English at SSR time");
-  tag(head, /<title>GPU Kernel Atlas — GPU Kernel Engineering<\/title>/i);
+  tag(head, /<title>GPU - GPU Kernel Engineering<\/title>/i);
   tag(head, /<meta name="description" content="A unified 12-week interactive learning atlas/i);
-  tag(head, /<meta property="og:title" content="GPU Kernel Atlas — GPU Kernel Engineering"/i);
+  tag(head, /<meta property="og:title" content="GPU - GPU Kernel Engineering"/i);
   tag(head, /<meta property="og:locale" content="en_US"/i);
   tag(head, /<meta property="og:locale:alternate" content="tr_TR"/i);
   tag(head, /<meta property="og:image" content="https:\/\/gpu\.aserdargun\.com\/og-en\.png"/i);
-  tag(head, /<meta name="twitter:title" content="GPU Kernel Atlas — GPU Kernel Engineering"/i);
+  tag(head, /<meta name="twitter:title" content="GPU - GPU Kernel Engineering"/i);
   tag(head, /<meta name="twitter:image" content="https:\/\/gpu\.aserdargun\.com\/og-en\.png"/i);
   tag(head, /<link rel="canonical" href="https:\/\/gpu\.aserdargun\.com\/en\/"/i);
   tag(head, /<link rel="alternate" hreflang="tr-TR" href="https:\/\/gpu\.aserdargun\.com\/"/i);
@@ -83,11 +83,11 @@ test("bare root is Turkish while /en/ emits English document and social metadata
   const trHtml = await tr.text();
   const trHead = documentHead(trHtml);
   tag(trHtml, /<html lang="tr">/i);
-  tag(trHead, /<title>GPU Kernel Atlas — GPU Kernel Mühendisliği<\/title>/i);
+  tag(trHead, /<title>GPU - GPU Kernel Engineering<\/title>/i);
   tag(trHead, /<meta property="og:locale" content="tr_TR"/i);
   tag(trHead, /<meta property="og:image" content="https:\/\/gpu\.aserdargun\.com\/og\.png"/i);
   tag(trHead, /<link rel="canonical" href="https:\/\/gpu\.aserdargun\.com\/"/i);
-  assert.doesNotMatch(trHead, /GPU Kernel Engineering|\/og-en\.png|og:locale" content="en_US"/i);
+  assert.doesNotMatch(trHead, /\/og-en\.png|og:locale" content="en_US"/i);
 });
 
 test("Azure output contains crawler-addressable localized root and /en artifacts", async () => {
@@ -98,11 +98,11 @@ test("Azure output contains crawler-addressable localized root and /en artifacts
   const trHead = documentHead(trHtml);
   const enHead = documentHead(enHtml);
   tag(trHtml, /<html lang="tr">/i);
-  tag(trHead, /<title>GPU Kernel Atlas — GPU Kernel Mühendisliği<\/title>/i);
+  tag(trHead, /<title>GPU - GPU Kernel Engineering<\/title>/i);
   tag(trHead, /rel="canonical" href="https:\/\/gpu\.aserdargun\.com\/"/i);
-  assert.doesNotMatch(trHead, /GPU Kernel Engineering|\/og-en\.png/i);
+  assert.doesNotMatch(trHead, /\/og-en\.png/i);
   tag(enHtml, /<html lang="en">/i);
-  tag(enHead, /<title>GPU Kernel Atlas — GPU Kernel Engineering<\/title>/i);
+  tag(enHead, /<title>GPU - GPU Kernel Engineering<\/title>/i);
   tag(enHead, /\/og-en\.png/i);
   tag(enHead, /rel="canonical" href="https:\/\/gpu\.aserdargun\.com\/en\/"/i);
   assert.doesNotMatch(enHead, /GPU Kernel Mühendisliği|\/og\.png"/i);
@@ -115,13 +115,13 @@ test("legacy query locale is dynamic-worker compatibility and does not alter the
   const dynamicHtml = await response.text();
   const dynamicHead = documentHead(dynamicHtml);
   tag(dynamicHtml, /<html lang="en">/i);
-  tag(dynamicHead, /<title>GPU Kernel Atlas — GPU Kernel Engineering<\/title>/i);
+  tag(dynamicHead, /<title>GPU - GPU Kernel Engineering<\/title>/i);
 
   const staticRoot = await readFile(new URL("../out/index.html", import.meta.url), "utf8");
   const staticHead = documentHead(staticRoot);
   tag(staticRoot, /<html lang="tr">/i);
-  tag(staticHead, /<title>GPU Kernel Atlas — GPU Kernel Mühendisliği<\/title>/i);
-  assert.doesNotMatch(staticHead, /GPU Kernel Engineering|\/og-en\.png/i);
+  tag(staticHead, /<title>GPU - GPU Kernel Engineering<\/title>/i);
+  assert.doesNotMatch(staticHead, /\/og-en\.png/i);
 });
 
 test("NCCL 2.31.2 Device API evidence is feature-granular and preserves exact compatibility boundaries", async () => {

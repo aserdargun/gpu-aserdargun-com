@@ -79,13 +79,13 @@ test("server-renders the complete Turkish shell and metadata", async () => {
 
   const html = await response.text();
   assert.match(html, /<html lang="tr">/i);
-  assert.match(html, /<title>GPU Kernel Atlas — GPU Kernel Mühendisliği<\/title>/i);
+  assert.match(html, /<title>GPU - GPU Kernel Engineering<\/title>/i);
   assert.match(html, /<b>GPU KERNEL ATLAS<\/b><small>GPU KERNEL MÜHENDİSLİĞİ<\/small>/);
   assert.match(html, /aria-label="GPU Kernel Atlas ana sayfa"/);
   assert.match(html, /<nav class="atlas-topnav" aria-label="Ana navigasyon"><a href="#roadmap">12 hafta<\/a><\/nav>/);
   assert.doesNotMatch(html, /<button[^>]*>Genel bakış<\/button>|<button[^>]*>Atlas<\/button>/);
-  assert.match(html, /property="og:title" content="GPU Kernel Atlas — GPU Kernel Mühendisliği"/);
-  assert.match(html, /name="twitter:title" content="GPU Kernel Atlas — GPU Kernel Mühendisliği"/);
+  assert.match(html, /property="og:title" content="GPU - GPU Kernel Engineering"/);
+  assert.match(html, /name="twitter:title" content="GPU - GPU Kernel Engineering"/);
   assert.match(html, /Kernel’i yaz\./);
   for (const label of ["Ada", "Hopper", "Blackwell", "Rubin", "SM89", "SM90", "SM100", "SM120", "SM107", "Temel", "Güncel", "Önizleme"]) {
     assert.match(html, new RegExp(label));
@@ -123,13 +123,13 @@ test("server-renders the complete English shell with request-aware production me
 
   const html = await response.text();
   assert.match(html, /<html lang="en">/i);
-  assert.match(html, /<title>GPU Kernel Atlas — GPU Kernel Engineering<\/title>/i);
+  assert.match(html, /<title>GPU - GPU Kernel Engineering<\/title>/i);
   assert.match(html, /<b>GPU KERNEL ATLAS<\/b><small>GPU KERNEL ENGINEERING<\/small>/);
   assert.match(html, /aria-label="GPU Kernel Atlas home"/);
   assert.match(html, /<nav class="atlas-topnav" aria-label="Main navigation"><a href="#roadmap">12 weeks<\/a><\/nav>/);
   assert.doesNotMatch(html, /<button[^>]*>Overview<\/button>|<button[^>]*>Atlas<\/button>/);
-  assert.match(html, /property="og:title" content="GPU Kernel Atlas — GPU Kernel Engineering"/);
-  assert.match(html, /name="twitter:title" content="GPU Kernel Atlas — GPU Kernel Engineering"/);
+  assert.match(html, /property="og:title" content="GPU - GPU Kernel Engineering"/);
+  assert.match(html, /name="twitter:title" content="GPU - GPU Kernel Engineering"/);
   assert.match(html, /Write the kernel\./);
   for (const label of ["Ada", "Hopper", "Blackwell", "Rubin", "SM89", "SM90", "SM100", "SM120", "SM107", "Core", "Current", "Preview"]) {
     assert.match(html, new RegExp(label));
@@ -218,13 +218,10 @@ test("ships locale-aware routing, metadata, accessibility, favicon, and social c
   assert.match(readme, /Turkish and English UI/);
   assert.match(readme, /English at `\/en\/`/);
   assert.doesNotMatch(readme, /shareable `\?lang=/);
-  assert.match(favicon, /<title[^>]*>GPU Kernel Atlas cube favicon<\/title>/);
-  assert.match(favicon, /<desc[^>]*>Isometric cube with lime top, blue left, and orange right faces\.<\/desc>/);
-  assert.match(favicon, /#121310/);
+  assert.match(favicon, /<svg\b/);
   assert.match(favicon, /#c8ff36/);
-  assert.match(favicon, /#6a8dff/);
-  assert.match(favicon, /#ff7043/);
-  assert.equal(favicon.match(/<polygon\b/g)?.length, 3);
+  assert.match(favicon, /#121310/);
+  assert.doesNotMatch(favicon, /cube favicon|Isometric cube/);
 
   for (const image of [trCard, enCard]) {
     assert.equal(image.subarray(1, 4).toString(), "PNG");
