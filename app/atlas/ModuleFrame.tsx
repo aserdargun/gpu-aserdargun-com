@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { Locale } from "../i18n";
 import { architectureMeta } from "./ArchitectureMatrix";
 import { uiByLocale } from "./copy";
+import { GexCompanion } from "./GexCompanion";
 import type { AtlasModule } from "./types";
 
 export type ModuleFrameProps = {
@@ -48,6 +49,7 @@ export function ModuleFrame({ module, locale, completed, showCompletionActions, 
         <aside><span>{copy.evidence}</span><p>{module.outcome}</p></aside>
       </section>
       {children}
+      <GexCompanion locale={locale} moduleId={module.id} />
       {showCompletionActions ? (
         <section className="module-finish">
           <div><span>ATLAS {module.index} / 12</span><h2>{copy.learned}<br /><em>{copy.record}</em></h2></div>

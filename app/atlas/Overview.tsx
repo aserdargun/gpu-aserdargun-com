@@ -1,5 +1,6 @@
 import type { Locale } from "../i18n";
 import { ArchitectureMatrix } from "./ArchitectureMatrix";
+import { GexCompanion } from "./GexCompanion";
 import { uiByLocale } from "./copy";
 import { roadmapByLocale } from "./module-registry";
 import type { AtlasModule, ModuleId } from "./types";
@@ -59,6 +60,7 @@ export function Overview({ locale, modules, completedIds, lastVisitedId, onOpenM
         </div>
       </section>
 
+      <GexCompanion locale={locale} />
       <ArchitectureMatrix locale={locale} />
 
       <section className="maturity-policy section-block" data-testid="atlas-maturity-policy" aria-labelledby="maturity-policy-title">
