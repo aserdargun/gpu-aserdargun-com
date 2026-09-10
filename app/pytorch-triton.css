@@ -344,3 +344,6 @@ footer > a { font: 10px var(--font-geist-mono); border-bottom: 1px solid white; 
 }
 
 }
+
+.pytorch-triton-surface .review-example { margin: 20px 0 0; min-height: 44px; padding: 12px 18px; border: 1px solid currentColor; background: transparent; color: inherit; cursor: pointer; }
+.pytorch-triton-surface .evidence-strip strong { overflow-wrap: anywhere; font-size: clamp(16px, 2vw, 24px); }

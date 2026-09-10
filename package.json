@@ -17,7 +17,8 @@
     "stop:local": "node tools/stop-local.mjs",
     "validate:codex": "node tools/validate-local.mjs",
     "verify:azure": "node tools/verify-azure-artifact.mjs",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "typecheck": "tsc -p tsconfig.azure.json --noEmit"
   },
   "dependencies": {
     "drizzle-orm": "0.45.2",

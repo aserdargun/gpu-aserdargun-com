@@ -2,6 +2,8 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { verifyArtifactManifest } from "./artifact-contract.mjs";
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const out = resolve(root, "out");
 
@@ -25,6 +27,8 @@ const [html, englishHtml, configText, favicon, appIcon, appleIcon, trCard, enCar
   stat(resolve(out, "og-en.png")),
   filesUnder(resolve(out, "_next/static")),
 ]);
+
+await verifyArtifactManifest(out);
 
 const checks = [
   [html.includes("GPU KERNEL ATLAS"), "identity"],

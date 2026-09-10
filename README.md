@@ -5,6 +5,8 @@ A bilingual Turkish/English interactive learning atlas for a 12-week GPU kernel 
 ## Highlights
 
 - Turkish and English UI with a visible `TR / EN` switch
+- Shareable lessons (`?module=memory`), browser back/forward navigation, and language switching that preserves the open module
+- Laboratories load on demand, with isolated animation state and a localized recovery screen
 - Canonical shareable locale paths: Turkish at `/` and English at `/en/`; after hydration, bare `/` safely applies the saved locale first and browser language second through a full-path navigation
 - A shared atlas shell: overview, architecture matrix, maturity context, desktop rail, and accessible mobile drawer
 - Architecture context for Ada / SM89, Hopper / SM90, Blackwell / SM100 and SM120, plus clearly labeled Rubin / SM107 preview material
@@ -76,7 +78,17 @@ npm test
 npm run validate:codex
 ```
 
-`validate:codex` checks lint, the Azure build/artifact, and diff integrity.
+`validate:codex` checks lint, production TypeScript, the Azure build/artifact, and diff integrity. It leaves existing preview processes running.
+
+Run browser checks separately against the running preview:
+
+```bash
+PLAYWRIGHT_BASE_URL=http://127.0.0.1:5173 npm run test:e2e -- --workers=2
+```
+
+The Triton mask exercise calculates logical program/lane counts in JavaScript. It does not execute GPU kernels, opcheck, or gradient tests. Latency and bandwidth stay unmeasured; reviewing the example is an explicit, reversible self-assessment. Legacy automatically awarded progress is not imported.
+
+`app/atlas/contracts.mjs` declares behavior, experiment, world, simulation, metric, and export versions. Every static snapshot contains `artifact-manifest.json` with these versions and SHA-256 hashes of all artifact files. Verification rejects unsupported versions and missing, changed, or extra files.
 
 ## Stop
 

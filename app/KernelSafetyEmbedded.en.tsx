@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable jsx-a11y/no-noninteractive-tabindex -- Labelled overflow regions must remain keyboard-scrollable. */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Tool = "memcheck" | "racecheck" | "initcheck" | "synccheck";
 type CorrectnessArchitecture = "ada" | "hopper" | "blackwell";
@@ -95,7 +95,7 @@ export default function KernelSafetyEmbedded() {
   const [checked, setChecked] = useState(false);
   const [lineInfo, setLineInfo] = useState(true);
   const [exitCode, setExitCode] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">("idle");
   const [acceptanceClass, setAcceptanceClass] = useState<(typeof CORRECTNESS_ACCEPTANCE_CLASSES)[number]["id"]>("deterministic");
   const [architecture, setArchitecture] = useState<CorrectnessArchitecture>("ada");
   const [tmemSelected, setTmemSelected] = useState(false);
@@ -110,10 +110,19 @@ export default function KernelSafetyEmbedded() {
   const architectureSupport = getCorrectnessArchitectureSupport(architecture);
 
   const copyCommand = async () => {
-    try { await navigator.clipboard.writeText(command); } catch { /* clipboard may be unavailable in preview */ }
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1600);
+    try {
+      await navigator.clipboard.writeText(command);
+      setCopyStatus("copied");
+    } catch {
+      setCopyStatus("error");
+    }
   };
+
+  useEffect(() => {
+    if (copyStatus === "idle") return;
+    const timer = window.setTimeout(() => setCopyStatus("idle"), 3000);
+    return () => window.clearTimeout(timer);
+  }, [copyStatus]);
 
   return (
     <section className="kernel-safety-surface" id="top" aria-labelledby="kernel-safety-title">
@@ -238,7 +247,8 @@ export default function KernelSafetyEmbedded() {
             <label><input type="checkbox" checked={lineInfo} onChange={(e) => setLineInfo(e.target.checked)} /><span /> Show backtrace</label>
             <label><input type="checkbox" checked={exitCode} onChange={(e) => setExitCode(e.target.checked)} /><span /> Exit 99 on error</label>
           </div>
-          <div className="generated-command"><code tabIndex={0} aria-label="Generated command">{command}</code><button onClick={copyCommand}>{copied ? "Copied ✓" : "Copy"}</button></div>
+          <div className="generated-command"><code tabIndex={0} aria-label="Generated command">{command}</code><button onClick={copyCommand}>{copyStatus === "copied" ? "Copied ✓" : "Copy"}</button></div>
+          <p role="status">{copyStatus === "error" ? "Clipboard unavailable. Select the command and copy it manually." : ""}</p>
           <p><b>Compilation note:</b> Add <code>-lineinfo</code> for source-line mapping instead of switching to a fully unoptimized debug build. It keeps reports readable while preserving optimized behavior.</p>
         </article>
       </section>

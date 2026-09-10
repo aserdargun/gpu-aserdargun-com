@@ -29,7 +29,7 @@
 .cs-captionbar p { margin: 8px 0 0; color: #b7c1c4; font-size: 13.5px; line-height: 1.65; }
 
 .cs-side { display: flex; flex-direction: column; gap: 16px; padding: 22px; background: var(--cs-side); }
-.cs-controls { display: flex; align-items: center; gap: 7px; }
+.cs-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
 .cs-controls button { min-width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid var(--cs-dim); background: transparent; color: var(--muted); cursor: pointer; font: 700 11px var(--cs-mono); border-radius: 4px; transition: color .15s ease, border-color .15s ease, background .15s ease; }
 .cs-controls button:hover { color: var(--text); border-color: #4a5a60; }
 .cs-controls .cs-play { min-width: 46px; border-color: var(--accent); color: var(--accent); }
@@ -353,3 +353,7 @@
 @media (max-width: 640px) {
   .concept-studio { padding: 54px 20px; }
 }
+
+.concept-studio .cs-controls button { min-width: 44px; min-height: 44px; }
+.concept-studio .cs-steps button { min-height: 44px; }
+.concept-studio[data-playing="false"] * { animation: none !important; }

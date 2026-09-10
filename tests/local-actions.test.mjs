@@ -50,7 +50,7 @@ function runStop(port) {
   return spawnSync(process.execPath, [stopScript, "--port", String(port), "--root", root], {
     cwd: root,
     encoding: "utf8",
-    timeout: 10_000,
+    timeout: 30_000,
   });
 }
 

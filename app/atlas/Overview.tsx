@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type { Locale } from "../i18n";
 import { ArchitectureMatrix } from "./ArchitectureMatrix";
 import { GexCompanion } from "./GexCompanion";
@@ -14,6 +15,19 @@ export type OverviewProps = {
 };
 
 export function Overview({ locale, modules, completedIds, lastVisitedId, onOpenModule }: OverviewProps) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    // A returning reader should not land halfway down the previous laboratory.
+    const frame = requestAnimationFrame(() => {
+      if (window.location.hash) {
+        document.getElementById(window.location.hash.slice(1))?.scrollIntoView();
+      } else {
+        window.scrollTo({ top: 0, behavior: "instant" });
+        headingRef.current?.focus({ preventScroll: true });
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
   const copy = uiByLocale[locale];
   const weeks = roadmapByLocale[locale];
   const resumeModule = modules.find((module) => module.id === lastVisitedId) ?? null;
@@ -23,7 +37,7 @@ export function Overview({ locale, modules, completedIds, lastVisitedId, onOpenM
       <section className="hero">
         <div className="hero-copy">
           <div className="eyebrow"><span /> {copy.eyebrow}</div>
-          <h1>{copy.headlineA}<br /><em>{copy.headlineB}</em><br />{copy.headlineC}</h1>
+          <h1 ref={headingRef} tabIndex={-1}>{copy.headlineA}<br /><em>{copy.headlineB}</em><br />{copy.headlineC}</h1>
           <p>{copy.hero}</p>
           <div className="hero-actions">
             {resumeModule ? (

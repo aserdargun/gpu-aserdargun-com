@@ -165,17 +165,17 @@ function runBashSandbox(code: string) {
 }
 
 function runCppPreview(code: string) {
-  if (!code.includes("int main")) return "compilation error: program entry point 'int main()' not found";
+  if (!code.includes("int main")) return "preview limitation: program entry point 'int main()' not found";
   const opens = (code.match(/{/g) || []).length;
   const closes = (code.match(/}/g) || []).length;
-  if (opens !== closes) return `compilation error: mismatched braces (${opens} opening / ${closes} closing)`;
+  if (opens !== closes) return `preview limitation: mismatched braces (${opens} opening / ${closes} closing)`;
   const output: string[] = [];
   const totalMatch = code.match(/std::vector<int>\s+\w+\s*\{([^}]+)\}/);
   const total = totalMatch?.[1].split(",").map(Number).reduce((a, b) => a + b, 0);
   for (const match of code.matchAll(/std::cout\s*<<\s*"([^"]*)"(?:\s*<<\s*(\w+))?/g)) {
     output.push(match[1] + (match[2] === "total" && total !== undefined ? total : ""));
   }
-  return `✓ clang++ -std=c++23 · build succeeded\n\n${output.join("\n") || "The program exited with code 0."}\n\n[Note: This C++ lab is a lightweight syntax and output simulation.]`;
+  return `C++ output preview · no compiler was executed\n\n${output.join("\n") || "No recognized output pattern."}\n\n[Note: Only simple output patterns are shown; C++ validity is not checked.]`;
 }
 
 export default function KernelForgeEmbedded() {
@@ -196,10 +196,10 @@ export default function KernelForgeEmbedded() {
     window.queueMicrotask(() => setCompleted(saved));
   }, []);
 
-  const progress = Math.round((completed.length / 15) * 100);
+  const progress = Math.round((completed.filter((id) => !id.startsWith("q-")).length / 15) * 100);
   const capabilityStatus = getCapabilityRecordStatus(capabilityRecord);
   const filteredQuestions = useMemo(() => questions.filter((item) =>
-    (activeTrack === item.track || query.length > 0) && `${item.q} ${item.a}`.toLocaleLowerCase("tr").includes(query.toLocaleLowerCase("tr"))
+    (activeTrack === item.track || query.length > 0) && `${item.q} ${item.a}`.toLocaleLowerCase("en-US").includes(query.toLocaleLowerCase("en-US"))
   ), [activeTrack, query]);
 
   const toggleComplete = (id: string) => {
@@ -214,7 +214,7 @@ export default function KernelForgeEmbedded() {
     setRunning(true);
     setOutput("Running…");
     try {
-      if (lab === "bash") setOutput(`$ bash main.sh\n\n${runBashSandbox(code)}\n\n✓ exit code 0`);
+      if (lab === "bash") setOutput(`$ bash main.sh\n\n${runBashSandbox(code)}\n\n[Bash output model: no system commands were executed.]`);
       else if (lab === "cpp") setOutput(runCppPreview(code));
       else {
         const win = window as typeof window & { loadPyodide?: (options: { indexURL: string }) => Promise<{ runPythonAsync: (source: string) => Promise<unknown>; setStdout: (o: { batched: (s: string) => void }) => void; setStderr: (o: { batched: (s: string) => void }) => void }>; pyodide?: unknown };

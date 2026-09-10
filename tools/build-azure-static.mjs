@@ -2,6 +2,8 @@ import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { writeArtifactManifest } from "./artifact-contract.mjs";
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const client = resolve(root, "dist/client");
 const out = resolve(root, "out");
@@ -44,5 +46,7 @@ await writeFile(
   await readFile(resolve(root, "staticwebapp.config.json"), "utf8"),
   "utf8",
 );
+
+await writeArtifactManifest(out);
 
 console.log(`Azure static artifact written to ${out}`);

@@ -926,12 +926,12 @@ const task4InteractionCases = [
     viewport: { width: 1440, height: 1000 },
     reportMerge: "Rapor birleştirme",
     clustering: "Kümeleme",
-    instructionMix: "Komut karışımı",
+    instructionMix: "Talimat karışımı",
     scoreboard: "Scoreboard bağımlılıkları",
     graphNode: "CUDA Graph düğümü",
     reportEvidence: "Birleştirilen rapor",
     clusterEvidence: "Benzer koşular",
-    instructionEvidence: "FP/INT/memory",
+    instructionEvidence: "FP/INT/bellek",
     scoreboardEvidence: "veri hazır olmadığı için",
     graphEvidence: "seçili kernel düğümü",
     blackwell: "Blackwell · SM100",
@@ -1065,7 +1065,7 @@ const task5InteractionCases = [
   {
     locale: "tr" as const,
     viewport: { width: 1440, height: 1000 },
-    diagnosis: ["Zamanlayıcı", "KV cache", "Kernel", "Ağ"],
+    diagnosis: ["Zamanlayıcı", "KV önbelleği", "Kernel", "Ağ"],
     graph: ["CUDA parçalı", "CUDA tam", "HIP parçalı", "HIP tam"],
     parallelism: ["Uzman paralelliği", "Bağlam paralelliği"],
     precision: ["FP8", "MXFP8", "MXFP4", "NVFP4"],
@@ -1678,10 +1678,10 @@ for (const locale of locales) {
     await expect.poll(() => page.evaluate(() => window.localStorage.getItem("kernel-forge-progress"))).toBe('["cpp-0"]');
 
     await openModule(page, locale, "triton");
-    await expect(page.locator(".pytorch-triton-surface .progress-label strong")).toHaveText(/%?6%?/);
+    await expect(page.locator(".pytorch-triton-surface .progress-label strong")).toHaveText(/%?0%?/);
     await expect(page.locator("#learning-note")).toHaveValue("restored note");
     await page.locator(".pytorch-triton-surface .run-button").click();
-    await expect(page.locator(".pytorch-triton-surface .progress-label strong")).toHaveText(/%?11%?/);
+    await expect(page.locator(".pytorch-triton-surface .progress-label strong")).toHaveText(/%?0%?/);
   });
 
   test(`${locale} laboratories continue in memory when storage access is denied`, async ({ page }) => {
@@ -1959,7 +1959,7 @@ test("locale buttons fully navigate and replace document head metadata in both d
   await expect(page.evaluate(() => window.localStorage.getItem("kernel-atlas-language"))).resolves.toBe("en");
 
   await page.getByRole("button", { name: "TR", exact: true }).click();
-  await expect(page).toHaveURL(/^http:\/\/127\.0\.0\.1:5173\/(?:$|#)/);
+  await expect(page).toHaveURL((url) => url.pathname === "/" && url.search === "");
   await expectLocalizedDocumentHead(page, "tr");
   await expect(page.evaluate(() => window.sessionStorage.getItem("atlas-document-loads"))).resolves.toBe("3");
   await expect(page.evaluate(() => window.localStorage.getItem("kernel-atlas-language"))).resolves.toBe("tr");

@@ -149,7 +149,7 @@ test("wires every interactive lab to a separate Turkish and English experience",
   const turkishResidueInEnglish = /[ÇĞİÖŞÜçğıöşü]|\b(?:kilit|başlangıç|temel|cevap|adım|referans|derleme|tarayıcı|çalışma|seçili|aktif|yollar|desteklenen|çıktı|simülasyonu|iskeleti|sayısı|ortalama|matrisi|hiyerarşik|gezinme|kullanılıyor|başarılı|açılış|kapanış|laboratuvar|doğruluk|öğrenme|kaynak|sınır|görev|hafta|entegrasyon|performans|optimizasyon|mezuniyet|uygulama|hakem|kopyala|soyutlama|hedef|senkronizasyon|koalesme|hipotezi|sabit|dinamik|ziyaret|desteklenmeyen|temeller|paralellik|dogruluk|sinav|rota|sozluk)\b|SHOO|HAZIR|WELDING TABLE|MUTAN TEKE/i;
 
   for (const name of embeddedLabs) {
-    assert.match(atlas, new RegExp(`import ${name}En from "\\./${name}\\.en"`));
+    assert.ok(atlas.includes(`const ${name}En = lazy(() => import("./${name}.en"));`));
     assert.match(atlas, new RegExp(`locale === "tr" \\? <${name} \\/> : <${name}En \\/>`));
 
     const [turkish, english] = await Promise.all([
@@ -164,7 +164,7 @@ test("wires every interactive lab to a separate Turkish and English experience",
 test("routes active lab content through renderLab and ModuleFrame", async () => {
   const atlas = await readFile(new URL("../app/kernel-atlas.tsx", import.meta.url), "utf8");
   assert.match(atlas, /const lab = active == null \? null : renderLab\(active\.id, locale\);/);
-  assert.match(atlas, /active \? \(\s*<ModuleFrame[\s\S]*?\{lab == null \? \(/);
+  assert.match(atlas, /active \? \(\s*<LabBoundary[\s\S]*?<Suspense[\s\S]*?<ModuleFrame[\s\S]*?\{lab == null \? \(/);
   assert.match(atlas, /\)\s*:\s*lab\}\s*<\/ModuleFrame>/);
   assert.match(atlas, /function renderLab\(kind: ModuleId, locale: Locale\)/);
   const renderLab = extractFunctionBody(atlas, "renderLab");
@@ -180,7 +180,7 @@ test("routes active lab content through renderLab and ModuleFrame", async () => 
 test("wraps every active laboratory module with ModuleFrame", async () => {
   const atlas = await readFile(new URL("../app/kernel-atlas.tsx", import.meta.url), "utf8");
   assert.match(atlas, /import \{ ModuleFrame \} from "\.\/atlas\/ModuleFrame"/);
-  assert.match(atlas, /active \? \(\s*<ModuleFrame[\s\S]*?<\/ModuleFrame>\s*\) : \(/);
+  assert.match(atlas, /active \? \(\s*<LabBoundary[\s\S]*?<ModuleFrame[\s\S]*?<\/ModuleFrame>\s*<\/Suspense>\s*<\/LabBoundary>\s*\) : \(/);
 });
 
 test("ships locale-aware routing, metadata, accessibility, favicon, and social cards", async () => {

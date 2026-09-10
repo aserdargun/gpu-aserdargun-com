@@ -83,11 +83,14 @@ test("foundations avoid unqualified multipliers and universal GPU claims", async
   assert.doesNotMatch(text, /SM[^\n]{0,80}(?:fiziksel GPU çekirdeği|physical GPU core)/i);
 });
 
-test("sample Triton metrics are visibly simulated in both locales", async () => {
+test("unmeasured Triton hardware metrics remain unavailable in both locales", async () => {
   const tr = await readFile(new URL("../app/PyTorchTritonEmbedded.tsx", import.meta.url), "utf8");
   const en = await readFile(new URL("../app/PyTorchTritonEmbedded.en.tsx", import.meta.url), "utf8");
-  assert.match(tr, /temsili simülasyon/i);
-  assert.match(en, /illustrative simulation/i);
+  assert.match(tr, /GPU testi çalıştırılmaz/);
+  assert.match(en, /No GPU tests are executed/);
+  assert.match(tr, /Donanım ölçümü yok/);
+  assert.match(en, /No hardware measurement/);
+  for (const source of [tr, en]) assert.doesNotMatch(source, /18\.7 µs|612 GB\/s|4\/4 (?:PASSED|GEÇTİ)/);
 });
 
 test("programmatic module heading focus is quiet while controls keep focus-visible", async () => {

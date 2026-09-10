@@ -1,32 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { Locale } from "./i18n";
-import KernelForgeEmbedded from "./KernelForgeEmbedded";
-import KernelForgeEmbeddedEn from "./KernelForgeEmbedded.en";
-import CudaSimtEmbedded from "./CudaSimtEmbedded";
-import CudaSimtEmbeddedEn from "./CudaSimtEmbedded.en";
-import GpuMemoryEmbedded from "./GpuMemoryEmbedded";
-import GpuMemoryEmbeddedEn from "./GpuMemoryEmbedded.en";
-import PyTorchTritonEmbedded from "./PyTorchTritonEmbedded";
-import PyTorchTritonEmbeddedEn from "./PyTorchTritonEmbedded.en";
-import LlmKernelPatternsEmbedded from "./LlmKernelPatternsEmbedded";
-import LlmKernelPatternsEmbeddedEn from "./LlmKernelPatternsEmbedded.en";
-import KernelSafetyEmbedded from "./KernelSafetyEmbedded";
-import KernelSafetyEmbeddedEn from "./KernelSafetyEmbedded.en";
-import NsightBenchmarkEmbedded from "./NsightBenchmarkEmbedded";
-import NsightBenchmarkEmbeddedEn from "./NsightBenchmarkEmbedded.en";
-import CutlassCuteEmbedded from "./CutlassCuteEmbedded";
-import CutlassCuteEmbeddedEn from "./CutlassCuteEmbedded.en";
-import InferenceSystemsEmbedded from "./InferenceSystemsEmbedded";
-import InferenceSystemsEmbeddedEn from "./InferenceSystemsEmbedded.en";
-import NcclMultiGpuEmbedded from "./NcclMultiGpuEmbedded";
-import NcclMultiGpuEmbeddedEn from "./NcclMultiGpuEmbedded.en";
-import GpuSoftwareStackEmbedded from "./GpuSoftwareStackEmbedded";
-import GpuSoftwareStackEmbeddedEn from "./GpuSoftwareStackEmbedded.en";
-import VisualFoundationsEmbedded from "./VisualFoundationsEmbedded";
-import VisualFoundationsEmbeddedEn from "./VisualFoundationsEmbedded.en";
 import ConceptStudio from "./concept-studio";
 import { MODULE_IDS, modulesByLocale } from "./atlas/module-registry";
 import { uiByLocale } from "./atlas/copy";
@@ -45,6 +21,33 @@ import { AtlasShell } from "./atlas/AtlasShell";
 import { architectureMeta } from "./atlas/ArchitectureMatrix";
 import { ModuleFrame } from "./atlas/ModuleFrame";
 import { Overview } from "./atlas/Overview";
+import { LabBoundary } from "./atlas/LabBoundary";
+import { readModuleFromUrl, updateModuleUrl } from "./atlas/navigation.mjs";
+
+const KernelForgeEmbedded = lazy(() => import("./KernelForgeEmbedded"));
+const KernelForgeEmbeddedEn = lazy(() => import("./KernelForgeEmbedded.en"));
+const CudaSimtEmbedded = lazy(() => import("./CudaSimtEmbedded"));
+const CudaSimtEmbeddedEn = lazy(() => import("./CudaSimtEmbedded.en"));
+const GpuMemoryEmbedded = lazy(() => import("./GpuMemoryEmbedded"));
+const GpuMemoryEmbeddedEn = lazy(() => import("./GpuMemoryEmbedded.en"));
+const PyTorchTritonEmbedded = lazy(() => import("./PyTorchTritonEmbedded"));
+const PyTorchTritonEmbeddedEn = lazy(() => import("./PyTorchTritonEmbedded.en"));
+const LlmKernelPatternsEmbedded = lazy(() => import("./LlmKernelPatternsEmbedded"));
+const LlmKernelPatternsEmbeddedEn = lazy(() => import("./LlmKernelPatternsEmbedded.en"));
+const KernelSafetyEmbedded = lazy(() => import("./KernelSafetyEmbedded"));
+const KernelSafetyEmbeddedEn = lazy(() => import("./KernelSafetyEmbedded.en"));
+const NsightBenchmarkEmbedded = lazy(() => import("./NsightBenchmarkEmbedded"));
+const NsightBenchmarkEmbeddedEn = lazy(() => import("./NsightBenchmarkEmbedded.en"));
+const CutlassCuteEmbedded = lazy(() => import("./CutlassCuteEmbedded"));
+const CutlassCuteEmbeddedEn = lazy(() => import("./CutlassCuteEmbedded.en"));
+const InferenceSystemsEmbedded = lazy(() => import("./InferenceSystemsEmbedded"));
+const InferenceSystemsEmbeddedEn = lazy(() => import("./InferenceSystemsEmbedded.en"));
+const NcclMultiGpuEmbedded = lazy(() => import("./NcclMultiGpuEmbedded"));
+const NcclMultiGpuEmbeddedEn = lazy(() => import("./NcclMultiGpuEmbedded.en"));
+const GpuSoftwareStackEmbedded = lazy(() => import("./GpuSoftwareStackEmbedded"));
+const GpuSoftwareStackEmbeddedEn = lazy(() => import("./GpuSoftwareStackEmbedded.en"));
+const VisualFoundationsEmbedded = lazy(() => import("./VisualFoundationsEmbedded"));
+const VisualFoundationsEmbeddedEn = lazy(() => import("./VisualFoundationsEmbedded.en"));
 
 const validModuleIds = new Set<ModuleId>(MODULE_IDS);
 
@@ -79,6 +82,12 @@ export default function KernelAtlas({ initialLocale }: { initialLocale: Locale }
     window.queueMicrotask(() => {
       setCompleted(readCompleted(storage, validModuleIds) as ModuleId[]);
       setLastVisitedId(readLastVisited(storage, validModuleIds) as ModuleId | null);
+      const linkedModule = readModuleFromUrl(currentUrl, validModuleIds) as ModuleId | null;
+      setActiveId(linkedModule);
+      if (linkedModule) {
+        setLastVisitedId(linkedModule);
+        writeLastVisited(storage, linkedModule);
+      }
       setLocale(pathLocale);
       document.documentElement.lang = pathLocale;
       document.documentElement.dataset.atlasReady = "true";
@@ -86,6 +95,20 @@ export default function KernelAtlas({ initialLocale }: { initialLocale: Locale }
     return () => {
       delete document.documentElement.dataset.atlasReady;
     };
+  }, []);
+
+  useEffect(() => {
+    const followHistory = () => {
+      const id = readModuleFromUrl(new URL(window.location.href), validModuleIds) as ModuleId | null;
+      setActiveId(id);
+      setMenuOpen(false);
+      if (id) {
+        setLastVisitedId(id);
+        writeLastVisited(acquireLocalStorage(window), id);
+      }
+    };
+    window.addEventListener("popstate", followHistory);
+    return () => window.removeEventListener("popstate", followHistory);
   }, []);
 
   const modules = modulesByLocale[locale];
@@ -114,6 +137,7 @@ export default function KernelAtlas({ initialLocale }: { initialLocale: Locale }
   const progress = Math.round((completed.length / modules.length) * 100);
 
   const openModule = useCallback((id: ModuleId) => {
+    updateModuleUrl(window, id);
     setActiveId(id);
     setLastVisitedId(id);
     writeLastVisited(acquireLocalStorage(window), id);
@@ -121,6 +145,7 @@ export default function KernelAtlas({ initialLocale }: { initialLocale: Locale }
   }, []);
 
   const showOverview = useCallback(() => {
+    updateModuleUrl(window, null);
     setActiveId(null);
     setMenuOpen(false);
   }, []);
@@ -169,7 +194,9 @@ export default function KernelAtlas({ initialLocale }: { initialLocale: Locale }
       }}
     >
       {active ? (
-        <ModuleFrame
+        <LabBoundary key={active.id} locale={locale} onRecover={showOverview}>
+          <Suspense fallback={<section className="module-unavailable" role="status">{locale === "tr" ? "Laboratuvar yükleniyor…" : "Loading laboratory…"}</section>}>
+            <ModuleFrame key={active.id}
           module={active}
           locale={locale}
           completed={completed.includes(active.id)}
@@ -183,7 +210,9 @@ export default function KernelAtlas({ initialLocale }: { initialLocale: Locale }
               <button onClick={showOverview}>{uiByLocale[locale].showOverview}</button>
             </section>
           ) : lab}
-        </ModuleFrame>
+            </ModuleFrame>
+          </Suspense>
+        </LabBoundary>
       ) : (
         <Overview
           locale={locale}

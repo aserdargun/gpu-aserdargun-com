@@ -2,8 +2,9 @@
 /* eslint-disable jsx-a11y/no-noninteractive-tabindex -- Labelled overflow regions must remain keyboard-scrollable. */
 
 import { useEffect, useMemo, useState } from "react";
+import { modelMaskedLaunch } from "./atlas/mask-model.mjs";
 import { getSourcesForModule } from "./atlas/curriculum-sources";
-import { acquireStorage, readFiniteInteger, readText, writeText } from "./atlas/lab-storage.mjs";
+import { acquireStorage, readText, writeText } from "./atlas/lab-storage.mjs";
 
 export const PYTORCH_INTEGRATION_DECISIONS = [
   { id: "composition", label: "Built-in PyTorch composition", summary: "Compose built-in PyTorch operators first for the smallest maintenance and compiler surface." },
@@ -182,12 +183,14 @@ function formatTime(minutes: number) {
 export default function PyTorchTritonEmbedded() {
   const [selectedWeek, setSelectedWeek] = useState(2);
   const [codeTab, setCodeTab] = useState<"pytorch" | "triton">("triton");
-  const [runState, setRunState] = useState<"idle" | "running" | "passed">("idle");
+  const [runState, setRunState] = useState<"idle" | "modeled">("idle");
   const [blockSize, setBlockSize] = useState(256);
   const [quiz, setQuiz] = useState<number | null>(null);
   const [note, setNote] = useState("");
   const [saveState, setSaveState] = useState<"idle" | "saved" | "memory">("idle");
-  const [completedLabs, setCompletedLabs] = useState(1);
+  const [reviewed, setReviewed] = useState(false);
+  const [masked, setMasked] = useState(false);
+  const [maskResults, setMaskResults] = useState<ReturnType<typeof modelMaskedLaunch>[]>([]);
   const [integrationChoice, setIntegrationChoice] = useState<(typeof PYTORCH_INTEGRATION_DECISIONS)[number]["id"]>("composition");
   const [autotuneConfig, setAutotuneConfig] = useState<(typeof TRITON_AUTOTUNE_CONFIGS)[number]["id"]>("balanced");
   const [runSnapshot, setRunSnapshot] = useState<ReturnType<typeof getPyTorchExecutionPlan> | null>(null);
@@ -195,32 +198,31 @@ export default function PyTorchTritonEmbedded() {
   useEffect(() => {
     const storage = acquireStorage(window);
     const stored = readText(storage, "kernel-lab-note", "");
-    const storedLabs = readFiniteInteger(storage, "kernel-lab-completed", { fallback: 1, min: 0, max: 18 });
+    const storedReview = readText(storage, "kernel-lab-mask-reviewed-v2") === "true";
     window.queueMicrotask(() => {
       if (stored) setNote(stored);
-      setCompletedLabs(storedLabs);
+      setReviewed(storedReview);
     });
   }, []);
 
   const activeWeek = weeks.find((week) => week.id === selectedWeek) ?? weeks[1];
   const totalMinutes = useMemo(() => weeks.reduce((sum, week) => sum + week.minutes, 0), []);
-  const progress = Math.round((completedLabs / 18) * 100);
+  const progress = reviewed ? 100 : 0;
   const selectedDecision = PYTORCH_INTEGRATION_DECISIONS.find((decision) => decision.id === integrationChoice) ?? PYTORCH_INTEGRATION_DECISIONS[0];
   const selectedAutotune = TRITON_AUTOTUNE_CONFIGS.find((config) => config.id === autotuneConfig) ?? TRITON_AUTOTUNE_CONFIGS[1];
   const selectedPlan = getPyTorchExecutionPlan(integrationChoice, autotuneConfig);
   const gluonSource = getSourcesForModule("triton").find((source) => source.id === TRITON_GLUON_PREVIEW.sourceId);
 
   function runTests() {
-    const planAtRun = selectedPlan;
-    setRunSnapshot(null);
-    setRunState("running");
-    window.setTimeout(() => {
-      setRunSnapshot(planAtRun);
-      setRunState("passed");
-      const next = Math.max(completedLabs, 2);
-      setCompletedLabs(next);
-      writeText(acquireStorage(window), "kernel-lab-completed", String(next));
-    }, 900);
+    setRunSnapshot(selectedPlan);
+    const size = autotuneConfig === "latency" ? 128 : autotuneConfig === "throughput" ? 512 : 256;
+    setMaskResults([1, 257, 65_537].map((n) => modelMaskedLaunch(n, size, masked)));
+    setRunState("modeled");
+  }
+
+  function toggleReviewed() {
+    setReviewed(!reviewed);
+    writeText(acquireStorage(window), "kernel-lab-mask-reviewed-v2", String(!reviewed));
   }
 
   function saveNote() {
@@ -249,7 +251,7 @@ export default function PyTorchTritonEmbedded() {
           <h2>Vector addition:<br />from schema to kernel</h2>
           <div className="mission-meta"><span>◷ 35 min</span><span>◆ Medium</span><span>⌁ GPU</span></div>
           <div className="progress-track"><i style={{ width: `${progress}%` }} /></div>
-          <div className="progress-label"><span>Total progress</span><strong>{progress}%</strong></div>
+          <div className="progress-label"><span>This example: self-assessment</span><strong>{progress}%</strong></div>
         </aside>
         <div className="hero-index" aria-hidden="true">01</div>
       </section>
@@ -299,13 +301,13 @@ export default function PyTorchTritonEmbedded() {
         </div>
         <div className="integration-decision-matrix">
           <div className="decision-options" role="group" aria-label="PyTorch integration choices">
-            {PYTORCH_INTEGRATION_DECISIONS.map((decision) => <button key={decision.id} aria-pressed={integrationChoice === decision.id} onClick={() => setIntegrationChoice(decision.id)}>{decision.label}</button>)}
+            {PYTORCH_INTEGRATION_DECISIONS.map((decision) => <button key={decision.id} aria-pressed={integrationChoice === decision.id} onClick={() => { setIntegrationChoice(decision.id); setRunState("idle"); setRunSnapshot(null); }}>{decision.label}</button>)}
           </div>
           <p className="decision-result" aria-live="polite"><strong>{selectedDecision.label}</strong>{selectedDecision.summary}</p>
           <pre className="integration-code" data-branch={selectedPlan.branch} tabIndex={0} aria-label="Selected integration branch code"><code>{selectedPlan.code}</code></pre>
           <div className="autotune-control">
             <label htmlFor="triton-autotune">Autotune acceptance profile</label>
-            <select id="triton-autotune" className="autotune-select" value={autotuneConfig} onChange={(event) => setAutotuneConfig(event.target.value as typeof autotuneConfig)}>
+            <select id="triton-autotune" className="autotune-select" value={autotuneConfig} onChange={(event) => { setAutotuneConfig(event.target.value as typeof autotuneConfig); setRunState("idle"); setRunSnapshot(null); }}>
               {TRITON_AUTOTUNE_CONFIGS.map((config) => <option key={config.id} value={config.id}>{config.label}</option>)}
             </select>
             <p className="autotune-result" aria-live="polite"><code>{selectedAutotune.config}</code><span>{selectedAutotune.acceptance}</span></p>
@@ -340,7 +342,7 @@ export default function PyTorchTritonEmbedded() {
           <div className="lab-main">
             <div className="editor-pane">
               <div className="editor-heading"><span>{codeTab === "triton" ? "TRITON IMPLEMENTATION" : "PYTORCH CUSTOM OP"}</span><span>Python</span></div>
-              <pre aria-label={`${codeTab} sample code`} tabIndex={0}><code>{(codeTab === "triton" ? tritonCode : selectedPlan.code).split("\n").map((line, index) => <span className="code-line" key={index}><i>{index + 1}</i>{line || " "}</span>)}</code></pre>
+              <pre aria-label={`${codeTab} sample code`} tabIndex={0}><code>{(codeTab === "triton" ? (masked ? tritonCode : tritonCode.replaceAll(", mask=mask", "")) : selectedPlan.code).split("\n").map((line, index) => <span className="code-line" key={index}><i>{index + 1}</i>{line || " "}</span>)}</code></pre>
             </div>
             <aside className="task-pane">
               <p className="task-kicker">TASK 02.3</p>
@@ -349,30 +351,28 @@ export default function PyTorchTritonEmbedded() {
               <div className="checks">
                 <label><input type="checkbox" defaultChecked /><span>Get program ID</span></label>
                 <label><input type="checkbox" defaultChecked /><span>Generate offset vector</span></label>
-                <label><input type="checkbox" /><span>Apply the bounds mask</span></label>
+                <label><input type="checkbox" checked={masked} onChange={(event) => { setMasked(event.target.checked); setRunState("idle"); setRunSnapshot(null); }} /><span>Apply the bounds mask</span></label>
               </div>
               <div className="hint"><span>CLUE</span><p>Each program processes one block. Use <code>offsets &lt; n</code> to identify valid elements.</p></div>
-              <button className={`run-button ${runState}`} onClick={runTests} disabled={runState === "running"}>
-                <span>{runState === "running" ? "RUNNING TESTS" : runState === "passed" ? "RUN AGAIN" : "RUN TESTS"}</span><b>{runState === "running" ? "···" : "▶"}</b>
-              </button>
+              <button className={`run-button ${runState}`} onClick={runTests}><span>CALCULATE MASK MODEL</span><b>▶</b></button>
             </aside>
           </div>
 
           <div className={`console ${runState}`} aria-live="polite">
-            <div className="console-title"><span>TEST CONSOLE</span><span>{runState === "passed" ? "4/4 PASSED" : runState === "running" ? "RUNNING" : "READY"}</span></div>
-            {runState === "idle" && <p><span className="prompt">$</span> Ready to initialize opcheck and correctness matrix.</p>}
-            {runState === "running" && <p><span className="prompt">›</span> n ∈ [1, 257, 65_537] · Comparing fp32/fp16…</p>}
-            {runState === "passed" && <div className="test-results"><p><b>✓</b> {runSnapshot?.boundaries.opcheck === "registration" ? "opcheck: registration + schema" : "opcheck: outside this branch"}</p><p><b>✓</b> numerical: separate reference</p><p><b>✓</b> gradient: separate evidence</p><p><b>✓</b> masked n=257 boundary</p></div>}
+            <div className="console-title"><span>CPU EDUCATIONAL MODEL</span><span>{runState === "modeled" ? "CALCULATED" : "READY"}</span></div>
+            {runState === "idle" && <p>Toggle the mask and calculate lanes accessing invalid addresses. No GPU tests are executed.</p>}
+            {runState === "modeled" && <div className="test-results">{maskResults.map((result) => <p key={result.n} data-out-of-bounds={result.outOfBounds}><b>{result.outOfBounds ? "!" : "✓"}</b> n={result.n} · {result.programs} programs · {result.outOfBounds} out-of-bounds lanes</p>)}</div>}
             <p className="run-context" data-branch={runSnapshot?.branch ?? ""}>{runSnapshot ? `${runSnapshot.runLabel} · ${runSnapshot.configEffect}` : ""}</p>
           </div>
         </div>
 
         <div className="evidence-strip">
-          <div><span>TRUTH</span><strong>{runState === "passed" ? "4 / 4" : "—/4"}</strong><small>shape × dtype</small></div>
-          <div><span>MEDIAN</span><strong>{runState === "passed" ? "18.7 µs" : "— µs"}</strong><small>100 reps</small></div>
-          <div><span>BANDWIDTH</span><strong>{runState === "passed" ? "612 GB/s" : "— GB/s"}</strong><small>illustrative simulation</small></div>
-          <div className="proof-note"><i>!</i><p>Illustrative simulation output; it was not measured on your device. It is not portfolio proof until you measure it on your own GPU.</p></div>
+          <div><span>GPU CORRECTNESS</span><strong>Not measured</strong><small>opcheck + numerical + gradient tests required</small></div>
+          <div><span>MEDIAN</span><strong>— µs</strong><small>No hardware measurement</small></div>
+          <div><span>BANDWIDTH</span><strong>— GB/s</strong><small>No hardware measurement</small></div>
+          <div className="proof-note"><i>!</i><p>Only program and lane counts are calculated. Numerical correctness, gradients, and performance require separate evidence on your GPU.</p></div>
         </div>
+        <button className="review-example" aria-pressed={reviewed} onClick={toggleReviewed}>{reviewed ? "Example reviewed ✓" : "Mark this example reviewed"}</button>
       </section>
 
       <section className="section model-section" id="model">

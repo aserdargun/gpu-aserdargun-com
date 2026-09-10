@@ -10,8 +10,9 @@ function run(command, args) {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
-run("npm", ["run", "stop:local"]);
+// Validation must not stop a reader's preview or require ownership of a shared port.
 run("npm", ["run", "lint"]);
+run("npm", ["run", "typecheck"]);
 run("npm", ["test"]);
 run("npm", ["run", "verify:azure"]);
 run("git", ["diff", "--check"]);

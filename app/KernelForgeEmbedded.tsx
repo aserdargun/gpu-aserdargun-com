@@ -165,17 +165,17 @@ function runBashSandbox(code: string) {
 }
 
 function runCppPreview(code: string) {
-  if (!code.includes("int main")) return "derleme hatası: program giriş noktası 'int main()' bulunamadı";
+  if (!code.includes("int main")) return "önizleme sınırı: program giriş noktası 'int main()' bulunamadı";
   const opens = (code.match(/{/g) || []).length;
   const closes = (code.match(/}/g) || []).length;
-  if (opens !== closes) return `derleme hatası: eşleşmeyen süslü parantez (${opens} açılış / ${closes} kapanış)`;
+  if (opens !== closes) return `önizleme sınırı: eşleşmeyen süslü parantez (${opens} açılış / ${closes} kapanış)`;
   const output: string[] = [];
   const totalMatch = code.match(/std::vector<int>\s+\w+\s*\{([^}]+)\}/);
   const total = totalMatch?.[1].split(",").map(Number).reduce((a, b) => a + b, 0);
   for (const match of code.matchAll(/std::cout\s*<<\s*"([^"]*)"(?:\s*<<\s*(\w+))?/g)) {
     output.push(match[1] + (match[2] === "total" && total !== undefined ? total : ""));
   }
-  return `✓ clang++ -std=c++23 · derleme başarılı\n\n${output.join("\n") || "Program 0 koduyla sonlandı."}\n\n[Not: Bu C++ laboratuvarı hızlı sözdizimi/çıktı simülasyonudur.]`;
+  return `C++ çıktı önizlemesi · derleyici çalıştırılmadı\n\n${output.join("\n") || "Tanınan çıktı kalıbı yok."}\n\n[Not: Yalnız basit çıktı kalıpları gösterilir; geçerli C++ olduğu doğrulanmaz.]`;
 }
 
 export default function KernelForgeEmbedded() {
@@ -196,7 +196,7 @@ export default function KernelForgeEmbedded() {
     window.queueMicrotask(() => setCompleted(saved));
   }, []);
 
-  const progress = Math.round((completed.length / 15) * 100);
+  const progress = Math.round((completed.filter((id) => !id.startsWith("q-")).length / 15) * 100);
   const capabilityStatus = getCapabilityRecordStatus(capabilityRecord);
   const filteredQuestions = useMemo(() => questions.filter((item) =>
     (activeTrack === item.track || query.length > 0) && `${item.q} ${item.a}`.toLocaleLowerCase("tr").includes(query.toLocaleLowerCase("tr"))
@@ -214,7 +214,7 @@ export default function KernelForgeEmbedded() {
     setRunning(true);
     setOutput("Çalıştırılıyor…");
     try {
-      if (lab === "bash") setOutput(`$ bash main.sh\n\n${runBashSandbox(code)}\n\n✓ exit code 0`);
+      if (lab === "bash") setOutput(`$ bash main.sh\n\n${runBashSandbox(code)}\n\n[Bash çıktı modeli: sistem komutu çalıştırılmadı.]`);
       else if (lab === "cpp") setOutput(runCppPreview(code));
       else {
         const win = window as typeof window & { loadPyodide?: (options: { indexURL: string }) => Promise<{ runPythonAsync: (source: string) => Promise<unknown>; setStdout: (o: { batched: (s: string) => void }) => void; setStderr: (o: { batched: (s: string) => void }) => void }>; pyodide?: unknown };

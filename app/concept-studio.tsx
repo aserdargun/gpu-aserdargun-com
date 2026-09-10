@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { Locale } from "./i18n";
 
 export type StudioKind =
@@ -96,7 +96,7 @@ const scenarioMeta: Record<StudioKind, Scenario> = {
       label: "PyTorch · Triton",
       headline: "From a PyTorch op to a Triton kernel",
       intro: "How does an operator idea become a masked kernel running on the GPU? The Python side and the GPU side flow side by side.",
-      why: "Triton is the fastest path to custom operators that reach the GPU without CUDA C++; masking and the program ID are its two core ideas.",
+      why: "Triton offers a productive path to custom GPU operators without CUDA C++; masking and the program ID are its two core ideas.",
     },
   },
   operators: {
@@ -396,7 +396,7 @@ const stepCopy: Record<StudioKind, Record<Locale, StepCopy[]>> = {
       { title: "Prefill", caption: "The whole prompt is processed in one parallel pass; each token's key/value (KV) vectors are written to the cache." },
       { title: "First token → TTFT", caption: "The first answer token appears. The wait the user felt is TTFT: the longer the prompt, the longer the wait." },
       { title: "The decode loop", caption: "From here it is sequential: each step processes only the last token and produces one new token." },
-      { title: "The weight bottleneck", caption: "Every step reads all model weights but does little math: decode is memory-bandwidth bound." },
+      { title: "The weight bottleneck", caption: "Each step may read a large share of the weights while doing limited work per token; decode is often bandwidth-bound, depending on batching and configuration." },
       { title: "KV cache grows", caption: "Each new token appends to the KV cache; VRAM fills up. When it is full, new requests must queue." },
       { title: "Continuous batching", caption: "Continuous batching: a finished request frees its slot immediately and a new one joins; the GPU stays busy." },
       { title: "The metrics", caption: "TTFT is the wait, ITL is the smoothness, throughput is the cost. You manage all three together." },
@@ -1317,26 +1317,44 @@ const stages: Record<StudioKind, (props: StageProps) => React.ReactElement> = {
   systems: StageSystems,
 };
 
+const motionQuery = "(prefers-reduced-motion: reduce)";
+function subscribeMotion(callback: () => void) {
+  const media = window.matchMedia(motionQuery);
+  media.addEventListener("change", callback);
+  return () => media.removeEventListener("change", callback);
+}
+const readMotion = () => window.matchMedia(motionQuery).matches;
+const serverMotion = () => true;
+
 export default function ConceptStudio({ kind, locale }: { kind: StudioKind; locale: Locale }) {
   const meta = scenarioMeta[kind][locale];
   const steps = stepCopy[kind][locale];
   const copy = studioUi[locale];
   const [step, setStep] = useState(0);
-  const [playing, setPlaying] = useState(true);
+  const [playing, setPlaying] = useState(false);
+  const [inView, setInView] = useState(false);
+  const reducedMotion = useSyncExternalStore(subscribeMotion, readMotion, serverMotion);
+  const isPlaying = playing && !reducedMotion && inView;
   const [fast, setFast] = useState(false);
   const frameRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!playing) return;
+    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting));
+    if (frameRef.current) observer.observe(frameRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!isPlaying) return;
     const id = window.setInterval(() => setStep((value) => (value + 1) % steps.length), fast ? 1700 : STEP_MS);
     return () => window.clearInterval(id);
-  }, [playing, fast, steps.length]);
+  }, [isPlaying, fast, steps.length]);
 
   const Stage = stages[kind];
   const go = (next: number) => setStep(((next % steps.length) + steps.length) % steps.length);
 
   return (
-    <section className="concept-studio" aria-label={copy.kicker}>
+    <section className="concept-studio" data-playing={isPlaying} aria-label={copy.kicker}>
       <div className="cs-head">
         <div>
           <p className="cs-kicker">{copy.kicker}</p>
@@ -1348,7 +1366,7 @@ export default function ConceptStudio({ kind, locale }: { kind: StudioKind; loca
         <div className="cs-stage" ref={frameRef}>
           <span className="cs-corner">{meta.label}</span>
           <Stage step={step} locale={locale} />
-          <div className="cs-captionbar" aria-live="polite">
+          <div className="cs-captionbar" aria-live={isPlaying ? "off" : "polite"}>
             <b>
               {copy.stepOf} {step + 1}/{steps.length} · {steps[step].title}
             </b>
@@ -1357,11 +1375,11 @@ export default function ConceptStudio({ kind, locale }: { kind: StudioKind; loca
         </div>
         <aside className="cs-side">
           <div className="cs-controls">
-            <button onClick={() => go(step - 1)} aria-label={copy.prev}>◀</button>
-            <button className="cs-play" onClick={() => setPlaying(!playing)} aria-label={playing ? copy.pause : copy.play}>
-              {playing ? "❙❙" : "▶"}
+            <button onClick={() => { go(step - 1); setPlaying(false); }} aria-label={copy.prev}>◀</button>
+            <button className="cs-play" disabled={reducedMotion} aria-pressed={isPlaying} title={reducedMotion ? (locale === "tr" ? "Azaltılmış hareket: adımları elle ilerlet." : "Reduced motion: advance steps manually.") : undefined} onClick={() => setPlaying(!playing)} aria-label={isPlaying ? copy.pause : copy.play}>
+              {isPlaying ? "❙❙" : "▶"}
             </button>
-            <button onClick={() => go(step + 1)} aria-label={copy.next}>▶</button>
+            <button onClick={() => { go(step + 1); setPlaying(false); }} aria-label={copy.next}>▶</button>
             <button onClick={() => { setStep(0); setPlaying(false); }} aria-label={copy.restart}>↺</button>
             <button className="cs-speed" onClick={() => setFast(!fast)} aria-label={`${copy.speedLabel}: ${fast ? "2×" : "1×"}`}>{fast ? "2×" : "1×"}</button>
           </div>
@@ -1373,13 +1391,13 @@ export default function ConceptStudio({ kind, locale }: { kind: StudioKind; loca
           <div className="cs-steps">
             <small>{copy.stepsLabel.toUpperCase()}</small>
             {steps.map((item, index) => (
-              <button key={item.title} className={index === step ? "cur" : ""} onClick={() => { setStep(index); setPlaying(false); }}>
+              <button key={item.title} className={index === step ? "cur" : ""} aria-current={index === step ? "step" : undefined} onClick={() => { setStep(index); setPlaying(false); }}>
                 <i>{String(index + 1).padStart(2, "0")}</i>
                 <span>{item.title}</span>
               </button>
             ))}
           </div>
-          <p className="cs-hint">{copy.hint}</p>
+          <p className="cs-hint">{reducedMotion ? (locale === "tr" ? "Azaltılmış hareket etkin. Adımları oklarla veya listeden elle ilerlet." : "Reduced motion is enabled. Advance manually using the arrows or step list.") : copy.hint}</p>
           <div className="cs-why">
             <span>{copy.whyLabel}</span>
             <p>{meta.why}</p>

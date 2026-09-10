@@ -123,6 +123,9 @@ export function AtlasNavigation({
     const previousOverflow = document.body.style.overflow;
     const mobileViewport = window.matchMedia("(max-width: 820px)");
     let shouldReturnFocus = true;
+    const background = Array.from(document.querySelectorAll<HTMLElement>(".atlas-topbar, .atlas-sidebar, #atlas-content"));
+    const inertBefore = background.map((element) => element.inert);
+    background.forEach((element) => { element.inert = true; });
     document.body.style.overflow = "hidden";
     closeButtonRef.current?.focus();
 
@@ -163,6 +166,7 @@ export function AtlasNavigation({
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
       mobileViewport.removeEventListener("change", handleBreakpointChange);
+      background.forEach((element, index) => { element.inert = inertBefore[index]; });
       document.body.style.overflow = previousOverflow;
       if (shouldReturnFocus) returnFocusToMenuButton();
     };

@@ -27,6 +27,11 @@ export function ModuleFrame({ module, locale, completed, showCompletionActions, 
     window.scrollTo({ top: 0, behavior: "auto" });
     root.style.scrollBehavior = previousScrollBehavior;
     headingRef.current?.focus({ preventScroll: true });
+    // Lazy-loaded sections only exist after this frame mounts.
+    const frame = requestAnimationFrame(() => {
+      if (window.location.hash) document.getElementById(window.location.hash.slice(1))?.scrollIntoView();
+    });
+    return () => cancelAnimationFrame(frame);
   }, [module.id]);
 
   return (
@@ -54,7 +59,7 @@ export function ModuleFrame({ module, locale, completed, showCompletionActions, 
         <section className="module-finish">
           <div><span>ATLAS {module.index} / 12</span><h2>{copy.learned}<br /><em>{copy.record}</em></h2></div>
           <div className="finish-actions">
-            <button data-testid="atlas-complete" className={completed ? "complete done" : "complete"} onClick={onToggleComplete}>{completed ? copy.completed : copy.complete}</button>
+            <button data-testid="atlas-complete" aria-pressed={completed} className={completed ? "complete done" : "complete"} onClick={onToggleComplete}>{completed ? copy.completed : copy.complete}</button>
             <button data-testid="atlas-next" className="next" onClick={onNext}>{copy.next}</button>
           </div>
         </section>

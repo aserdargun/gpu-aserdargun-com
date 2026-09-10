@@ -48,7 +48,7 @@ export function AtlasShell({
           <button className={locale === "tr" ? "active" : undefined} onClick={() => onLocaleChange("tr")} aria-pressed={locale === "tr"}>TR</button>
           <button className={locale === "en" ? "active" : undefined} onClick={() => onLocaleChange("en")} aria-pressed={locale === "en"}>EN</button>
         </div>
-        <div className="atlas-progress" aria-label={`${copy.progress} ${progress}`}>
+        <div className="atlas-progress" role="progressbar" aria-label={copy.progress} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
           <span>{completedCount}/{totalCount} {locale === "tr" ? "ATLAS" : "ATLASES"}</span>
           <i aria-hidden="true"><b style={{ width: `${progress}%` }} /></i>
         </div>
