@@ -1992,7 +1992,7 @@ test("bare root safely applies stored locale before browser fallback while expli
     await preferencePage.goto(preferenceCase.path, { waitUntil: "domcontentloaded" });
     await expect(preferencePage.locator("html"), preferenceCase.name).toHaveAttribute("data-atlas-ready", "true");
     await expectLocalizedDocumentHead(preferencePage, preferenceCase.expected);
-    await expect(preferencePage, preferenceCase.name).toHaveURL(preferenceCase.expected === "en" ? /\/en\/$/ : /:\d+\/$/);
+    await expect(preferencePage, preferenceCase.name).toHaveURL((url) => url.pathname === (preferenceCase.expected === "en" ? "/en/" : "/") && url.search === "");
     await expect(preferencePage.evaluate(() => window.sessionStorage.getItem("preference-loads")), preferenceCase.name).resolves.toBe(preferenceCase.loads);
     if (preferenceCase.loads === "2") {
       await expect(preferencePage.evaluate(() => window.sessionStorage.getItem("bare-root-ready-seen")), `${preferenceCase.name} must redirect before marking the Turkish document ready`).resolves.toBeNull();
@@ -2009,7 +2009,7 @@ test("bare root safely applies stored locale before browser fallback while expli
   await deniedPage.goto("/", { waitUntil: "domcontentloaded" });
   await expect(deniedPage.locator("html")).toHaveAttribute("data-atlas-ready", "true");
   await expectLocalizedDocumentHead(deniedPage, "tr");
-  await expect(deniedPage).toHaveURL(/:\d+\/$/);
+  await expect(deniedPage).toHaveURL((url) => url.pathname === "/" && url.search === "");
   await deniedContext.close();
 });
 
