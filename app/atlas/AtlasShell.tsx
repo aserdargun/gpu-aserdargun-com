@@ -65,7 +65,12 @@ export function AtlasShell({
 
       <div className="atlas-workspace">
         <AtlasNavigation {...navigationProps} menuButtonRef={menuButtonRef} />
-        <main className="atlas-content" id="atlas-content" tabIndex={-1}>{children}</main>
+        <main className="atlas-content" id="atlas-content" tabIndex={-1}>
+          {children}
+          <footer className="atlas-portfolio-footer">
+            <a href={`https://aserdargun.com/${locale === "tr" ? "tr/" : ""}`}>{locale === "tr" ? "← aserdargun.com · Öğrenme sistemine dön" : "← aserdargun.com · Back to the learning system"}</a>
+          </footer>
+        </main>
       </div>
     </div>
   );

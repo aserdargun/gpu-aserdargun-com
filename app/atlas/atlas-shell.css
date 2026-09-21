@@ -68,6 +68,19 @@
   .atlas-side-foot > i { width: 100%; margin: 9px 0 7px; }
   .atlas-side-foot small { color: #849196; font-size: 9px; }
   .atlas-content { min-width: 0; }
+  .learning-connections h2, .module-sources h2 { font-size: clamp(26px, 3vw, 40px); line-height: 1.15; }
+  .learning-connection-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; }
+  .learning-connection-grid a { min-width: 0; padding: 22px; border: 1px solid var(--line); background: var(--panel); color: var(--text); text-decoration: none; overflow-wrap: anywhere; }
+  .learning-connection-grid a:hover { border-color: var(--lime); }
+  .learning-connection-grid b { font-size: 15px; line-height: 1.5; }
+  .learning-connection-grid p, .module-sources > p, .module-finish > div > p { max-width: 720px; color: #a8b5ba; font-size: 13px; line-height: 1.7; }
+  .learning-connection-grid small { color: var(--lime); }
+  .module-sources ul { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; padding: 0; list-style: none; }
+  .module-sources li { min-width: 0; padding: 16px; border: 1px solid var(--line); overflow-wrap: anywhere; }
+  .module-sources a { display: inline-block; color: var(--cyan); font-size: 14px; line-height: 1.6; }
+  .module-sources small { display: block; margin-top: 10px; color: #a8b5ba; font-size: 11px; line-height: 1.6; }
+  .atlas-portfolio-footer { padding: 28px; border-top: 1px solid var(--line); }
+  .atlas-portfolio-footer a { display: inline-block; padding-block: 12px; color: var(--cyan); font-size: 13px; line-height: 1.6; }
   .atlas-content > .hero h1:focus { outline: none; }
 
   .atlas-drawer-layer { position: fixed; inset: 0; z-index: 60; }

@@ -13,7 +13,7 @@ export const CAPABILITY_FIELDS: ReadonlyArray<{ key: CapabilityFieldKey; label: 
   { key: "gpuModel", label: "GPU modeli", hint: "örn. NVIDIA H100" },
   { key: "computeCapability", label: "Compute capability", hint: "örn. 9.0 / sm_90" },
   { key: "driver", label: "Sürücü", hint: "örn. 580.xx" },
-  { key: "toolkit", label: "CUDA veya ROCm sürümü", hint: "örn. CUDA 13.3" },
+  { key: "toolkit", label: "CUDA veya ROCm sürümü", hint: "örn. kurulu CUDA sürümü" },
   { key: "framework", label: "Framework sürümü", hint: "örn. PyTorch 2.x" },
   { key: "compilerFlags", label: "Derleyici bayrakları", hint: "örn. -O3 -arch=sm_90" },
   { key: "benchmarkCommand", label: "Kıyaslama komutu", hint: "örn. ncu -o baseline …" },
@@ -47,7 +47,7 @@ const tracks: Array<{
     label: "Python",
     mark: "Py",
     color: "#7dd3fc",
-    version: "Python 3.14.6",
+    version: "Python 3.14.7",
     note: "Temiz koddan production araçlarına",
     lessons: ["Veri modeli & koleksiyonlar", "Fonksiyonlar, kapanışlar ve dekoratörler", "Tür belirtimi, dataclass ve protokol", "Yineleyici, üretici ve bağlam yöneticisi", "asyncio ve eşzamanlılık", "Paketleme, test ve profil çıkarma"],
   },
@@ -56,7 +56,7 @@ const tracks: Array<{
     label: "Linux & Bash",
     mark: "$_",
     color: "#a7f3d0",
-    version: "Kernel 7.1.5 stable",
+    version: "Kernel 7.2.7 stable",
     note: "Shell hâkimiyeti ve sistem temelleri",
     lessons: ["Dosya sistemi & izinler", "Süreç, sinyal ve iş denetimi", "Pipe, redirect & text araçları", "Bash scripting güvenliği", "Systemd, loglar & ağ", "Performans gözlemi"],
   },
@@ -74,7 +74,7 @@ const tracks: Array<{
     label: "CMake",
     mark: "CM",
     color: "#c4b5fd",
-    version: "CMake 4.4",
+    version: "CMake 4.4.3",
     note: "Modern target tabanlı build sistemleri",
     lessons: ["Yapılandır → üret → derle", "Hedefler ve kullanım gereksinimleri", "Kütüphaneler ve geçişli bağımlılıklar", "Önayarlar ve araç zincirleri", "CTest, kurulum ve paketleme", "CPS & instrumentation"],
   },
@@ -261,7 +261,7 @@ export default function KernelForgeEmbedded() {
           ))}
           <div className="sidebar-card">
             <span className="pulse-dot" />
-            <div><b>Sürüm radarı</b><p>Resmî kaynaklarla 04.09.2026 tarihinde doğrulandı.</p></div>
+            <div><b>Sürüm radarı</b><p>Sürüm görünümü: 21.09.2026. Kurulu ortamın ve GPU araç zincirinin uyumluluğunu ayrıca kontrol et.</p></div>
           </div>
         </aside>
 

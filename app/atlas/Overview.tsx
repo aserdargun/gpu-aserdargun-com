@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import type { Locale } from "../i18n";
 import { ArchitectureMatrix } from "./ArchitectureMatrix";
 import { GexCompanion } from "./GexCompanion";
+import { LearningConnections } from "./LearningConnections";
 import { uiByLocale } from "./copy";
 import { roadmapByLocale } from "./module-registry";
 import type { AtlasModule, ModuleId } from "./types";
@@ -75,6 +76,7 @@ export function Overview({ locale, modules, completedIds, lastVisitedId, onOpenM
       </section>
 
       <GexCompanion locale={locale} />
+      <LearningConnections locale={locale} />
       <ArchitectureMatrix locale={locale} />
 
       <section className="maturity-policy section-block" data-testid="atlas-maturity-policy" aria-labelledby="maturity-policy-title">
@@ -132,6 +134,7 @@ export function Overview({ locale, modules, completedIds, lastVisitedId, onOpenM
           <div><b>1</b><p>{copy.report}</p></div>
           <div><b>≥80%</b><p>{copy.interview}</p></div>
         </div>
+        <p className="preview-caveat">{copy.capstoneCaveat}</p>
       </section>
     </>
   );

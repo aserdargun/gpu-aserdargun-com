@@ -511,7 +511,7 @@ function MemorySection() {
       <SectionHead
         label="SECTION 04 · LASTING KNOWLEDGE"
         title={<>Cards that <em>stick</em> across every atlas.</>}
-        note="Build associations instead of memorizing. These cards give you hooks to recall the terms a year from now."
+        note="Build associations between concepts. Use these cards as prompts for later recall practice."
       />
       <div className="vf-knowledge">
         {knowledgeCards.map((card) => (
@@ -1204,7 +1204,7 @@ const codePatterns = [
       { type: "st", text: ") {" },
     ],
     annotations: [
-      "Read float4 (16 B): 32 threads × 16 B = 512 B = 4 sectors. Fully coalesced.",
+      "Aligned contiguous float4 access: 32 threads × 16 B = 512 B, covering 16 sectors of 32 B (four aligned 128 B regions). A sector is not a 128 B cache line.",
       "Strided or random indexing may reduce sector utilization; measure the actual pattern with a profiler.",
     ],
   },
@@ -1232,20 +1232,15 @@ const codePatterns = [
     tag: "REDUCTION",
     code: [
       { type: "ty", text: "int " },
-      { type: "nm", text: "val" },
-      { type: "st", text: " = " },
+      { type: "st", text: "val = threadIdx.x % 32;\n" },
+      { type: "kw", text: "for " },
+      { type: "st", text: "(int offset = 16; offset > 0; offset /= 2) {\n  val += " },
       { type: "fn", text: "__shfl_xor_sync" },
-      { type: "st", text: "(" },
-      { type: "nm", text: "0xffffffff" },
-      { type: "st", text: ", " },
-      { type: "nm", text: "val" },
-      { type: "st", text: ", " },
-      { type: "nm", text: "16" },
-      { type: "st", text: ");" },
+      { type: "st", text: "(0xffffffff, val, offset);\n}" },
     ],
     annotations: [
       "__shfl_xor_sync: register transfer between lanes. No shared memory needed.",
-      "Strides 16, 8, 4, 2, 1 in 5 steps sum 32 values. Zero shared memory traffic.",
+      "All 32 lanes must participate with the same full mask. XOR offsets 16, 8, 4, 2, 1 plus addition produce 496 (0 + … + 31) in every lane; a shuffle alone does not add.",
     ],
   },
   {
@@ -1516,7 +1511,7 @@ export default function VisualFoundationsEmbedded() {
         <div className="vf-foot">
           <div>
             <b>Lasting-Learning Triangle</b>
-            <p>Visual · Verbal · Retrieval. Applied together, knowledge lasts 5 years instead of 1.</p>
+            <p>Visual · Verbal · Retrieval. Revisit these explanations and test what you can recall without looking; no fixed retention period is promised.</p>
           </div>
           <div>
             <b>BEST SCORE · {bestScore ?? "—"} / 5</b>

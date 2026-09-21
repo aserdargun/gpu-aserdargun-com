@@ -1472,13 +1472,13 @@ for (const task7Case of [
         href: "https://developer.nvidia.com/blog/nvidia-cuda-13-1-powers-next-gen-gpu-programming-with-nvidia-cuda-tile-and-performance-gains/",
       },
       {
-        id: "cuda-tile-nvcc-13-3",
-        title: "NVIDIA CUDA Compiler Driver 13.3 — Tile Compilation",
+        id: "cuda-tile-nvcc-13-4",
+        title: "NVIDIA CUDA Compiler Driver 13.4 — Tile Compilation",
         href: "https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/",
       },
       {
-        id: "cutile-python-1-5-release",
-        title: "cuTile Python 1.5.0 Release Notes",
+        id: "cutile-python-1-6-release",
+        title: "cuTile Python 1.6.0 Release Notes",
         href: "https://docs.nvidia.com/cuda/cutile-python/generated/release_notes.html",
       },
     ]) {

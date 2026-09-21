@@ -3,6 +3,44 @@ import { expect, test } from "@playwright/test";
 for (const locale of ["tr", "en"] as const) {
   const route = locale === "tr" ? "/?lang=tr" : "/en/?lang=en";
 
+  test(`${locale} CUTLASS quiz restarts with a fresh bounded score`, async ({ page }) => {
+    await page.goto(`${route}&module=cutlass`);
+    const quiz = page.locator(".cutlass-cute-surface .quiz");
+    for (let round = 0; round < 2; round++) {
+      for (const [question, answer] of [3, 1, 2, 1].entries()) {
+        await quiz.locator(".answers button").nth(answer).click();
+        await expect(quiz.locator(".score")).toContainText(`${question + 1}/4`);
+        if (question === 3) {
+          await expect(quiz.locator(".quiz-feedback button")).toHaveText(locale === "tr" ? "Testi yeniden başlat ↻" : "Restart quiz ↻");
+        }
+        await quiz.locator(".quiz-feedback button").click();
+      }
+      await expect(quiz.locator(".score")).toContainText("0/4");
+    }
+  });
+
+  test(`${locale} every module exposes source dates and relevant portfolio paths`, async ({ page }) => {
+    await page.goto(route);
+    await expect(page.locator("html")).toHaveAttribute("data-atlas-ready", "true");
+    await expect(page.locator(".atlas-portfolio-footer a")).toHaveAttribute("href", `https://aserdargun.com/${locale === "tr" ? "tr/" : ""}`);
+    await expect(page.locator(".learning-connections")).toContainText(locale === "tr" ? "POL yalnızca İngilizcedir" : "POL is English only");
+    for (const id of ["visual", "toolchain", "architecture", "memory", "triton", "operators", "correctness", "profiling", "cutlass", "inference", "multigpu", "systems"]) {
+      await page.getByTestId(`atlas-module-${id}`).click();
+      await expect(page.getByTestId("atlas-module-title")).toBeVisible();
+      const sources = page.locator(".module-sources");
+      await expect(sources.locator("time").first()).toHaveAttribute("datetime", /^2026-09-(04|21)$/);
+      const urls = await sources.locator("a").evaluateAll((links) => links.map((link) => (link as HTMLAnchorElement).href));
+      expect(urls.length).toBeGreaterThan(0);
+      expect(new Set(urls).size).toBe(urls.length);
+      await expect(page.locator(".module-finish")).toContainText(locale === "tr" ? "kişisel ilerleme" : "personal progress");
+      if (id === "toolchain") await expect(page.locator(".learning-connections a")).toHaveAttribute("href", "https://pol.aserdargun.com/");
+      if (id === "inference") {
+        await expect(page.locator('.learning-connections a[href*="llm.aserdargun.com"]')).toHaveAttribute("href", `https://llm.aserdargun.com/${locale}`);
+        await expect(page.locator('.learning-connections a[href*="tfl.aserdargun.com"]')).toHaveAttribute("href", `https://tfl.aserdargun.com/?lang=${locale}`);
+      }
+    }
+  });
+
   test(`${locale} long-to-short studio transitions never reuse an invalid step`, async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(route);

@@ -4,6 +4,8 @@ import type { Locale } from "../i18n";
 import { architectureMeta } from "./ArchitectureMatrix";
 import { uiByLocale } from "./copy";
 import { GexCompanion } from "./GexCompanion";
+import { LearningConnections } from "./LearningConnections";
+import { ModuleSources } from "./ModuleSources";
 import type { AtlasModule } from "./types";
 
 export type ModuleFrameProps = {
@@ -44,6 +46,7 @@ export function ModuleFrame({ module, locale, completed, showCompletionActions, 
         </div>
         <h1 ref={headingRef} tabIndex={-1} data-testid="atlas-module-title">{module.title}</h1>
         <p>{module.description}</p>
+        <p className="preview-caveat">{copy.simulationCaveat}</p>
         <div className="tag-row">{module.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
         {module.maturity === "preview" || module.architectures.includes("rubin") ? <p className="preview-caveat">{copy.previewCaveat}</p> : null}
       </section>
@@ -55,9 +58,11 @@ export function ModuleFrame({ module, locale, completed, showCompletionActions, 
       </section>
       {children}
       <GexCompanion locale={locale} moduleId={module.id} />
+      <LearningConnections locale={locale} moduleId={module.id} />
+      <ModuleSources locale={locale} moduleId={module.id} />
       {showCompletionActions ? (
         <section className="module-finish">
-          <div><span>ATLAS {module.index} / 12</span><h2>{copy.learned}<br /><em>{copy.record}</em></h2></div>
+          <div><span>ATLAS {module.index} / 12</span><h2>{copy.learned}<br /><em>{copy.record}</em></h2><p>{copy.completionCaveat}</p></div>
           <div className="finish-actions">
             <button data-testid="atlas-complete" aria-pressed={completed} className={completed ? "complete done" : "complete"} onClick={onToggleComplete}>{completed ? copy.completed : copy.complete}</button>
             <button data-testid="atlas-next" className="next" onClick={onNext}>{copy.next}</button>

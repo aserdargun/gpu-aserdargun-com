@@ -5,11 +5,19 @@ export type CurriculumSource = Readonly<{
   moduleId: ModuleId;
   title: string;
   url: `https://${string}`;
-  verifiedAt: "2026-09-04";
+  verifiedAt: `${number}-${number}-${number}`;
   maturity: Maturity;
 }>;
 
 export const curriculumSources = [
+  {
+    id: "cuda-coalescing-best-practices",
+    moduleId: "visual",
+    title: "CUDA Best Practices: Coalesced Global Memory Access",
+    url: "https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html#coalesced-access-to-global-memory",
+    verifiedAt: "2026-09-21",
+    maturity: "core",
+  },
   {
     id: "cuda-guide-visual-foundations",
     moduleId: "visual",
@@ -43,19 +51,19 @@ export const curriculumSources = [
     maturity: "current",
   },
   {
-    id: "cuda-tile-nvcc-13-3",
+    id: "cuda-tile-nvcc-13-4",
     moduleId: "architecture",
-    title: "NVIDIA CUDA Compiler Driver 13.3 — Tile Compilation",
+    title: "NVIDIA CUDA Compiler Driver 13.4 — Tile Compilation",
     url: "https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/",
-    verifiedAt: "2026-09-04",
+    verifiedAt: "2026-09-21",
     maturity: "current",
   },
   {
-    id: "cutile-python-1-5-release",
+    id: "cutile-python-1-6-release",
     moduleId: "architecture",
-    title: "cuTile Python 1.5.0 Release Notes",
+    title: "cuTile Python 1.6.0 Release Notes",
     url: "https://docs.nvidia.com/cuda/cutile-python/generated/release_notes.html",
-    verifiedAt: "2026-09-04",
+    verifiedAt: "2026-09-21",
     maturity: "current",
   },
   {
@@ -167,7 +175,7 @@ export const curriculumSources = [
     moduleId: "cutlass",
     title: "CUTLASS Changelog",
     url: "https://docs.nvidia.com/cutlass/latest/CHANGELOG.html",
-    verifiedAt: "2026-09-04",
+    verifiedAt: "2026-09-21",
     maturity: "current",
   },
   {
@@ -231,7 +239,7 @@ export const curriculumSources = [
     moduleId: "cutlass",
     title: "CUTLASS Rubin SM107 Changelog",
     url: "https://docs.nvidia.com/cutlass/latest/CHANGELOG.html",
-    verifiedAt: "2026-09-04",
+    verifiedAt: "2026-09-21",
     maturity: "preview",
   },
   {
@@ -527,7 +535,7 @@ export const curriculumSources = [
     moduleId: "systems",
     title: "CUTLASS Rubin SM107 Changelog",
     url: "https://docs.nvidia.com/cutlass/latest/CHANGELOG.html",
-    verifiedAt: "2026-09-04",
+    verifiedAt: "2026-09-21",
     maturity: "preview",
   },
 ] as const satisfies readonly CurriculumSource[];

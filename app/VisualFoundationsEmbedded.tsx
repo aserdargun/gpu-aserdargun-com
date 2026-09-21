@@ -517,7 +517,7 @@ function MemorySection() {
       <SectionHead
         label="BÖLÜM 04 · KALICI BİLGİ"
         title={<>Her atlas için <em>kalıcı</em> bilgi kartları.</>}
-        note="Ezberlemek yerine 'çağrışım kur'. Bu kartlar, terimleri 1 yıl sonra bile hatırlamanı sağlayacak çengeller içerir."
+        note="Kavramlar arasında çağrışım kur. Bu kartları sonraki hatırlama çalışmalarında ipucu olarak kullan."
       />
       <div className="vf-knowledge">
         {knowledgeCards.map((card) => (
@@ -1210,7 +1210,7 @@ const codePatterns = [
       { type: "st", text: ") {" },
     ],
     annotations: [
-      "float4 (16 byte) oku: 32 thread × 16 B = 512 B = 4 sektör. Tam coalesced.",
+      "Hizalı ardışık float4 erişimi: 32 thread × 16 B = 512 B, 32 B’lık 16 sektörü kapsar (128 B’lık dört hizalı bölge). Sektör, 128 B’lık önbellek satırı değildir.",
       "Erişim aralığı veya rastgele indeksleme sektör kullanımını düşürebilir; gerçek verimliliği profiler ile ölç.",
     ],
   },
@@ -1238,20 +1238,15 @@ const codePatterns = [
     tag: "REDUCTION",
     code: [
       { type: "ty", text: "int " },
-      { type: "nm", text: "val" },
-      { type: "st", text: " = " },
+      { type: "st", text: "val = threadIdx.x % 32;\n" },
+      { type: "kw", text: "for " },
+      { type: "st", text: "(int offset = 16; offset > 0; offset /= 2) {\n  val += " },
       { type: "fn", text: "__shfl_xor_sync" },
-      { type: "st", text: "(" },
-      { type: "nm", text: "0xffffffff" },
-      { type: "st", text: ", " },
-      { type: "nm", text: "val" },
-      { type: "st", text: ", " },
-      { type: "nm", text: "16" },
-      { type: "st", text: ");" },
+      { type: "st", text: "(0xffffffff, val, offset);\n}" },
     ],
     annotations: [
       "__shfl_xor_sync: lane'ler arası kayıt aktarımı. Shared memory'ye yazmadan toplama.",
-      "Stride 16, 8, 4, 2, 1 ile 5 adım = 32 değerin toplamı. Shared memory'ye gerek yok.",
+      "32 lane’in tamamı aynı tam maskeyle katılmalıdır. XOR ofsetleri 16, 8, 4, 2, 1 ve toplama her lane’de 496 (0 + … + 31) üretir; shuffle tek başına toplamaz.",
     ],
   },
   {
@@ -1522,7 +1517,7 @@ export default function VisualFoundationsEmbedded() {
         <div className="vf-foot">
           <div>
             <b>Kalıcı Öğrenme Üçgeni</b>
-            <p>Görsel · Sözel · Geri-getirme. Üçü birlikte uygulanınca bilgi 1 yıl değil, 5 yıl kalıcı olur.</p>
+            <p>Görsel · Sözel · Hatırlama. Açıklamalara yeniden dön ve bakmadan neleri hatırladığını sına; sabit bir kalıcılık süresi vaat edilmez.</p>
           </div>
           <div>
             <b>EN İYİ SKOR · {bestScore ?? "—"} / 5</b>

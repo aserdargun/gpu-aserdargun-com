@@ -5,6 +5,9 @@ A bilingual Turkish/English interactive learning atlas for a 12-week GPU kernel 
 ## Highlights
 
 - Turkish and English UI with a visible `TR / EN` switch
+- Contextual POL, GEX, LLM, and TFL learning paths plus a locale-aware return to the aserdargun.com learning system; applications run independently and do not share progress
+- Per-module official source lists with document review dates, distinct from hardware validation
+- CUDA 13.4 and cuTile Python 1.6 evidence reviewed on September 21, 2026; other source records retain their own review dates
 - Shareable lessons (`?module=memory`), browser back/forward navigation, and language switching that preserves the open module
 - Laboratories load on demand, with isolated animation state and a localized recovery screen
 - Canonical shareable locale paths: Turkish at `/` and English at `/en/`; after hydration, bare `/` safely applies the saved locale first and browser language second through a full-path navigation
@@ -24,7 +27,10 @@ module switching. Each module retains its specialist laboratory body inside the
 shared product frame.
 
 Progress is intentionally stored only in this browser on this device: locale,
-completed module IDs, and the last visited module use local storage. Malformed
+completed module IDs, and the last visited module use local storage. Completion is
+a reversible self-assessment, not an uploaded report or verified qualification.
+Capstone performance thresholds are learning targets to measure on external GPU
+hardware, not promised speedups or browser-produced benchmark results. Malformed
 or obsolete stored values are safely ignored. There is no backend, account,
 analytics, cloud storage, synchronization, or cross-device progress sharing.
 The server-rendered and static bare root always stays Turkish for crawlers. In a

@@ -111,7 +111,7 @@ test("curriculum registry exposes only real approved first-party source entries"
   for (const source of curriculumSources) {
     assert.equal(typeof source.id, "string");
     assert.equal(typeof source.title, "string");
-    assert.equal(source.verifiedAt, "2026-09-04");
+    assert.match(source.verifiedAt, /^2026-09-(04|21)$/);
     assert.ok(["core", "current", "preview"].includes(source.maturity), `${source.id} has an unsupported maturity`);
     const url = new URL(source.url);
     assert.equal(url.protocol, "https:", `${source.id} must use HTTPS`);
@@ -561,7 +561,7 @@ test("Task 4 CUTLASS paths preserve direct source maturity and do not cross-asso
     "cutlass-blackwell-sm100": ["cutlass", "current", "2026-09-04", "CUTLASS Blackwell SM100 GEMMs", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/blackwell_functionality.html"],
     "cutlass-grouped-scheduler": ["cutlass", "current", "2026-09-04", "CUTLASS Grouped Kernel Schedulers", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/grouped_scheduler.html"],
     "cutlass-blackwell-clc": ["cutlass", "current", "2026-09-04", "CUTLASS Blackwell Cluster Launch Control", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/blackwell_cluster_launch_control.html"],
-    "cutlass-rubin-sm107": ["cutlass", "preview", "2026-09-04", "CUTLASS Rubin SM107 Changelog", "https://docs.nvidia.com/cutlass/latest/CHANGELOG.html"],
+    "cutlass-rubin-sm107": ["cutlass", "preview", "2026-09-21", "CUTLASS Rubin SM107 Changelog", "https://docs.nvidia.com/cutlass/latest/CHANGELOG.html"],
   };
   const expectedArchitectures = ["ada", "hopper", "blackwell", "rubin"];
 
@@ -690,7 +690,7 @@ test("Task 5 source records bind each systems claim to direct official evidence 
     assert.ok(source, `missing Task 5 source ${id}`);
     assert.deepEqual(
       [source.moduleId, source.maturity, source.verifiedAt, source.title, source.url],
-      [moduleId, maturity, "2026-09-04", title, url],
+      [moduleId, maturity, id === "systems-rubin-sm107" ? "2026-09-21" : "2026-09-04", title, url],
       `${id} source contract drifted`,
     );
   }

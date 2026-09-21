@@ -13,7 +13,7 @@ export const CAPABILITY_FIELDS: ReadonlyArray<{ key: CapabilityFieldKey; label: 
   { key: "gpuModel", label: "GPU model", hint: "e.g. NVIDIA H100" },
   { key: "computeCapability", label: "Compute capability", hint: "e.g. 9.0 / sm_90" },
   { key: "driver", label: "Driver", hint: "e.g. 580.xx" },
-  { key: "toolkit", label: "CUDA or ROCm version", hint: "e.g. CUDA 13.3" },
+  { key: "toolkit", label: "CUDA or ROCm version", hint: "e.g. installed CUDA version" },
   { key: "framework", label: "Framework version", hint: "e.g. PyTorch 2.x" },
   { key: "compilerFlags", label: "Compiler flags", hint: "e.g. -O3 -arch=sm_90" },
   { key: "benchmarkCommand", label: "Benchmark command", hint: "e.g. ncu -o baseline …" },
@@ -47,7 +47,7 @@ const tracks: Array<{
     label: "Python",
     mark: "Py",
     color: "#7dd3fc",
-    version: "Python 3.14.6",
+    version: "Python 3.14.7",
     note: "From clean code to production tools",
     lessons: ["Data model & collections", "Functions, closure & decorator", "Typing, dataclass & protocol", "Iterator, generator & context manager", "Asyncio & concurrency", "Packaging, testing & profiling"],
   },
@@ -56,7 +56,7 @@ const tracks: Array<{
     label: "Linux & Bash",
     mark: "$_",
     color: "#a7f3d0",
-    version: "Kernel 7.1.5 stable",
+    version: "Kernel 7.2.7 stable",
     note: "Shell dominance and system foundations",
     lessons: ["File system & permissions", "Process, signal & job control", "Pipe, redirect & text tools", "Bash scripting security", "Systemd, logs & network", "Performance observation"],
   },
@@ -74,7 +74,7 @@ const tracks: Array<{
     label: "CMake",
     mark: "CM",
     color: "#c4b5fd",
-    version: "CMake 4.4",
+    version: "CMake 4.4.3",
     note: "Modern target based build systems",
     lessons: ["Configure → generate → build", "Targets & usage requirements", "Libraries & transitive deps", "Presets & toolchains", "CTest, install & package", "CPS & instrumentation"],
   },
@@ -261,7 +261,7 @@ export default function KernelForgeEmbedded() {
           ))}
           <div className="sidebar-card">
             <span className="pulse-dot" />
-            <div><b>Version radar</b><p>Verified against official sources on September 4, 2026.</p></div>
+            <div><b>Version radar</b><p>Version snapshot: September 21, 2026. Check compatibility with your installed environment and GPU toolchain separately.</p></div>
           </div>
         </aside>
 

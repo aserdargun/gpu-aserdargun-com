@@ -21,7 +21,7 @@ export const CUDA_PROGRAMMING_BRIDGE = [
 
 export const CUDA_TILE_MATURITY = { cudaTile: "current", cuTile: "current" } as const;
 
-const architectureSources = ["cuda-guide", "cuda-tile", "cuda-tile-nvcc-13-3", "cutile-python-1-5-release"].map((id) => {
+const architectureSources = ["cuda-guide", "cuda-tile", "cuda-tile-nvcc-13-4", "cutile-python-1-6-release"].map((id) => {
   const source = curriculumSources.find((candidate) => candidate.id === id);
   if (!source) throw new Error(`Missing architecture source: ${id}`);
   return source;
@@ -229,8 +229,8 @@ export default function CudaSimtEmbedded() {
             <div className="tile-bridge-notes">
               <p><strong>Model sınırı:</strong> Döşeme programlama SIMT&apos;nin yerini almaz; iş parçacığı düzeyi denetim gereken kerneller için SIMT kalır, döşeme modeli blok düzeyi veri paralel işi tamamlar.</p>
               <p className={architectureSupport.tma ? "supported" : "unsupported"} aria-live="polite"><strong>TMA · {architectureSupport.tma ? "uygulanabilir" : "desteklenmiyor"}</strong>{architectureSupport.tma ? "Bulk asenkron tensor kopyası ve tensor map tanımlayıcıları bu mimari yolunda kullanılabilir." : architectureSupport.reason}</p>
-              <p data-version-claim="cuda-13.3" data-source-id="cuda-tile-nvcc-13-3"><strong>Güncel · CUDA 13.3:</strong> NVCC, <code>-enable-tile</code> ile isteğe bağlı Tile derlemesi ekler; kurulu toolkit, sürücü ve GPU önkoşullarını ayrıca doğrula.</p>
-              <p data-version-claim="cutile-1.5" data-source-id="cutile-python-1-5-release"><strong>Güncel · cuTile Python 1.5:</strong> sürümlenmiş paket doğrudan sürüm notlarında belgelenir; paket ve platform önkoşullarını ayrıca doğrula.</p>
+              <p data-version-claim="cuda-13.4" data-source-id="cuda-tile-nvcc-13-4"><strong>Güncel · CUDA 13.4:</strong> NVCC, 13.3 ile gelen Tile derlemesini <code>-enable-tile</code> ile etkinleştirir; kurulu toolkit, sürücü ve GPU önkoşullarını ayrıca doğrula.</p>
+              <p data-version-claim="cutile-1.6" data-source-id="cutile-python-1-6-release"><strong>Güncel · cuTile Python 1.6:</strong> CTK 13.4 özellikleri programatik bağımlı başlatma ve taşınabilir TileIR dışa aktarımını içerir. Sınır denetimi varsayılan olarak açıktır; kapatmak, erişilen her elemanın sınırlar içinde olduğunu kanıtlamayı gerektirir. Paket ve platform önkoşullarını ayrıca doğrula.</p>
             </div>
             <div className="architecture-source-evidence">
               <div className="architecture-source-heading">
@@ -242,7 +242,7 @@ export default function CudaSimtEmbedded() {
                   <article key={source.id} data-source-id={source.id} data-maturity={source.maturity}>
                     <span>GÜNCEL</span>
                     <h4><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a></h4>
-                    <p><strong>Uygulanabilirlik:</strong> {source.id === "cuda-guide" ? "Grid, block, warp, thread ve SIMT sınırları için birinci taraf başvuru kaynağıdır." : source.id === "cuda-tile" ? "Tile programlama yönü için tarihsel CUDA 13.1 bağlamıdır; sonraki sürüm iddialarını kanıtlamaz." : source.id === "cuda-tile-nvcc-13-3" ? "CUDA 13.3 Tile derlemesi ve -enable-tile için doğrudan NVCC kanıtıdır." : "cuTile Python 1.5 paketi için doğrudan sürüm kanıtıdır."}</p>
+                    <p><strong>Uygulanabilirlik:</strong> {source.id === "cuda-guide" ? "Grid, block, warp, thread ve SIMT sınırları için birinci taraf başvuru kaynağıdır." : source.id === "cuda-tile" ? "Tile programlama yönü için tarihsel CUDA 13.1 bağlamıdır; sonraki sürüm iddialarını kanıtlamaz." : source.id === "cuda-tile-nvcc-13-4" ? "CUDA 13.4 Tile derlemesi ve -enable-tile için doğrudan NVCC kanıtıdır." : "cuTile Python 1.6 paketi için doğrudan sürüm kanıtıdır."}</p>
                     <p><strong>Durum:</strong> {source.verifiedAt} tarihinde doğrulanmış Güncel kaynaktır; hedef toolkit, sürücü ve GPU koşullarını kaynak sürümüne göre ayrıca doğrula.</p>
                   </article>
                 ))}
