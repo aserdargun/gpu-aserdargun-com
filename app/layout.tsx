@@ -33,6 +33,8 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <meta property="og:title" content={copy.title} />
         <meta property="og:description" content={copy.socialDescription} />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content={canonical} />
+        <meta property="og:site_name" content="GPU Kernel Atlas" />
         <meta property="og:locale" content={copy.openGraphLocale} />
         <meta property="og:locale:alternate" content={copy.alternateLocale} />
         <meta property="og:image" content={image} />
@@ -48,7 +50,45 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <link rel="alternate" hrefLang="tr-TR" href="https://gpu.aserdargun.com/" />
         <link rel="alternate" hrefLang="en-US" href="https://gpu.aserdargun.com/en/" />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>{children}</body>
+      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        <noscript>
+          <div
+            style={{
+              maxWidth: "52rem",
+              margin: "3rem auto",
+              padding: "0 1rem",
+              fontFamily: "sans-serif",
+              lineHeight: 1.6,
+            }}
+          >
+            <h2>GPU Kernel Engineering — Kernel Atlas</h2>
+            <p>
+              A bilingual 12-week interactive atlas for CUDA, Triton, GPU
+              memory, LLM operators, correctness, profiling, inference, and
+              multi-GPU systems. The interactive laboratories need JavaScript;
+              the summary below does not.
+            </p>
+            <p lang="tr">
+              CUDA, Triton, GPU belleği, LLM işleçleri, doğruluk, profil
+              çıkarma, çıkarım ve çoklu GPU sistemleri için iki dilli, 12
+              haftalık etkileşimli atlas. Etkileşimli laboratuvarlar
+              JavaScript gerektirir; aşağıdaki özet gerektirmez.
+            </p>
+            <p>What this atlas covers:</p>
+            <ul>
+              <li>Visual GPU foundations and the supported architecture generations.</li>
+              <li>Global and shared memory, tiling, and PyTorch Triton kernels.</li>
+              <li>LLM operator patterns, correctness checks, and kernel safety review.</li>
+              <li>Profiling, inference systems, and multi-GPU communication.</li>
+            </ul>
+            <p>
+              Interactive laboratories are educational simulations. This atlas
+              does not publish measured hardware or performance results.
+            </p>
+          </div>
+        </noscript>
+        {children}
+      </body>
     </html>
   );
 }
