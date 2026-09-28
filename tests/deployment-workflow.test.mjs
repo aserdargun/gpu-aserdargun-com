@@ -8,11 +8,26 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const workflows = resolve(root, ".github/workflows");
 const expectedName = "deploy-swa-gpu-aserdargun-com.yml";
 
+const DEPLOY_ACTION = /Azure\/static-web-apps-deploy@/;
+const MUTABLE_ACTION = /uses:\s+[^\s]+@v\d/;
+
 test("one immutable production workflow deploys the verified out artifact", async () => {
   const files = (await readdir(workflows)).filter((name) => /\.ya?ml$/.test(name));
-  assert.deepEqual(files, [expectedName]);
+  const contents = new Map(
+    await Promise.all(files.map(async (name) => [name, await readFile(resolve(workflows, name), "utf8")])),
+  );
 
-  const workflow = await readFile(resolve(workflows, expectedName), "utf8");
+  // Exactly one workflow may publish to production. Other workflows, such as the
+  // pull-request validation gate, are allowed and must not carry the deploy action.
+  const deployers = files.filter((name) => DEPLOY_ACTION.test(contents.get(name)));
+  assert.deepEqual(deployers, [expectedName]);
+
+  // Every workflow in the repository pins its third-party actions to an immutable commit.
+  for (const [name, body] of contents) {
+    assert.doesNotMatch(body, MUTABLE_ACTION, `${name} must not reference a mutable action tag`);
+  }
+
+  const workflow = contents.get(expectedName);
   assert.match(workflow, /branches:\s*\n\s*- main/);
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /permissions:\s*\n\s*contents: read/);
