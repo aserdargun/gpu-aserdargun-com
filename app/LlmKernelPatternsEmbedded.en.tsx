@@ -3,8 +3,9 @@
 
 import { useMemo, useRef, useState } from "react";
 import { getSourcesForModule } from "./atlas/curriculum-sources";
+import { LLM_OPERATOR_TOPIC_IDS } from "./atlas/module-registry";
 
-export const LLM_TOPIC_IDS = ["gemm", "reduction", "softmax", "normalization", "attention", "grouped", "precision"] as const;
+export const LLM_TOPIC_IDS = LLM_OPERATOR_TOPIC_IDS;
 type TopicId = (typeof LLM_TOPIC_IDS)[number];
 type OperatorArchitecture = "ada" | "hopper" | "blackwell";
 

@@ -26,6 +26,13 @@ const architecturesById: Record<ModuleId, readonly ArchitectureId[]> = {
   systems: ["ada", "hopper", "blackwell", "rubin"],
 };
 
+// The architecture generations the atlas actually teaches, derived from the
+// per-module coverage above so the overview stat cannot claim a generation the
+// modules do not cover.
+export const ARCHITECTURE_IDS: readonly ArchitectureId[] = [
+  ...new Set(Object.values(architecturesById).flat()),
+];
+
 const trModules = [
   {
     id: "visual", index: "01", title: "Görsel & Kalıcı Öğrenme", short: "GPU 101 · Mnemonics · Bilgi testi", phase: "Giriş",
@@ -216,3 +223,10 @@ const enWeeks = [
 
 export const modulesByLocale: Localized<readonly AtlasModule[]> = { tr: addMetadata(trModules), en: addMetadata(enModules) };
 export const roadmapByLocale: Localized<readonly RoadmapWeek[]> = { tr: trWeeks, en: enWeeks };
+
+// Single source of truth for the LLM operator topics the lab actually ships.
+// The overview stat and the LLM pattern pages both read this list, so the
+// advertised operator count cannot drift from the taught operators.
+export const LLM_OPERATOR_TOPIC_IDS = [
+  "gemm", "reduction", "softmax", "normalization", "attention", "grouped", "precision",
+] as const;

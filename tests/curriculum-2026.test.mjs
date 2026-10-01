@@ -54,7 +54,8 @@ async function loadTsxModule(component) {
   const curriculumRegistry = await loadCurriculumRegistry();
   const storageHelpers = { acquireStorage: () => null, readStringArray: () => [], readFiniteInteger: (_storage, _key, options) => options.fallback, readText: (_storage, _key, fallback) => fallback, writeText: () => false, writeJson: () => false };
   const maskModel = await import("../app/atlas/mask-model.mjs");
-  const localRequire = (specifier) => specifier === "./atlas/mask-model.mjs" ? maskModel : specifier === "./atlas/curriculum-sources" ? curriculumRegistry : specifier === "./atlas/lab-storage.mjs" ? storageHelpers : require(specifier);
+  const moduleRegistry = await loadModuleRegistry();
+  const localRequire = (specifier) => specifier === "./atlas/mask-model.mjs" ? maskModel : specifier === "./atlas/curriculum-sources" ? curriculumRegistry : specifier === "./atlas/lab-storage.mjs" ? storageHelpers : specifier === "./atlas/module-registry" ? moduleRegistry : require(specifier);
   const compiled = typescript.transpileModule(source, {
     compilerOptions: {
       esModuleInterop: true,

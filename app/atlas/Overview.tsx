@@ -4,7 +4,7 @@ import { ArchitectureMatrix } from "./ArchitectureMatrix";
 import { GexCompanion } from "./GexCompanion";
 import { LearningConnections } from "./LearningConnections";
 import { uiByLocale } from "./copy";
-import { roadmapByLocale } from "./module-registry";
+import { roadmapByLocale, LLM_OPERATOR_TOPIC_IDS, ARCHITECTURE_IDS } from "./module-registry";
 import type { AtlasModule, ModuleId } from "./types";
 
 export type OverviewProps = {
@@ -54,9 +54,9 @@ export function Overview({ locale, modules, completedIds, lastVisitedId, onOpenM
           </div>
           <div className="hero-stats">
             <div><b>{modules.length}</b><span>{copy.atlasStat}</span></div>
-            <div><b>12</b><span>{copy.weekStat}</span></div>
-            <div><b>5</b><span>{copy.operatorStat}</span></div>
-            <div><b>3</b><span>{copy.gateStat}</span></div>
+            <div><b>{roadmapByLocale[locale].length}</b><span>{copy.weekStat}</span></div>
+            <div><b>{LLM_OPERATOR_TOPIC_IDS.length}</b><span>{copy.operatorStat}</span></div>
+            <div><b>{ARCHITECTURE_IDS.length}</b><span>{copy.gateStat}</span></div>
           </div>
         </div>
         <div className="hero-system" aria-label={locale === "tr" ? "GPU kernel engineering öğrenme sistemi" : "GPU kernel engineering learning system"}>

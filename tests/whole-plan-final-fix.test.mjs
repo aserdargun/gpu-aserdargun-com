@@ -317,3 +317,41 @@ test("README and curriculum registry use their canonical live and CuTe DSL URLs"
   tag(sources, /https:\/\/docs\.nvidia\.com\/cutlass\/latest\/media\/docs\/pythonDSL\/cute_dsl\.html/);
   assert.doesNotMatch(sources, /https:\/\/docs\.nvidia\.com\/cutlass\/latest\/media\/docs\/cpp\/cute_dsl\.html/);
 });
+
+test("the overview advertises the operator and week counts it actually ships", async () => {
+  const [overview, registry] = await Promise.all([
+    readFile(new URL("../app/atlas/Overview.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/atlas/module-registry.ts", import.meta.url), "utf8"),
+  ]);
+
+  // The stat tiles must read the real collections instead of repeating literals,
+  // so adding or removing a taught operator cannot leave a wrong number on the page.
+  assert.match(overview, /LLM_OPERATOR_TOPIC_IDS\.length/);
+  assert.match(overview, /roadmapByLocale\[locale\]\.length/);
+  assert.match(overview, /ARCHITECTURE_IDS\.length/);
+
+  // Scope the literal ban to the hero stat tiles: those advertise what the atlas
+  // currently ships. The graduation block below states learner targets (two
+  // implementations, three Nsight studies), which are requirements, not inventory.
+  const heroStats = overview.match(/<div className="hero-stats">([\s\S]*?)<\/div>\s*<\/div>/);
+  assert.ok(heroStats, "the overview must render a hero-stats block");
+  assert.doesNotMatch(heroStats[1], /<b>\d+<\/b>/, "hero stat tiles must not hard-code a count");
+
+  // The advertised operator count has to equal the topic list the lab teaches.
+  const topics = [...registry.matchAll(/export const LLM_OPERATOR_TOPIC_IDS = \[([\s\S]*?)\] as const;/g)];
+  assert.equal(topics.length, 1, "module-registry must declare one operator topic list");
+  const ids = [...topics[0][1].matchAll(/"([a-z0-9-]+)"/g)].map((match) => match[1]);
+  assert.deepEqual(ids, ["gemm", "reduction", "softmax", "normalization", "attention", "grouped", "precision"]);
+
+  for (const locale of ["tr", "en"]) {
+    const weeks = registry.match(new RegExp(`const ${locale}Weeks = \\[([\\s\\S]*?)\\] as const`));
+    assert.equal(weeks === null ? null : [...weeks[1].matchAll(/\["\d\d"/g)].length, 12, `${locale} roadmap must hold 12 weeks`);
+  }
+
+  // The advertised architecture count has to equal the generations the modules cover.
+  const covered = [...registry.matchAll(/^\s{2}\w+: \["ada", "hopper", "blackwell"(, "rubin")?\],?$/gm)].length;
+  const architectures = new Set([...registry.matchAll(/^\s{2}\w+: \[([^\]]+)\],?$/gm)]
+    .flatMap((entry) => entry[1].split(",").map((id) => id.trim().replace(/"/g, ""))));
+  assert.ok(covered > 0, "the registry must declare per-module architecture coverage");
+  assert.deepEqual([...architectures].sort(), ["ada", "blackwell", "hopper", "rubin"]);
+});
