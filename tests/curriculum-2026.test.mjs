@@ -112,7 +112,7 @@ test("curriculum registry exposes only real approved first-party source entries"
   for (const source of curriculumSources) {
     assert.equal(typeof source.id, "string");
     assert.equal(typeof source.title, "string");
-    assert.match(source.verifiedAt, /^2026-09-(04|21)$/);
+    assert.match(source.verifiedAt, /^2026-(09-(04|21)|10-02)$/);
     assert.ok(["core", "current", "preview"].includes(source.maturity), `${source.id} has an unsupported maturity`);
     const url = new URL(source.url);
     assert.equal(url.protocol, "https:", `${source.id} must use HTTPS`);

@@ -61,7 +61,7 @@ function documentHead(html) {
 test("quality refresh preserves per-source evidence dates and removes known Turkish defects", async () => {
   const { curriculumSources } = await loadCurriculumRegistry();
   assert.ok(curriculumSources.length > 0);
-  assert.deepEqual(new Set(curriculumSources.map(({ verifiedAt }) => verifiedAt)), new Set(["2026-09-04", "2026-09-21"]));
+  assert.deepEqual(new Set(curriculumSources.map(({ verifiedAt }) => verifiedAt)), new Set(["2026-09-04", "2026-09-21", "2026-10-02"]));
 
   const files = [
     "atlas/copy.ts",
