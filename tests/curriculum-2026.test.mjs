@@ -22,11 +22,6 @@ const requiredPatterns = {
   GpuSoftwareStackEmbedded: { tr: ["ROCm 10", "ROCprofiler-SDK", "CUDA Tile IR"], en: ["ROCm 10", "ROCprofiler-SDK", "CUDA Tile IR"] },
 };
 
-const expectedModuleIds = [
-  "toolchain", "architecture", "memory", "triton", "operators", "correctness",
-  "profiling", "cutlass", "inference", "multigpu", "systems",
-];
-
 const approvedHosts = new Set([
   "docs.nvidia.com",
   "developer.nvidia.com",
@@ -104,9 +99,9 @@ test("both locales carry the required 2026 concepts", async () => {
 });
 
 test("curriculum registry exposes only real approved first-party source entries", async () => {
-  const { curriculumSources } = await loadCurriculumRegistry();
+  const [{ curriculumSources }, { MODULE_IDS }] = await Promise.all([loadCurriculumRegistry(), loadModuleRegistry()]);
   assert.ok(Array.isArray(curriculumSources), "curriculumSources must be an array export");
-  assert.ok(curriculumSources.length >= expectedModuleIds.length, "each module needs a source entry");
+  assert.ok(curriculumSources.length >= MODULE_IDS.length, "each module needs a source entry");
 
   const actualHosts = new Set();
   for (const source of curriculumSources) {
@@ -123,10 +118,10 @@ test("curriculum registry exposes only real approved first-party source entries"
 });
 
 test("every module resolves its own first-party sources through the typed registry", async () => {
-  const { curriculumSources, getSourcesForModule } = await loadCurriculumRegistry();
+  const [{ curriculumSources, getSourcesForModule }, { MODULE_IDS }] = await Promise.all([loadCurriculumRegistry(), loadModuleRegistry()]);
   assert.equal(typeof getSourcesForModule, "function");
 
-  for (const moduleId of expectedModuleIds) {
+  for (const moduleId of MODULE_IDS) {
     const resolved = getSourcesForModule(moduleId);
     assert.ok(resolved.length > 0, `source registry missing ${moduleId}`);
     assert.ok(resolved.every((source) => source.moduleId === moduleId), `${moduleId} returned another module's source`);
