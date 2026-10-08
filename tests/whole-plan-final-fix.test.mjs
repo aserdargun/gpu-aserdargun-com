@@ -61,7 +61,7 @@ function documentHead(html) {
 test("quality refresh preserves per-source evidence dates and removes known Turkish defects", async () => {
   const { curriculumSources } = await loadCurriculumRegistry();
   assert.ok(curriculumSources.length > 0);
-  assert.deepEqual(new Set(curriculumSources.map(({ verifiedAt }) => verifiedAt)), new Set(["2026-09-04", "2026-09-21", "2026-10-02"]));
+  assert.deepEqual(new Set(curriculumSources.map(({ verifiedAt }) => verifiedAt)), new Set(["2026-09-04", "2026-09-21", "2026-10-02", "2026-10-08"]));
 
   const files = [
     "atlas/copy.ts",
@@ -213,14 +213,16 @@ test("NCCL 2.31.2 Device API evidence is feature-granular and preserves exact co
 
 test("CUDA 13.4 and cuTile 1.6 visible claims resolve to their direct current records", async () => {
   const { curriculumSources } = await loadCurriculumRegistry();
+  // The nvcc record was re-read against the live 13.4 documentation on
+  // 2026-10-08; the cuTile release notes still carry their own read date.
   const expected = {
-    "cuda-tile-nvcc-13-4": ["NVIDIA CUDA Compiler Driver 13.4 — Tile Compilation", "https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/"],
-    "cutile-python-1-6-release": ["cuTile Python 1.6.0 Release Notes", "https://docs.nvidia.com/cuda/cutile-python/generated/release_notes.html"],
+    "cuda-tile-nvcc-13-4": ["2026-10-08", "NVIDIA CUDA Compiler Driver 13.4 — Tile Compilation", "https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/"],
+    "cutile-python-1-6-release": ["2026-09-21", "cuTile Python 1.6.0 Release Notes", "https://docs.nvidia.com/cuda/cutile-python/generated/release_notes.html"],
   };
-  for (const [id, [title, url]] of Object.entries(expected)) {
+  for (const [id, [verifiedAt, title, url]] of Object.entries(expected)) {
     const source = curriculumSources.find((candidate) => candidate.id === id);
     assert.ok(source, `missing ${id}`);
-    assert.deepEqual([source.moduleId, source.maturity, source.verifiedAt, source.title, source.url], ["architecture", "current", "2026-09-21", title, url]);
+    assert.deepEqual([source.moduleId, source.maturity, source.verifiedAt, source.title, source.url], ["architecture", "current", verifiedAt, title, url]);
   }
   const historical = curriculumSources.find(({ id }) => id === "cuda-tile");
   assert.ok(historical);

@@ -107,7 +107,7 @@ test("curriculum registry exposes only real approved first-party source entries"
   for (const source of curriculumSources) {
     assert.equal(typeof source.id, "string");
     assert.equal(typeof source.title, "string");
-    assert.match(source.verifiedAt, /^2026-(09-(04|21)|10-02)$/);
+    assert.match(source.verifiedAt, /^2026-(09-(04|21)|10-(02|08))$/);
     assert.ok(["core", "current", "preview"].includes(source.maturity), `${source.id} has an unsupported maturity`);
     const url = new URL(source.url);
     assert.equal(url.protocol, "https:", `${source.id} must use HTTPS`);
@@ -550,14 +550,14 @@ test("Task 4 CUTLASS paths preserve direct source maturity and do not cross-asso
     loadCurriculumRegistry(),
   ]);
   const expectedSources = {
-    "cutlass-overview-4": ["cutlass", "current", "2026-09-04", "CUTLASS 4 Overview", "https://docs.nvidia.com/cutlass/latest/overview.html"],
+    "cutlass-overview-4": ["cutlass", "current", "2026-10-08", "CUTLASS 4 Overview", "https://docs.nvidia.com/cutlass/latest/overview.html"],
     "cutlass-cpp-templates": ["cutlass", "current", "2026-09-04", "CUTLASS 3.x GEMM API", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/gemm_api_3x.html"],
     "cutlass-cute-dsl": ["cutlass", "preview", "2026-09-04", "CuTe DSL", "https://docs.nvidia.com/cutlass/latest/media/docs/pythonDSL/cute_dsl.html"],
     "cutlass-legacy-generator": ["cutlass", "current", "2026-09-04", "CUTLASS Code Organization", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/code_organization.html"],
     "cutlass-blackwell-sm100": ["cutlass", "current", "2026-09-04", "CUTLASS Blackwell SM100 GEMMs", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/blackwell_functionality.html"],
     "cutlass-grouped-scheduler": ["cutlass", "current", "2026-09-04", "CUTLASS Grouped Kernel Schedulers", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/grouped_scheduler.html"],
     "cutlass-blackwell-clc": ["cutlass", "current", "2026-09-04", "CUTLASS Blackwell Cluster Launch Control", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/blackwell_cluster_launch_control.html"],
-    "cutlass-rubin-sm107": ["cutlass", "preview", "2026-09-21", "CUTLASS Rubin SM107 Changelog", "https://docs.nvidia.com/cutlass/latest/CHANGELOG.html"],
+    "cutlass-rubin-sm107": ["cutlass", "preview", "2026-10-08", "CUTLASS Rubin SM107 Changelog", "https://docs.nvidia.com/cutlass/latest/CHANGELOG.html"],
   };
   const expectedArchitectures = ["ada", "hopper", "blackwell", "rubin"];
 
@@ -668,9 +668,9 @@ test("Task 5 source records bind each systems claim to direct official evidence 
     "nvshmem-symmetric-memory": ["multigpu", "current", "NVIDIA NVSHMEM Symmetric Memory", "https://docs.nvidia.com/nvshmem/api/latest/using.html"],
     "nccl-cuda-streams": ["multigpu", "current", "NCCL CUDA Stream Semantics", "https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/streams.html"],
     "vllm-parallelism-scaling": ["multigpu", "current", "vLLM Parallelism and Scaling", "https://docs.vllm.ai/en/stable/serving/parallelism_scaling/"],
-    "rocm-10-core": ["systems", "current", "ROCm Core SDK 10.0.0 Release Notes", "https://rocm.docs.amd.com/en/develop/about/release-notes.html"],
-    "rocprofiler-sdk-rocm10": ["systems", "current", "ROCprofiler-SDK in ROCm 10", "https://rocm.docs.amd.com/en/develop/about/release-notes.html"],
-    "hip-programming-rocm10": ["systems", "current", "AMD GPU Programming on ROCm", "https://rocm.docs.amd.com/en/develop/reference/hip-programming.html"],
+    "rocm-10-core": ["systems", "current", "ROCm Core SDK 10.1.0 Release Notes", "https://rocm.docs.amd.com/en/latest/about/release-notes.html"],
+    "rocprofiler-sdk-rocm10": ["systems", "current", "ROCprofiler-SDK in ROCm 10", "https://rocm.docs.amd.com/en/latest/about/release-notes.html"],
+    "hip-programming-rocm10": ["systems", "current", "AMD GPU Programming on ROCm", "https://rocm.docs.amd.com/en/latest/reference/hip-programming.html"],
     "mlir-dialect-conversion": ["systems", "current", "MLIR Dialect Conversion", "https://mlir.llvm.org/docs/DialectConversion/"],
     "cuda-tile-ir": ["systems", "current", "CUDA Tile IR", "https://docs.nvidia.com/cuda/tile-ir/main/sections/introduction.html"],
     "cutile-tileir": ["systems", "current", "cuTile Python Quickstart", "https://docs.nvidia.com/cuda/cutile-python/quickstart.html"],
@@ -681,12 +681,17 @@ test("Task 5 source records bind each systems claim to direct official evidence 
   };
 
   assert.deepEqual(curriculumSources.filter(({ id }) => Object.hasOwn(expected, id)).map(({ id }) => id), Object.keys(expected));
+  // Sources re-read against the primary vendor document carry the date of that
+  // read; everything else keeps the date its evidence was last actually checked.
+  const reReadOn = new Set([
+    "systems-rubin-sm107", "rocm-10-core", "rocprofiler-sdk-rocm10", "hip-programming-rocm10",
+  ]);
   for (const [id, [moduleId, maturity, title, url]] of Object.entries(expected)) {
     const source = curriculumSources.find((entry) => entry.id === id);
     assert.ok(source, `missing Task 5 source ${id}`);
     assert.deepEqual(
       [source.moduleId, source.maturity, source.verifiedAt, source.title, source.url],
-      [moduleId, maturity, id === "systems-rubin-sm107" ? "2026-09-21" : "2026-09-04", title, url],
+      [moduleId, maturity, reReadOn.has(id) ? "2026-10-08" : "2026-09-04", title, url],
       `${id} source contract drifted`,
     );
   }
