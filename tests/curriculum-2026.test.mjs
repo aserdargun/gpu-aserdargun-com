@@ -107,7 +107,7 @@ test("curriculum registry exposes only real approved first-party source entries"
   for (const source of curriculumSources) {
     assert.equal(typeof source.id, "string");
     assert.equal(typeof source.title, "string");
-    assert.match(source.verifiedAt, /^2026-(09-(04|21)|10-(02|08))$/);
+    assert.match(source.verifiedAt, /^2026-(09-(04|21)|10-(02|08|15))$/);
     assert.ok(["core", "current", "preview"].includes(source.maturity), `${source.id} has an unsupported maturity`);
     const url = new URL(source.url);
     assert.equal(url.protocol, "https:", `${source.id} must use HTTPS`);
@@ -557,7 +557,7 @@ test("Task 4 CUTLASS paths preserve direct source maturity and do not cross-asso
     "cutlass-blackwell-sm100": ["cutlass", "current", "2026-09-04", "CUTLASS Blackwell SM100 GEMMs", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/blackwell_functionality.html"],
     "cutlass-grouped-scheduler": ["cutlass", "current", "2026-09-04", "CUTLASS Grouped Kernel Schedulers", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/grouped_scheduler.html"],
     "cutlass-blackwell-clc": ["cutlass", "current", "2026-09-04", "CUTLASS Blackwell Cluster Launch Control", "https://docs.nvidia.com/cutlass/latest/media/docs/cpp/blackwell_cluster_launch_control.html"],
-    "cutlass-rubin-sm107": ["cutlass", "preview", "2026-10-08", "CUTLASS Rubin SM107 Changelog", "https://docs.nvidia.com/cutlass/latest/CHANGELOG.html"],
+    "cutlass-rubin-sm107": ["cutlass", "preview", "2026-10-15", "CUTLASS Rubin SM107 Changelog", "https://docs.nvidia.com/cutlass/latest/CHANGELOG.html"],
   };
   const expectedArchitectures = ["ada", "hopper", "blackwell", "rubin"];
 
@@ -683,15 +683,18 @@ test("Task 5 source records bind each systems claim to direct official evidence 
   assert.deepEqual(curriculumSources.filter(({ id }) => Object.hasOwn(expected, id)).map(({ id }) => id), Object.keys(expected));
   // Sources re-read against the primary vendor document carry the date of that
   // read; everything else keeps the date its evidence was last actually checked.
-  const reReadOn = new Set([
-    "systems-rubin-sm107", "rocm-10-core", "rocprofiler-sdk-rocm10", "hip-programming-rocm10",
+  const reReadOn = new Map([
+    ["systems-rubin-sm107", "2026-10-15"],
+    ["rocm-10-core", "2026-10-08"],
+    ["rocprofiler-sdk-rocm10", "2026-10-08"],
+    ["hip-programming-rocm10", "2026-10-08"],
   ]);
   for (const [id, [moduleId, maturity, title, url]] of Object.entries(expected)) {
     const source = curriculumSources.find((entry) => entry.id === id);
     assert.ok(source, `missing Task 5 source ${id}`);
     assert.deepEqual(
       [source.moduleId, source.maturity, source.verifiedAt, source.title, source.url],
-      [moduleId, maturity, reReadOn.has(id) ? "2026-10-08" : "2026-09-04", title, url],
+      [moduleId, maturity, reReadOn.get(id) ?? "2026-09-04", title, url],
       `${id} source contract drifted`,
     );
   }

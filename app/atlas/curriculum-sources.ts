@@ -55,7 +55,7 @@ export const curriculumSources = [
     moduleId: "architecture",
     title: "NVIDIA CUDA Compiler Driver 13.4 — Tile Compilation",
     url: "https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/",
-    verifiedAt: "2026-10-08",
+    verifiedAt: "2026-10-15",
     maturity: "current",
   },
   {
@@ -191,7 +191,7 @@ export const curriculumSources = [
     moduleId: "cutlass",
     title: "CUTLASS Changelog",
     url: "https://docs.nvidia.com/cutlass/latest/CHANGELOG.html",
-    verifiedAt: "2026-10-08",
+    verifiedAt: "2026-10-15",
     maturity: "current",
   },
   {
@@ -255,7 +255,7 @@ export const curriculumSources = [
     moduleId: "cutlass",
     title: "CUTLASS Rubin SM107 Changelog",
     url: "https://docs.nvidia.com/cutlass/latest/CHANGELOG.html",
-    verifiedAt: "2026-10-08",
+    verifiedAt: "2026-10-15",
     maturity: "preview",
   },
   {
@@ -367,7 +367,7 @@ export const curriculumSources = [
     moduleId: "multigpu",
     title: "NCCL 2.32.3 Release Notes — Initial Vera Rubin (SM107) Support",
     url: "https://docs.nvidia.com/deeplearning/nccl/release-notes/rel_2-32-3.html",
-    verifiedAt: "2026-10-08",
+    verifiedAt: "2026-10-15",
     maturity: "current",
   },
   {
@@ -567,7 +567,7 @@ export const curriculumSources = [
     moduleId: "systems",
     title: "CUTLASS Rubin SM107 Changelog",
     url: "https://docs.nvidia.com/cutlass/latest/CHANGELOG.html",
-    verifiedAt: "2026-10-08",
+    verifiedAt: "2026-10-15",
     maturity: "preview",
   },
 ] as const satisfies readonly CurriculumSource[];
