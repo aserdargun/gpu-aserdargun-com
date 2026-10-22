@@ -61,7 +61,7 @@ function documentHead(html) {
 test("quality refresh preserves per-source evidence dates and removes known Turkish defects", async () => {
   const { curriculumSources } = await loadCurriculumRegistry();
   assert.ok(curriculumSources.length > 0);
-  assert.deepEqual(new Set(curriculumSources.map(({ verifiedAt }) => verifiedAt)), new Set(["2026-09-04", "2026-09-21", "2026-10-02", "2026-10-08", "2026-10-15"]));
+  assert.deepEqual(new Set(curriculumSources.map(({ verifiedAt }) => verifiedAt)), new Set(["2026-09-04", "2026-09-21", "2026-10-02", "2026-10-08", "2026-10-15", "2026-10-22"]));
 
   const files = [
     "atlas/copy.ts",
@@ -178,16 +178,16 @@ test("legacy query locale is dynamic-worker compatibility and does not alter the
 test("NCCL 2.31.2 Device API evidence is feature-granular and preserves exact compatibility boundaries", async () => {
   const { curriculumSources } = await loadCurriculumRegistry();
   const expected = {
-    "nccl-device-lsa-multimem": ["current", "NCCL 2.31.2 Device API — LSA and Multimem Compatibility", "https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/deviceapi.html"],
-    "nccl-device-gin": ["current", "NCCL 2.31.2 Device API — GIN Recompile Boundary", "https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/usage/deviceapi.html"],
-    "nccl-device-rust-bindings": ["preview", "NCCL 2.31.2 Experimental Rust Device API Bindings", "https://docs.nvidia.com/deeplearning/nccl/archives/nccl_2312/release-notes/rel_2-31-2.html"],
+    "nccl-device-lsa-multimem": ["current", "NCCL 2.31.2 Device API — LSA and Multimem Compatibility", "https://docs.nvidia.com/deeplearning/nccl/archives/nccl_2312/user-guide/docs/usage/deviceapi.html", "2026-10-22"],
+    "nccl-device-gin": ["current", "NCCL 2.31.2 Device API — GIN Recompile Boundary", "https://docs.nvidia.com/deeplearning/nccl/archives/nccl_2312/user-guide/docs/usage/deviceapi.html", "2026-10-22"],
+    "nccl-device-rust-bindings": ["preview", "NCCL 2.31.2 Experimental Rust Device API Bindings", "https://docs.nvidia.com/deeplearning/nccl/archives/nccl_2312/release-notes/rel_2-31-2.html", "2026-09-04"],
   };
-  for (const [id, [maturity, title, url]] of Object.entries(expected)) {
+  for (const [id, [maturity, title, url, verifiedAt]] of Object.entries(expected)) {
     const source = curriculumSources.find((candidate) => candidate.id === id);
     assert.ok(source, `missing ${id}`);
     assert.deepEqual(
       [source.moduleId, source.maturity, source.verifiedAt, source.title, source.url],
-      ["multigpu", maturity, "2026-09-04", title, url],
+      ["multigpu", maturity, verifiedAt, title, url],
     );
   }
 
@@ -211,13 +211,14 @@ test("NCCL 2.31.2 Device API evidence is feature-granular and preserves exact co
   }
 });
 
-test("CUDA 13.4 and cuTile 1.6 visible claims resolve to their direct current records", async () => {
+test("CUDA 13.4 and cuTile 1.7 visible claims resolve to their direct current records", async () => {
   const { curriculumSources } = await loadCurriculumRegistry();
-  // The nvcc record was re-read against the live 13.4 documentation on
-  // 2026-10-08; the cuTile release notes still carry their own read date.
+  // Both records were re-read against their live vendor documents on
+  // 2026-10-22: the nvcc guide still documents 13.4, and the cuTile release
+  // notes now lead with 1.7.0, so the taught "current" version moved with it.
   const expected = {
-    "cuda-tile-nvcc-13-4": ["2026-10-15", "NVIDIA CUDA Compiler Driver 13.4 — Tile Compilation", "https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/"],
-    "cutile-python-1-6-release": ["2026-09-21", "cuTile Python 1.6.0 Release Notes", "https://docs.nvidia.com/cuda/cutile-python/generated/release_notes.html"],
+    "cuda-tile-nvcc-13-4": ["2026-10-22", "NVIDIA CUDA Compiler Driver 13.4 — Tile Compilation", "https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/"],
+    "cutile-python-1-7-release": ["2026-10-22", "cuTile Python 1.7.0 Release Notes", "https://docs.nvidia.com/cuda/cutile-python/generated/release_notes.html"],
   };
   for (const [id, [verifiedAt, title, url]] of Object.entries(expected)) {
     const source = curriculumSources.find((candidate) => candidate.id === id);
@@ -318,6 +319,59 @@ test("README and curriculum registry use their canonical live and CuTe DSL URLs"
   assert.doesNotMatch(readme, /gpu-kernel-engineering-atlas\.aserdargun\.chatgpt\.site/i);
   tag(sources, /https:\/\/docs\.nvidia\.com\/cutlass\/latest\/media\/docs\/pythonDSL\/cute_dsl\.html/);
   assert.doesNotMatch(sources, /https:\/\/docs\.nvidia\.com\/cutlass\/latest\/media\/docs\/cpp\/cute_dsl\.html/);
+});
+
+test("a version the README calls current is backed by a record that carries that version", async () => {
+  const { curriculumSources } = await loadCurriculumRegistry();
+  const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");
+
+  // The README names the version its evidence review covers. That sentence is a
+  // copy of the registry, so it drifts the moment a record is re-read and the
+  // copy is not updated — and nothing else in CI compares the two. Read the
+  // date back out of the README and require the record behind that version to
+  // carry exactly it.
+  const clauses = [...readme.matchAll(/([A-Za-z][\w.]*(?: [A-Za-z0-9][\w.]*)*?) evidence reviewed on ([A-Z][a-z]+ \d{1,2}, \d{4})/g)];
+  assert.ok(clauses.length >= 2, "the README must state a review date for every current version it names");
+
+  for (const [, subject, stated] of clauses) {
+    const version = subject.match(/(\d+(?:\.\d+)+)/)?.[1];
+    assert.ok(version, `the README subject "${subject}" must name a version`);
+    const carriers = curriculumSources.filter((source) => source.title.includes(version));
+    assert.equal(carriers.length, 1, `the README names ${subject} but ${carriers.length} records carry ${version}`);
+    const expected = new Date(`${carriers[0].verifiedAt}T00:00:00Z`).toLocaleDateString("en-US", {
+      timeZone: "UTC",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    assert.equal(stated, expected, `the README states ${stated} for ${subject} but ${carriers[0].id} was verified on ${carriers[0].verifiedAt}`);
+  }
+});
+
+test("a version claim in the interface names the version its cited record carries", async () => {
+  const { curriculumSources } = await loadCurriculumRegistry();
+  const byId = (id) => curriculumSources.find((source) => source.id === id);
+
+  // The architecture lab states a version and points at the record that backs
+  // it. If the taught version moves and the cited record does not — or the
+  // other way round — the reader is shown a version the evidence behind it
+  // does not carry.
+  for (const component of ["CudaSimtEmbedded", "CudaSimtEmbedded.en"]) {
+    const source = await readFile(new URL(`../app/${component}.tsx`, import.meta.url), "utf8");
+    const claims = [...source.matchAll(/data-version-claim="([^"]+)" data-source-id="([^"]+)"/g)]
+      .map(([, claim, sourceId]) => ({ claim, sourceId }));
+    assert.ok(claims.length >= 2, `${component} must carry version claims`);
+
+    for (const { claim, sourceId } of claims) {
+      const source = byId(sourceId);
+      assert.ok(source, `${component} claims ${claim} but cites an unknown source ${sourceId}`);
+      const claimed = claim.slice(claim.lastIndexOf("-") + 1).split(".").map(Number);
+      const carried = source.title.match(/(\d+(?:\.\d+)+)/)?.[1].split(".").map(Number);
+      assert.ok(carried, `${sourceId} must name a version in its title`);
+      const agrees = claimed.length <= carried.length && claimed.every((part, index) => part === carried[index]);
+      assert.ok(agrees, `${component} claims ${claim} but ${sourceId} carries "${source.title}"`);
+    }
+  }
 });
 
 test("the overview advertises the operator and week counts it actually ships", async () => {

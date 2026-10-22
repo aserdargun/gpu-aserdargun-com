@@ -21,7 +21,7 @@ export const CUDA_PROGRAMMING_BRIDGE = [
 
 export const CUDA_TILE_MATURITY = { cudaTile: "current", cuTile: "current" } as const;
 
-const architectureSources = ["cuda-guide", "cuda-tile", "cuda-tile-nvcc-13-4", "cutile-python-1-6-release"].map((id) => {
+const architectureSources = ["cuda-guide", "cuda-tile", "cuda-tile-nvcc-13-4", "cutile-python-1-7-release"].map((id) => {
   const source = curriculumSources.find((candidate) => candidate.id === id);
   if (!source) throw new Error(`Missing architecture source: ${id}`);
   return source;
@@ -230,7 +230,7 @@ export default function CudaSimtEmbedded() {
               <p><strong>Model boundary:</strong> Tile programming does not replace SIMT; SIMT remains for kernels that need thread-level control, while the tile model complements it for block-level data-parallel work.</p>
               <p className={architectureSupport.tma ? "supported" : "unsupported"} aria-live="polite"><strong>TMA · {architectureSupport.tma ? "applicable" : "unsupported"}</strong>{architectureSupport.tma ? "Bulk-asynchronous tensor copy and tensor-map descriptors are available on this architecture path." : architectureSupport.reason}</p>
               <p data-version-claim="cuda-13.4" data-source-id="cuda-tile-nvcc-13-4"><strong>Current · CUDA 13.4:</strong> NVCC documents Tile compilation, introduced in 13.3, enabled with <code>-enable-tile</code>; verify the installed toolkit, driver, and GPU prerequisites separately.</p>
-              <p data-version-claim="cutile-1.6" data-source-id="cutile-python-1-6-release"><strong>Current · cuTile Python 1.6:</strong> CTK 13.4 features include programmatic dependent launch and portable TileIR export. Bounds checks stay enabled by default; disabling them requires proving every accessed element is in bounds. Verify package and platform prerequisites separately.</p>
+              <p data-version-claim="cutile-1.7" data-source-id="cutile-python-1-7-release"><strong>Current · cuTile Python 1.7:</strong> It adds TileIR text dumping (<code>CUDA_TILE_LOGS=TILEIR</code>, <code>CUDA_TILE_DUMP_TILEIR</code>), which requires CTK 13.4 or later, and publishes Windows arm64 wheels. The supported Python subset grows with <code>str.join()</code>, dataclass comparison and operator overloads; compile-time exceptions are raised with <code>ct.static_exception()</code>. Verify package and platform prerequisites separately.</p>
             </div>
             <div className="architecture-source-evidence">
               <div className="architecture-source-heading">
@@ -242,7 +242,7 @@ export default function CudaSimtEmbedded() {
                   <article key={source.id} data-source-id={source.id} data-maturity={source.maturity}>
                     <span>CURRENT</span>
                     <h4><a href={source.url} target="_blank" rel="noreferrer">{source.title}</a></h4>
-                    <p><strong>Applicability:</strong> {source.id === "cuda-guide" ? "A first-party reference for the Grid, block, warp, thread, and SIMT boundaries." : source.id === "cuda-tile" ? "Historical CUDA 13.1 context for the Tile programming direction; it does not evidence later version claims." : source.id === "cuda-tile-nvcc-13-4" ? "Direct NVCC evidence for CUDA 13.4 Tile compilation and -enable-tile." : "Direct release evidence for the cuTile Python 1.6 package."}</p>
+                    <p><strong>Applicability:</strong> {source.id === "cuda-guide" ? "A first-party reference for the Grid, block, warp, thread, and SIMT boundaries." : source.id === "cuda-tile" ? "Historical CUDA 13.1 context for the Tile programming direction; it does not evidence later version claims." : source.id === "cuda-tile-nvcc-13-4" ? "Direct NVCC evidence for CUDA 13.4 Tile compilation and -enable-tile." : "Direct release evidence for the cuTile Python 1.7 package."}</p>
                     <p><strong>Status:</strong> Current source verified on {source.verifiedAt}; confirm target toolkit, driver, and GPU requirements against the applicable source version.</p>
                   </article>
                 ))}

@@ -1477,8 +1477,8 @@ for (const task7Case of [
         href: "https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/",
       },
       {
-        id: "cutile-python-1-6-release",
-        title: "cuTile Python 1.6.0 Release Notes",
+        id: "cutile-python-1-7-release",
+        title: "cuTile Python 1.7.0 Release Notes",
         href: "https://docs.nvidia.com/cuda/cutile-python/generated/release_notes.html",
       },
     ]) {
