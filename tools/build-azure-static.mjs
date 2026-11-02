@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { writeArtifactManifest } from "./artifact-contract.mjs";
+import { inlineScriptHashes } from "./inline-script-hashes.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const client = resolve(root, "dist/client");
@@ -41,9 +42,27 @@ const [html, englishHtml] = await Promise.all([
 await writeFile(resolve(out, "index.html"), html, "utf8");
 await mkdir(resolve(out, "en"), { recursive: true });
 await writeFile(resolve(out, "en/index.html"), englishHtml, "utf8");
+
+// The published policy keeps `script-src 'self'` strict, so the emitted copy
+// has to name the inline hydration scripts of the pages it ships. Without
+// them the browser blocks the bootstrap, the application never hydrates and
+// the published atlas is a static shell that answers no click.
+const config = JSON.parse(await readFile(resolve(root, "staticwebapp.config.json"), "utf8"));
+const policy = config.globalHeaders?.["Content-Security-Policy"];
+if (typeof policy !== "string" || !/script-src [^;]*;/.test(policy)) {
+  throw new Error("The published policy must declare a script-src directive");
+}
+const hashes = [...new Set([...inlineScriptHashes(html), ...inlineScriptHashes(englishHtml)])].sort();
+if (hashes.length === 0) {
+  throw new Error("The static pages must carry the inline scripts the policy has to permit");
+}
+config.globalHeaders["Content-Security-Policy"] = policy.replace(
+  /script-src ([^;]*);/,
+  `script-src $1 ${hashes.join(" ")};`,
+);
 await writeFile(
   resolve(out, "staticwebapp.config.json"),
-  await readFile(resolve(root, "staticwebapp.config.json"), "utf8"),
+  `${JSON.stringify(config, null, 2)}\n`,
   "utf8",
 );
 

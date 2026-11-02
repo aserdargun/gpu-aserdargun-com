@@ -113,4 +113,12 @@ assets into the prebuilt `out/` directory; `npm run verify:azure` validates the
 artifact. Hosting metadata is stored in `.openai/hosting.json`; no secrets are
 committed.
 
+The published Content-Security-Policy keeps `script-src 'self'` strict, and the
+runtime emits its hydration bootstrap as inline scripts. The build therefore
+names exactly those scripts by content hash in the emitted copy of
+`staticwebapp.config.json`, and `npm run verify:azure` fails when the policy
+misses a script the shipped pages carry or permits one they do not. Without
+those hashes the browser refuses to run the bootstrap: the page renders its
+server-rendered markup, but the atlas never hydrates and no control responds.
+
 Live site: [gpu.aserdargun.com](https://gpu.aserdargun.com/)

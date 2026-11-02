@@ -3,6 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { verifyArtifactManifest } from "./artifact-contract.mjs";
+import { inlineScriptHashes, scriptSourceTokens } from "./inline-script-hashes.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const out = resolve(root, "out");
@@ -29,6 +30,26 @@ const [html, englishHtml, configText, favicon, appIcon, appleIcon, trCard, enCar
 ]);
 
 await verifyArtifactManifest(out);
+
+// The published policy has to permit exactly the inline scripts the shipped
+// pages carry, and nothing more. A policy that misses one of them leaves the
+// browser refusing to hydrate the atlas, and a policy that names a script
+// the pages no longer ship is a hole that outlived its reason.
+const policy = JSON.parse(configText).globalHeaders["Content-Security-Policy"];
+const tokens = scriptSourceTokens(policy);
+const permitted = new Set(tokens.filter((token) => token.startsWith("'sha256-")));
+const required = new Set([...inlineScriptHashes(html), ...inlineScriptHashes(englishHtml)]);
+const missing = [...required].filter((hash) => !permitted.has(hash));
+const stale = [...permitted].filter((hash) => !required.has(hash));
+if (missing.length > 0) {
+  throw new Error(`The published policy blocks ${missing.length} inline script(s) the shipped pages carry`);
+}
+if (stale.length > 0) {
+  throw new Error(`The published policy permits ${stale.length} inline script(s) the shipped pages do not carry`);
+}
+if (tokens.includes("'unsafe-inline'")) {
+  throw new Error("The published policy must not allow unsafe-inline scripts");
+}
 
 const checks = [
   [html.includes("GPU KERNEL ATLAS"), "identity"],
