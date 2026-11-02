@@ -1,5 +1,24 @@
 import { expect, test } from "@playwright/test";
 
+import { getSourcesForModule } from "../../app/atlas/curriculum-sources";
+import { MODULE_IDS } from "../../app/atlas/module-registry";
+import type { ModuleId } from "../../app/atlas/types";
+
+// The module source panel groups the records that share a document and shows
+// the oldest review date for that document. Deriving the expectation from the
+// curriculum registry keeps this guard true across an audit pass: a hand-kept
+// date list went stale when the October reviews moved the dates, and nothing
+// in CI runs this file to notice.
+function expectedReviewDates(moduleId: ModuleId): string[] {
+  const documents = new Map<string, string[]>();
+  for (const source of getSourcesForModule(moduleId)) {
+    const dates = documents.get(source.url) ?? [];
+    dates.push(source.verifiedAt);
+    documents.set(source.url, dates);
+  }
+  return [...documents.values()].map((dates) => dates.sort()[0]);
+}
+
 for (const locale of ["tr", "en"] as const) {
   const route = locale === "tr" ? "/?lang=tr" : "/en/?lang=en";
 
@@ -24,11 +43,12 @@ for (const locale of ["tr", "en"] as const) {
     await expect(page.locator("html")).toHaveAttribute("data-atlas-ready", "true");
     await expect(page.locator(".atlas-portfolio-footer a")).toHaveAttribute("href", `https://aserdargun.com/${locale === "tr" ? "tr/" : ""}`);
     await expect(page.locator(".learning-connections")).toContainText(locale === "tr" ? "POL yalnızca İngilizcedir" : "POL is English only");
-    for (const id of ["visual", "toolchain", "architecture", "memory", "triton", "operators", "correctness", "profiling", "cutlass", "inference", "multigpu", "systems"]) {
+    for (const id of MODULE_IDS) {
       await page.getByTestId(`atlas-module-${id}`).click();
       await expect(page.getByTestId("atlas-module-title")).toBeVisible();
       const sources = page.locator(".module-sources");
-      await expect(sources.locator("time").first()).toHaveAttribute("datetime", /^2026-09-(04|21)$/);
+      const renderedDates = await sources.locator("time").evaluateAll((nodes) => nodes.map((node) => node.getAttribute("datetime")));
+      expect(renderedDates).toEqual(expectedReviewDates(id));
       const urls = await sources.locator("a").evaluateAll((links) => links.map((link) => (link as HTMLAnchorElement).href));
       expect(urls.length).toBeGreaterThan(0);
       expect(new Set(urls).size).toBe(urls.length);
